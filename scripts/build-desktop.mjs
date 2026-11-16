@@ -117,6 +117,13 @@ await copyFile(
   join(out, "notices/FFmpeg-README.txt"),
 );
 await copyFile("desktop/THIRD-PARTY.md", join(out, "notices/THIRD-PARTY.md"));
+await copyFile("LICENSE", join(out, "LICENSE"));
+await copyFile(
+  "THIRD_PARTY_NOTICES.md",
+  join(out, "notices/THIRD_PARTY_NOTICES.md"),
+);
+for (const name of ["GPL-2.0-or-later.txt", "GPL-3.0-or-later.txt"])
+  await copyFile(join("LICENSES", name), join(out, "notices", name));
 
 if (customNative)
   await copyFile(
@@ -168,6 +175,7 @@ await writeFile(
       description: "EditAI local video editing studio",
       author: "Jadon Tapp",
       private: true,
+      license: "MIT",
       dependencies: {},
     },
     null,

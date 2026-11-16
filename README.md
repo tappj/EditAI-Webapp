@@ -13,3 +13,10 @@ Runtime secrets: `PUBLIK_APP_TOKEN` and a base64 32-byte `SESSION_ENCRYPTION_KEY
 Read [feature parity](docs/WEB-PARITY.md), [actual verification and limits](docs/VERIFICATION.md), [domain/cost research](docs/DOMAINS-AND-COSTS.md), and [progress](plan.md). In particular, accounts whose Publik wallet lacks a public identity use browser-scoped persistence; source backups are optional; browser exports are re-encoded SDR; catalog review and physical camera/Safari checks remain outstanding.
 
 Desktop 0.2.1: shared local Electron editor, native FFmpeg and OS-encrypted Publik credentials. The [signed and notarized macOS arm64 installer](https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.1/EditAI-0.2.1-mac-arm64.dmg) has a rounded macOS app icon and passed installed-app acceptance; macOS 15 or newer is required. See [desktop architecture, benchmarks, release process and remaining limits](docs/desktop/README.md). Windows is still internal QA and has no public installer. [Migration verification and remaining boundaries](docs/desktop/VERIFICATION.md) record the 24 deployed browser checks, real AI workflow, native tests and platform build results.
+
+## License
+
+EditAI-authored code is available under the [MIT License](LICENSE). Bundled
+FFmpeg and other third-party components retain their own licenses, including
+the GPL. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the applicable
+notices, full license texts and source/build links.

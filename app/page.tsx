@@ -87,6 +87,12 @@ import {
   clearStorage,
   setStorageScope,
 } from "@/lib/editor/storage";
+import {
+  desktop,
+  mediaURL,
+  mediaBlob,
+  type MediaResource,
+} from "@/lib/editor/desktop";
 import { FONTS } from "@/lib/editor/fonts";
 import { makeReference, type Reference } from "@/lib/editor/reference";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
@@ -181,6 +187,7 @@ export default function App() {
     [privacy, setPrivacy] = useState(false),
     [menu, setMenu] = useState(false),
     [cloud, setCloud] = useState(false);
+  const authPopup = useRef<Window | null>(null);
   const recordingDirty = useRef(false);
   const lastPlayheadPaint = useRef(0);
   const input = useRef<HTMLInputElement>(null),
@@ -251,6 +258,12 @@ export default function App() {
     setError(e.message || String(e));
     setErrorURL(e.url || "");
   }, []);
+  useEffect(() => {
+    if (session?.screen.id !== "sign_in" && authPopup.current) {
+      authPopup.current.close();
+      authPopup.current = null;
+    }
+  }, [session?.screen.id]);
   const refresh = useCallback(async () => {
     try {
       const s = await api("session");
@@ -481,7 +494,18 @@ export default function App() {
     try {
       if (choice === "sign_in" || choice === "get_plan") {
         const url = session.claimURL;
-        if (url) window.open(url, "_blank", "noopener,noreferrer");
+        if (url) {
+          const popup = window.open(
+            "about:blank",
+            "editai-publik",
+            "popup,width=540,height=720",
+          );
+          if (popup) {
+            popup.opener = null;
+            popup.location.href = url;
+            authPopup.current = popup;
+          } else window.open(url, "_blank", "noopener,noreferrer");
+        }
         return;
       }
       await api("choice", {
@@ -525,7 +549,7 @@ export default function App() {
           b = await r.blob();
           await saveMedia(s.id, b);
         }
-        next[s.id] = URL.createObjectURL(b);
+        next[s.id] = mediaURL(b);
       }
       setUrls(next);
       setProject(p);
@@ -562,7 +586,9 @@ export default function App() {
         await saveMedia(s.id, f);
         d.sources.push(s);
         d.segments.push(newSegment(i, s.duration));
-        next[s.id] = URL.createObjectURL(f);
+        next[s.id] = desktop()
+          ? mediaURL((await loadMedia(s.id))!)
+          : URL.createObjectURL(f);
         setProgress((i + 1) / files.length);
         if (cloud)
           try {
@@ -601,7 +627,12 @@ export default function App() {
       );
     });
   }
-  async function backup(id: string, f: Blob) {
+  async function backup(id: string, media: MediaResource) {
+    if (media.size > 100 * 1024 * 1024)
+      throw Error(
+        "Cloud backup supports files up to 100 MB. This source stays local.",
+      );
+    const f = await mediaBlob(media);
     const r = await fetch("/api/assets/" + id, {
       method: "PUT",
       headers: {
@@ -624,7 +655,9 @@ export default function App() {
         const s = await probe(f);
         activeSignal?.throwIfAborted();
         await saveMedia(s.id, f);
-        next[s.id] = URL.createObjectURL(f);
+        next[s.id] = desktop()
+          ? mediaURL((await loadMedia(s.id))!)
+          : URL.createObjectURL(f);
         const i = d.sources.length;
         d.sources.push(s);
         if (mediaKind.current === "clip") {
@@ -966,7 +999,7 @@ export default function App() {
         setProgress,
         abort.current!.signal,
       );
-      download(b, project.title + ".mp4");
+      if (b) download(b, project.title + ".mp4");
       setNotice("MP4 exported. Your editable project is saved.");
     });
     setPlaying(false);
@@ -1375,7 +1408,9 @@ export default function App() {
                         checked={cloud}
                         onChange={(e) => setCloud(e.target.checked)}
                       />
-                      Back up sources to my private cloud (100 MB/file)
+                      {desktop()
+                        ? "Copy sources to local project storage (100 MB/file)"
+                        : "Back up sources to my private cloud (100 MB/file)"}
                     </label>
                   </section>
                   <div className="quick-tools">
@@ -2712,8 +2747,9 @@ export default function App() {
                       {session.profile.identityScope === "browser"
                         ? "Projects autosave for this linked browser. Keep exported project metadata and source files when moving to another browser."
                         : "Projects autosave locally and sync their timeline to your account."}{" "}
-                      Source videos stay on this device unless you explicitly
-                      enable cloud backup.
+                      {desktop()
+                        ? "Desktop media is read directly from its original disk location. Keep the original files in place; local backup copies stay on this computer."
+                        : "Source videos stay on this device unless you explicitly enable cloud backup."}
                     </p>
                     <Button
                       secondary

@@ -1,5 +1,6 @@
 import { openDB } from "idb";
 import type { Project } from "./model";
+import { desktop, type MediaResource } from "./desktop";
 let scope = "signed-out";
 export function setStorageScope(owner: string) {
   scope = owner;
@@ -13,6 +14,14 @@ const db = () =>
     },
   });
 export const saveMedia = async (id: string, file: Blob) => {
+  const native = desktop();
+  if (native) {
+    const retained =
+      file instanceof File ? await native.importFile(id, file) : null;
+    if (!retained)
+      await native.writeMedia(id, await file.arrayBuffer(), file.type);
+    return;
+  }
   const d = await db(),
     root = scope + ":" + id;
   const previous = await d.get("media", root);
@@ -62,7 +71,10 @@ export const saveMedia = async (id: string, file: Blob) => {
       if (typeof key === "string" && key.startsWith(root + ":chunk:"))
         await d.delete("media", key);
 };
-export const loadMedia = async (id: string): Promise<Blob | undefined> => {
+export const loadMedia = async (
+  id: string,
+): Promise<MediaResource | undefined> => {
+  if (desktop()) return (await desktop()!.getMedia(id)) || undefined;
   const d = await db(),
     root = scope + ":" + id,
     value = await d.get("media", root);
@@ -110,6 +122,10 @@ export const deleteProject = async (id: string) => {
   );
   for (const s of p.document.sources)
     if (!used.has(s.id)) {
+      if (desktop()) {
+        await desktop()!.deleteMedia([s.id]);
+        continue;
+      }
       const root = scope + ":" + s.id,
         media = await d.get("media", root);
       if (media?.format === "editai-media-chunks-v1")

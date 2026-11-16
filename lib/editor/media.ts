@@ -1,3 +1,4 @@
+import { desktop, isNative, type MediaResource } from "./desktop";
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { Document, Source, TextLayer } from "./model";
 import { atTime, duration, cssFilter, textTiming, appearance } from "./model";
@@ -45,7 +46,17 @@ export function cancelFFmpeg() {
   instance = undefined;
   loading = undefined;
 }
-export async function extractAudio(blob: Blob, start: number, length: number) {
+export async function extractAudio(
+  blob: MediaResource,
+  start: number,
+  length: number,
+) {
+  if (isNative(blob)) {
+    if (!desktop()) throw Error("Native video services are unavailable.");
+    return new Blob([await desktop()!.extractAudio(blob.id, start, length)], {
+      type: "audio/wav",
+    });
+  }
   const f = await ffmpeg(),
     name = "audio-source-" + crypto.randomUUID();
   const out = name + ".wav";
@@ -601,11 +612,121 @@ export class Player {
     this.color?.destroy();
     this.videos.clear();
   }
+  async renderFrame(time: number) {
+    this.pause();
+    this.time = time;
+    const targets = new Map<number, number>(),
+      at = atTime(this.doc, time);
+    if (at) targets.set(at.segment.sourceIndex, at.sourceTime);
+    for (const overlay of this.doc.overlays)
+      if (
+        time >= overlay.start &&
+        time < overlay.end &&
+        !targets.has(overlay.sourceIndex)
+      )
+        targets.set(
+          overlay.sourceIndex,
+          overlay.sourceStart + time - overlay.start,
+        );
+    await Promise.all(
+      [...targets].map(async ([index, position]) => {
+        const video = this.videos.get(index);
+        if (!(video instanceof HTMLVideoElement)) return;
+        if (
+          Math.abs(video.currentTime - position) < 0.001 &&
+          video.readyState >= 2
+        )
+          return;
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(() => {
+            cleanup();
+            reject(
+              Error(
+                "The video decoder stalled while exporting. Retry or use an H.264 source.",
+              ),
+            );
+          }, 10000);
+          const cleanup = () => {
+            clearTimeout(timer);
+            video.removeEventListener("seeked", done);
+            video.removeEventListener("error", failed);
+          };
+          const done = () => {
+            cleanup();
+            resolve();
+          };
+          const failed = () => {
+            cleanup();
+            reject(Error("The source video could not be decoded."));
+          };
+          video.addEventListener("seeked", done, { once: true });
+          video.addEventListener("error", failed, { once: true });
+          video.currentTime = Math.min(
+            position,
+            Math.max(0, video.duration - 0.001),
+          );
+        });
+      }),
+    );
+    this.draw();
+  }
+  async exportNative(
+    fps: number,
+    progress: (n: number) => void,
+    signal: AbortSignal,
+  ) {
+    const bridge = desktop()!,
+      oldTime = this.time;
+    this.pause();
+    this.exporting = true;
+    let job: string | undefined;
+    try {
+      await this.init();
+      await document.fonts.ready;
+      job = await bridge.beginExport(
+        this.doc,
+        this.canvas.width,
+        this.canvas.height,
+        fps,
+      );
+      const frames = Math.ceil(duration(this.doc) * fps);
+      for (let frame = 0; frame < frames; frame++) {
+        signal.throwIfAborted();
+        await this.renderFrame(
+          Math.min(duration(this.doc) - 0.001, frame / fps),
+        );
+        const image = await new Promise<Blob>((resolve, reject) =>
+          this.canvas.toBlob(
+            (b) =>
+              b
+                ? resolve(b)
+                : reject(Error("The preview frame could not be rendered.")),
+            "image/png",
+          ),
+        );
+        await bridge.exportFrame(job, await image.arrayBuffer());
+        progress(((frame + 1) / frames) * 0.9);
+      }
+      signal.throwIfAborted();
+      await bridge.finishExport(job);
+      progress(1);
+    } catch (error) {
+      if (job) await bridge.cancelExport(job).catch(() => {});
+      throw error;
+    } finally {
+      this.exporting = false;
+      this.seek(oldTime);
+    }
+  }
   async export(
     fps: number,
     progress: (n: number) => void,
     signal: AbortSignal,
   ) {
+    if (desktop()) {
+      await this.exportNative(fps, progress, signal);
+      return;
+    }
     this.pause();
     this.audio();
     const ctx = this.ctx as AudioContext & {

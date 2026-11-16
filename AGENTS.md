@@ -1,6 +1,6 @@
 # EditAI Studio
 
-This is the independent web editor. Do not modify the sibling iOS project or the older private marketing website. Work on `codex/publik-web`; do not push or merge to main without a newer user instruction.
+This is the independent web editor. Do not modify the sibling iOS project or the older private marketing website. Work on `codex/desktop-migration`; do not push or merge to main without a newer user instruction.
 
 Read `plan.md` and `docs/VERIFICATION.md` before claiming completion. Tests using fixture authentication do not prove real Publik connectivity. Do not add production authentication bypasses or fake AI responses. Native editing contracts and editorial safety checks live under `lib/ios`; keep stable source word IDs and validate AI edits atomically.
 

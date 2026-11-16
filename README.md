@@ -1,8 +1,8 @@
 # EditAI Studio
 
-Independent web version of the EditAI iOS video editor. Live: https://editai-web.givingarmadillo8.chatgpt.site · Source: https://github.com/tappj/EditAI-Studio/tree/codex/publik-web
+Independent web version of the EditAI iOS video editor. Live: https://editai-web.givingarmadillo8.chatgpt.site · Source: https://github.com/tappj/EditAI-Webapp/tree/codex/desktop-migration
 
-The original iOS app and older private marketing/waitlist site remain independent. Development is on `codex/publik-web`; do not merge or push to main without owner approval.
+The original iOS app and older private marketing/waitlist site remain independent. Development is on `codex/desktop-migration`; do not merge or push to main without owner approval.
 
 React/TypeScript + Vinext, Cloudflare Worker through Sites, D1 project metadata, optional private R2 source backup, browser IndexedDB and FFmpeg. Preview and MP4 export share the same nondestructive compositor. Publik supplies linked-user AI chat, editorial selection, analysis and Chirp word timestamps; a user can alternatively connect an OpenAI key.
 

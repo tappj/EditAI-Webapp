@@ -1,6 +1,6 @@
 # EditAI Web execution record
 
-Source: ../EditAI/EditAI. Independent repository tappj/EditAI-Studio, branch codex/publik-web. Preserve original iOS and private tappj/editai-web marketing projects.
+Source: ../EditAI/EditAI. Independent repository tappj/EditAI-Webapp, branch codex/desktop-migration. Preserve original iOS and private tappj/editai-web marketing projects.
 
 ## Architecture
 React/TypeScript with Vinext App Router, Cloudflare Worker via Sites; D1/R2 for authenticated data. Browser FFmpeg worker for extraction and MP4 export, IndexedDB media/drafts. Nondestructive source-anchored timeline shared by preview/export/AI/captions. Server-only Publik credentials, per-visitor install identity/wallet and HTTP-only sessions. Port existing pure editorial/summary algorithms; do not bypass existing Supabase/iOS entitlements.

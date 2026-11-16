@@ -1,0 +1,2 @@
+function render(screen){if(!screen)return;document.querySelector('#title').textContent=screen.title;document.querySelector('#body').textContent=[screen.body,screen.note].filter(Boolean).join(' ');const buttons=document.querySelector('#buttons');buttons.replaceChildren();for(const action of screen.buttons){const button=document.createElement('button');button.textContent=action.label;button.onclick=()=>window.publikGate.action(action.action);buttons.append(button);}}
+window.publikGate.onScreen(render);window.publikGate.ready().then(render);

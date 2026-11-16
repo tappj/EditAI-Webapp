@@ -43,3 +43,13 @@ yarn-error.log*
 
 # OS metadata
 .DS_Store
+
+# Desktop build outputs and signing material
+/desktop/dist/
+/desktop/release/
+/desktop/bin/
+*.p12
+*.pfx
+*.mobileprovision
+
+/desktop/publik-app-token.txt

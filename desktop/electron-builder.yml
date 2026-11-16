@@ -1,0 +1,37 @@
+appId: com.editai.desktop
+productName: EditAI
+directories:
+  app: desktop/dist
+  output: desktop/release
+files:
+  - '**/*'
+extraResources:
+  - from: desktop/bin
+    to: bin
+asar: true
+forceCodeSigning: true
+mac:
+  category: public.app-category.video
+  icon: desktop/build/icon.icns
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true
+  entitlements: desktop/build/entitlements.mac.plist
+  entitlementsInherit: desktop/build/entitlements.mac.plist
+  notarize: true
+  extendInfo:
+    NSCameraUsageDescription: EditAI records video when you enable its camera.
+    NSMicrophoneUsageDescription: EditAI records audio when you enable its microphone.
+win:
+  target: nsis
+  icon: desktop/build/icon.png
+  verifyUpdateCodeSignature: true
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+publish:
+  provider: github
+  owner: tappj
+  repo: EditAI-Webapp
+artifactName: EditAI-${version}-${os}-${arch}.${ext}

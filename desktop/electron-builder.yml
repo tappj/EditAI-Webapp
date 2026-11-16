@@ -33,9 +33,8 @@ dmg:
   iconSize: 104
   iconTextSize: 13
   window:
-    size:
-      width: 720
-      height: 440
+    width: 720
+    height: 440
   contents:
     - x: 200
       y: 260

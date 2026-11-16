@@ -42,7 +42,7 @@ jobs:
       - if: runner.os == 'Windows'
         run: npx electron-builder --config desktop/electron-builder.qa.yml --win nsis --x64 --publish never
       - if: runner.os == 'macOS'
-        run: npx electron-builder --config desktop/electron-builder.qa.yml --dir --mac --publish never
+        run: npx electron-builder --config desktop/electron-builder.qa.yml --mac dmg --publish never
       - if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -56,3 +56,17 @@ jobs:
           $result = & "$destination/EditAI.exe" 2>&1 | Out-String
           if ($result -notmatch 'publik self-test: ok editai-desktop 0.2.0') { throw 'Packaged Publik self-test failed' }
           Write-Output 'Packaged Publik self-test passed. Windows interactive editing/install is not yet certified.'
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:EDITAI_EXECUTABLE = Join-Path $env:LOCALAPPDATA 'Programs/EditAI-QA/EditAI.exe'
+          node desktop/test-gate.mjs
+      - if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bundle=$(printf '%s\n' desktop/release/mac*/EditAI.app | head -1)
+          codesign --verify --deep --strict "$bundle"
+          image=$(printf '%s\n' desktop/release/*.dmg | head -1)
+          hdiutil attach "$image" -readonly -nobrowse -mountpoint /tmp/editai-dmg-qa
+          codesign --verify --deep --strict /tmp/editai-dmg-qa/EditAI.app
+          hdiutil detach /tmp/editai-dmg-qa

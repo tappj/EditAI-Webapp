@@ -48,7 +48,11 @@ export function DesktopDownloads({ openWeb = false }: { openWeb?: boolean }) {
       {sorted.map((r) => (
         <a className="desktop-download" key={r.platform + r.arch} href={r.url}>
           Download for {r.platform === "macos" ? "macOS" : "Windows"} ·{" "}
-          {r.arch === "arm64" ? "Apple silicon" : "Intel / AMD"}{" "}
+          {r.arch === "arm64"
+            ? "Apple silicon"
+            : r.platform === "macos"
+              ? "Intel"
+              : "Intel / AMD"}{" "}
           <small>v{r.version}</small>
         </a>
       ))}

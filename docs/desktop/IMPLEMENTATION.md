@@ -1,22 +1,21 @@
 # Webapp migration and desktop execution record
 
-Preserve the existing Sites project, D1/R2 bindings, hostname, encryption key, web slug and cookie. Do not modify iOS. Keep the complete independent web Git history and push only the feature branch to tappj/EditAI-Webapp after a redacted history audit.
+Preserve the existing Sites project, D1/R2 bindings, hostname, encryption key, web slug and cookie. Do not modify iOS. Primary repository: tappj/EditAI-Webapp, branch codex/desktop-migration; no main push or force push.
 
-## Implementation
-- [x] Audit all eight reachable commits with Gitleaks (redacted, no leaks); no tracked environment/signing/iOS project files; migrate origin to public tappj/EditAI-Webapp on codex/desktop-migration. Legacy origin retained read-only; history preserved.
-- [ ] Confirm Publik repository migration and distribution/listing constraints from official docs.
-- [ ] Package the shared React editor locally in Electron with sandboxed renderer and narrow IPC.
-- [ ] Share the backend API with a local SQLite/filesystem adapter and secure desktop credentials.
-- [ ] Add native local media URLs, FFmpeg audio extraction and offline compositor/native encoding.
-- [ ] Benchmark actual browser/native extraction and export, with measured limits.
-- [ ] Simplify compliant web onboarding and persist desktop sessions; no unsupported Google account bypass.
-- [ ] Build/test local macOS app and DMG; prepare signed/notarized release CI and Windows validation.
-- [ ] Publish download CTAs only for signed, validated release artifacts.
-- [ ] Run existing web regression suites and desktop real-workflow checks, deploy to the same Site.
+- [x] Preserve the complete eight-commit independent web history and move the GitHub origin to the new public repository after redacted secret/history audits. Legacy origin is retained. No iOS source or signing credentials are included.
+- [x] Evaluate Electron and Tauri; choose Electron for the existing Chromium compositor and shared Node/TypeScript services. Package local renderer assets, not a remote website window.
+- [x] Share backend through adapters; add SQLite, scoped local projects, original-file references, range streaming, managed recordings/backups and OS-encrypted credentials.
+- [x] Native audio extraction, recording remux, clean-cut FFmpeg render, offline shared-compositor frames, hardware encoder probe/fallback, audio mux, cancellation, cleanup and blocked network/playlist inputs.
+- [x] Build native FFmpeg/FFprobe 9.0.2 from pinned source with static x264; package full matching source and build script. Independently rebuild the source archive and pass native tests. Enforce macOS 15 minimum for this preview.
+- [x] Approve and register separate Publik desktop listing and public bootstrap resource. Genuine desktop sign-in, Chirp, chat, export and persisted credentials passed. Catalog status remains held_for_review. Opt-out/foreground/payload tests never send synthetic activity to Publik.
+- [x] Improve compliant onboarding with popup, blocked-popup recovery, immediate return/focus refresh and persisted choices. Preserve isolation headers and the official gate. No unsupported Google or deep-link replacement.
+- [x] Benchmark identical short exports. Browser 5.905/5.366 s, native 0.835/1.847 s (clean / Warm+text). These are single trials on M4 Max, not universal claims.
+- [x] Build/verify local Apple Development-signed Mac app and ZIP installation; actual native9 installed app restored 12 caption layers and exported the 19-second project in 14.104 s. Packaged Publik self-test passed. No public installer is claimed.
+- [x] CI macOS DMG creation and mounted-app signature integrity; Windows NSIS build/install, real self-test, anonymous official gate and isolation. No unsigned artifacts uploaded; full Windows signed-in editing remains unverified.
+- [x] Add guarded release/publishing tools, manual signature-verified updater and homepage versioned-download metadata. Unavailable downloads remain hidden.
+- [ ] Developer ID Application, editai-notary profile, notarized release and positive public-release/updater verification. Owner is configuring signing locally. Writable-image restriction on this Mac also requires a suitable packaging host for a standard DMG.
+- [ ] Publik review of desktop listing, genuine human activity attribution, and supported migration of the existing web listing's repository reference. Official docs expose no repository-edit or combined-listing contract; existing web identity is unchanged.
+- [ ] Automatic cross-device web/desktop project synchronization; desktop backups currently stay local, web backups remain private R2. No user data or sessions are migrated or discarded.
+- [ ] Physical desktop camera/microphone acceptance and full signed-in Windows editing/export.
 
-## Initial findings
-Electron selected because the existing editor depends on a verified Chromium media/WebGL/WASM path and the shared TypeScript services can also run in Node. Tauri uses WKWebView on macOS and would require a separate Rust/backend bridge. Electron has a larger bundled runtime; performance claims must come from the native processing benchmarks, not the shell itself.
-
-Only an Apple Development identity is currently installed, not Developer ID Application. Public macOS downloads require Developer ID signing and notarization. Local QA artifacts must not be advertised as public downloads. No Windows testing is claimed from macOS.
-
-The official Publik docs require the gate before app screens, independent install credentials, explicit plan/own-key choice, official events, and a built-binary self-test for desktop. No documented Google replacement, callback, embedded credential page, repository-edit endpoint or shared web/desktop listing contract has been found so far. Retain existing web identity until these constraints are resolved.
+See README.md here for architecture, measured limits and exact release commands. Final deployed web verification is recorded in VERIFICATION.md after publication.

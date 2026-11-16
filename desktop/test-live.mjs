@@ -2,7 +2,7 @@
 // DNT prevents automated verification from counting as fellowship engagement.
 import { _electron as electron, expect } from "@playwright/test";
 import { resolve } from "node:path";
-import {createHash} from "node:crypto";
+import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 const app = await electron.launch({
   ...(process.env.EDITAI_EXECUTABLE
@@ -12,6 +12,7 @@ const app = await electron.launch({
     ...process.env,
     PUBLIK_SELF_TEST: "",
     DNT: "1",
+    DO_NOT_TRACK: "1",
     PUBLIK_TELEMETRY: "false",
   },
 });
@@ -68,7 +69,11 @@ try {
   await expect(page.getByRole("status")).toContainText("Preferences saved");
   await page.getByRole("button", { name: "Home", exact: true }).click();
   if (process.env.EDITAI_RESUME_TEST)
-    await page.locator(".project-card").first().click();
+    await page
+      .locator(".project-card-title")
+      .filter({ hasText: "synthetic-speech" })
+      .first()
+      .click();
   else
     await page
       .locator("input[type=file]")
@@ -77,18 +82,30 @@ try {
   await expect(
     page.getByRole("button", { name: "Split clip at playhead" }),
   ).toBeVisible();
-  const {archivePath, ...sources} = await app.evaluate(({app,BrowserWindow}) => ({
-    packaged: app.isPackaged,
-    archivePath: app.isPackaged ? app.getAppPath() : null,
-    version: app.getVersion(),
-    sandbox: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().sandbox,
-    contextIsolation: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().contextIsolation,
-    nodeIntegration: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().nodeIntegration,
-    node: process.versions.node,
-    electron: process.versions.electron,
-    gpu: app.getGPUFeatureStatus(),
-  }));
-  sources.archiveSha256 = archivePath ? createHash("sha256").update(await readFile(archivePath)).digest("hex") : null;
+  const { archivePath, ...sources } = await app.evaluate(
+    ({ app, BrowserWindow }) => ({
+      packaged: app.isPackaged,
+      archivePath: app.isPackaged ? app.getAppPath() : null,
+      version: app.getVersion(),
+      sandbox:
+        BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences()
+          .sandbox,
+      contextIsolation:
+        BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences()
+          .contextIsolation,
+      nodeIntegration:
+        BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences()
+          .nodeIntegration,
+      node: process.versions.node,
+      electron: process.versions.electron,
+      gpu: app.getGPUFeatureStatus(),
+    }),
+  );
+  sources.archiveSha256 = archivePath
+    ? createHash("sha256")
+        .update(await readFile(archivePath))
+        .digest("hex")
+    : null;
   report.runtime = sources;
   if (!process.env.EDITAI_RESUME_TEST)
     await page

@@ -1,7 +1,8 @@
 // This entry point deliberately fails closed before building a public installer.
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { access, writeFile, readdir } from "node:fs/promises";
+import { access, writeFile, readFile, readdir } from "node:fs/promises";
 const run = (cmd, args, options = {}) =>
   execFileSync(cmd, args, { stdio: "pipe", encoding: "utf8", ...options });
 try {
@@ -35,12 +36,25 @@ try {
     );
   }
   // Preserve corresponding source alongside the GPL native executables.
-  const source = process.env.EDITAI_FFMPEG_SOURCE_ARCHIVE;
+  const source =
+    process.env.EDITAI_FFMPEG_SOURCE_ARCHIVE ||
+    "outputs/EditAI-0.2.0-native-corresponding-source.tar.xz";
   if (!source)
     throw Error(
       "Set EDITAI_FFMPEG_SOURCE_ARCHIVE to the complete corresponding-source archive for the bundled native build. See desktop/THIRD-PARTY.md.",
     );
   await access(source);
+  const native = JSON.parse(
+    await readFile("desktop/bin/native-build.json", "utf8"),
+  );
+  if (
+    createHash("sha256")
+      .update(await readFile(source))
+      .digest("hex") !== native.sourceSha256
+  )
+    throw Error(
+      "Native corresponding source does not match the build manifest.",
+    );
   run(process.execPath, ["scripts/build-desktop.mjs"], { stdio: "inherit" });
   const builder = spawnSync(
     process.execPath,
@@ -78,12 +92,27 @@ try {
   });
   if (!check.includes("publik self-test: ok editai-desktop 0.2.0"))
     throw Error("Packaged Publik self-test failed.");
+  const artifactNames = (await readdir("desktop/release")).filter(
+    (n) =>
+      n === "latest-mac.yml" ||
+      (n.startsWith(`EditAI-0.2.0-mac-${process.arch}.`) &&
+        /\.(dmg|zip|blockmap)$/.test(n)),
+  );
+  const artifactSha256 = {};
+  for (const name of artifactNames)
+    artifactSha256[name] = createHash("sha256")
+      .update(await readFile(resolve("desktop/release", name)))
+      .digest("hex");
   await writeFile(
     "outputs/desktop-signing-verification.json",
     JSON.stringify(
       {
         date: new Date().toISOString(),
         arch: process.arch,
+        archiveSha256: createHash("sha256")
+          .update(await readFile(resolve(app, "Contents/Resources/app.asar")))
+          .digest("hex"),
+        artifactSha256,
         codesign: true,
         stapled: true,
         gatekeeper: true,

@@ -37,7 +37,21 @@ await copyFile("desktop/preload.cjs", join(out, "preload.cjs"));
 for (const name of ["gate.html", "gate.js"])
   await copyFile("desktop/renderer/" + name, join(out, "renderer", name));
 await cp("drizzle", join(out, "migrations"), { recursive: true });
-const ffmpeg = require("ffmpeg-static");
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const nativeBuild = await readFile("desktop/bin/native-build.json", "utf8")
+  .then(JSON.parse)
+  .catch(() => null);
+const customNative =
+  nativeBuild?.platform === process.platform + "-" + process.arch;
+if (
+  customNative &&
+  (sha256(await readFile("desktop/bin/ffmpeg")) !== nativeBuild.ffmpegSha256 ||
+    sha256(await readFile("desktop/bin/ffprobe")) !== nativeBuild.ffprobeSha256)
+)
+  throw Error("Native build hashes changed; rebuild from source.");
+const ffmpeg = customNative
+  ? resolve("desktop/bin/ffmpeg")
+  : require("ffmpeg-static");
 // ffprobe-static 3.x ships an Intel-only Mac binary. Pin the matching upstream
 // release and verify GitHub's published SHA-256 before packaging each platform.
 const probes = {
@@ -57,7 +71,10 @@ const ffprobe = resolve(
 );
 const valid = (bytes) =>
   createHash("sha256").update(bytes).digest("hex") === digest;
-if (!valid(await readFile(ffprobe).catch(() => Buffer.alloc(0)))) {
+if (
+  !customNative &&
+  !valid(await readFile(ffprobe).catch(() => Buffer.alloc(0)))
+) {
   const response = await fetch(
     "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffprobe-" +
       platform,
@@ -91,10 +108,21 @@ for (const name of ["ffmpeg", "ffprobe"])
     { stdio: "ignore" },
   );
 await mkdir(join(out, "notices"), { recursive: true });
-await copyFile(ffmpeg + ".LICENSE", join(out, "notices/FFmpeg-LICENSE.txt"));
-await copyFile(ffmpeg + ".README", join(out, "notices/FFmpeg-README.txt"));
+await copyFile(
+  customNative ? "desktop/bin/FFmpeg-LICENSE.txt" : ffmpeg + ".LICENSE",
+  join(out, "notices/FFmpeg-LICENSE.txt"),
+);
+await copyFile(
+  customNative ? "desktop/bin/FFmpeg-README.txt" : ffmpeg + ".README",
+  join(out, "notices/FFmpeg-README.txt"),
+);
 await copyFile("desktop/THIRD-PARTY.md", join(out, "notices/THIRD-PARTY.md"));
 
+if (customNative)
+  await copyFile(
+    "desktop/bin/native-build.json",
+    join(out, "notices/native-build.json"),
+  );
 const licenseReport = [];
 const packageLock = JSON.parse(await readFile("package-lock.json", "utf8"));
 for (const [path, meta] of Object.entries(packageLock.packages)) {
@@ -117,7 +145,7 @@ await writeFile(
 );
 
 const token =
-  process.env.PUBLIK_APP_TOKEN ||
+  process.env.PUBLIK_DESKTOP_APP_TOKEN ||
   (await readFile("desktop/publik-app-token.txt", "utf8").catch(() => null));
 if (token)
   await writeFile(join(out, "publik-app-token.txt"), token.trim(), {

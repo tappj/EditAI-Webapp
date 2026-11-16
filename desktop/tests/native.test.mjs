@@ -8,10 +8,14 @@ import { NativeVideo, runBinary } from "../native-video.mjs";
 import { LocalStore } from "../local-store.mjs";
 import { newDocument, newSegment } from "../../lib/editor/model.ts";
 const ffmpeg = resolve(
-  "desktop/bin/ffmpeg" + (process.platform === "win32" ? ".exe" : ""),
+  (process.env.EDITAI_NATIVE_TEST_BIN || "desktop/bin") +
+    "/ffmpeg" +
+    (process.platform === "win32" ? ".exe" : ""),
 );
 const ffprobe = resolve(
-  "desktop/bin/ffprobe" + (process.platform === "win32" ? ".exe" : ""),
+  (process.env.EDITAI_NATIVE_TEST_BIN || "desktop/bin") +
+    "/ffprobe" +
+    (process.platform === "win32" ? ".exe" : ""),
 );
 const migrations = await Promise.all(
   [
@@ -132,6 +136,33 @@ await test("native media and real FFmpeg pipeline", async (t) => {
         assert.equal(native.jobs.size, 0);
       },
     );
+    await t.test("compositor PNG frames encode with audio", async () => {
+      const png = join(directory, "frame.png");
+      await runBinary(ffmpeg, [
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=blue:size=320x180",
+        "-frames:v",
+        "1",
+        png,
+      ]);
+      const bytes = await readFile(png),
+        frame = bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        );
+      const composite = structuredClone(doc);
+      composite.segments[0].appearance.filter = "Warm";
+      const job = await native.begin(composite, 320, 180, 30);
+      assert.equal(job.mode, "frames");
+      for (let i = 0; i < 30; i++) await native.frame(job.id, frame);
+      const result = await native.finish(job.id);
+      assert.equal(result.frames, 30);
+      assert.equal(native.jobs.size, 0);
+    });
     await t.test(
       "native cancellation stops work and cleans temporary files",
       async () => {

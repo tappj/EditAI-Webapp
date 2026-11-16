@@ -267,6 +267,8 @@ export default function App() {
       // is best effort; never weaken media isolation to control an auth window.
       if (!authPopup.current.closed) authPopup.current.close();
       authPopup.current = null;
+    }
+    if (session?.screen.id === "ready") {
       setAuthOpened(false);
       setBlockedAuthURL("");
     }

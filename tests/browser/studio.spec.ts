@@ -517,3 +517,36 @@ test("Publik popup remains official, has no opener, and approval opens the studi
     await page.getByRole("link", { name: /Download for macOS/ }).count(),
   ).toBe(0);
 });
+
+test("blocked sign-in popups expose a direct official recovery link", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.open = () => null;
+  });
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
+      json: {
+        screen: {
+          id: "sign_in",
+          title: "Sign in with publik",
+          body: "Continue with Publik.",
+          buttons: [{ action: "sign_in", label: "Sign in with publik" }],
+        },
+        claimURL: "https://publikhq.com/claim/EDITAI-TEST",
+        profile: { consent: false, telemetry: false },
+      },
+    }),
+  );
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Sign in with publik", exact: true })
+    .click();
+  await expect(
+    page.getByRole("link", { name: "Open Publik sign-in" }),
+  ).toHaveAttribute("href", "https://publikhq.com/claim/EDITAI-TEST");
+  await expect(page.getByRole("status")).toContainText("return here");
+  await expect(
+    page.getByRole("button", { name: "Create a video" }),
+  ).toHaveCount(0);
+});

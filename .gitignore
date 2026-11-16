@@ -51,3 +51,9 @@ yarn-error.log*
 *.p12
 *.pfx
 *.mobileprovision
+*.p8
+*.key
+*.cer
+*.keychain
+*.keychain-db
+*.keystore

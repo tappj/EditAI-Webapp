@@ -1,5 +1,7 @@
 // Publish only an installed, signed, notarized and verified macOS release.
 // Run on the signing host with an authenticated gh CLI; secrets never enter JS.
+import { extractFile } from "@electron/asar";
+import { github } from "./github-cli.mjs";
 import { execFileSync } from "node:child_process";
 import { readFile, readdir, copyFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -45,7 +47,10 @@ try {
     throw Error("Installed application acceptance has not passed.");
   const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
   const archive = resolve(app, "Contents/Resources/app.asar");
-  if (sha(await readFile(archive)) !== accepted.runtime.archiveSha256)
+  if (
+    sha(await readFile(archive)) !== accepted.runtime.archiveSha256 ||
+    signed.archiveSha256 !== accepted.runtime.archiveSha256
+  )
     throw Error("Installed acceptance does not match this app.");
   execFileSync("codesign", ["--verify", "--deep", "--strict", app], {
     stdio: "pipe",
@@ -54,7 +59,10 @@ try {
   run("xcrun", ["stapler", "validate", app]);
   run("spctl", ["--assess", "--type", "execute", "--verbose=2", app]);
   const names = (await readdir(dir)).filter(
-    (n) => /\.(dmg|zip|blockmap|yml)$/.test(n) && !n.startsWith("builder-"),
+    (n) =>
+      n === "latest-mac.yml" ||
+      (n.startsWith(`EditAI-0.2.0-mac-${arch}.`) &&
+        /\.(dmg|zip|blockmap)$/.test(n)),
   );
   if (
     !names.some((n) => n.endsWith(".dmg")) ||
@@ -74,8 +82,20 @@ try {
       resolve(dir, name),
     ]);
   }
-  const source = process.env.EDITAI_FFMPEG_SOURCE_ARCHIVE;
+  const source =
+    process.env.EDITAI_FFMPEG_SOURCE_ARCHIVE ||
+    "outputs/EditAI-0.2.0-native-corresponding-source.tar.xz";
   if (!source) throw Error("Provide the corresponding native source archive.");
+  const provenance = JSON.parse(
+    extractFile(archive, "notices/native-build.json").toString("utf8"),
+  );
+  if (provenance.sourceSha256 !== sha(await readFile(source)))
+    throw Error("Source archive does not match the installed native build.");
+  for (const name of names)
+    if (
+      signed.artifactSha256?.[name] !== sha(await readFile(resolve(dir, name)))
+    )
+      throw Error("Release artifacts changed after verification.");
   const sourceName = "EditAI-0.2.0-native-corresponding-source.tar.xz";
   await copyFile(source, resolve(dir, sourceName));
   names.push(sourceName);
@@ -92,7 +112,7 @@ try {
       ". Shared editor, local media and native FFmpeg. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai-web.givingarmadillo8.chatgpt.site. Windows is not included.\n",
   );
   const commit = run("git", ["rev-parse", "HEAD"]).trim();
-  run("gh", [
+  github([
     "release",
     "create",
     tag,

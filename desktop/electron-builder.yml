@@ -4,14 +4,15 @@ directories:
   app: desktop/dist
   output: desktop/release
 files:
-  - '**/*'
-  - '!node_modules/**'
+  - "**/*"
+  - "!node_modules/**"
 extraResources:
   - from: desktop/bin
     to: bin
 asar: true
 forceCodeSigning: true
 mac:
+  minimumSystemVersion: "15.0"
   binaries:
     - Contents/Resources/bin/ffmpeg
     - Contents/Resources/bin/ffprobe

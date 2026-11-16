@@ -19,7 +19,9 @@
     "desktop:start": "electron desktop/dist",
     "desktop:pack": "electron-builder --config desktop/electron-builder.yml --dir",
     "desktop:release": "node scripts/release-desktop.mjs",
-    "test:desktop": "node --experimental-strip-types --test desktop/tests/*.test.mjs"
+    "test:desktop": "node --experimental-strip-types --test desktop/tests/*.test.mjs",
+    "desktop:native": "sh scripts/build-native-macos.sh",
+    "desktop:publish": "node scripts/publish-desktop-release.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -56,6 +58,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
     "@cloudflare/workers-types": "4.20260515.1",
+    "@electron/asar": "^3.4.1",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",

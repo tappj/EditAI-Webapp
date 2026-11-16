@@ -411,7 +411,11 @@ export async function ensureSignedIn(
       ? (readCredential()?.choice ?? null)
       : null;
     if (USES_AI && !choice) {
-      if (w.plan.kind !== "none" || w.balance_micros > 0) {
+      if (
+        w.plan.kind !== "none" ||
+        w.balance_micros > 0 ||
+        (w.available_micros ?? 0) > 0
+      ) {
         planNote = null;
         planPoll = false;
       } // the plan is there: Connect your plan
@@ -420,7 +424,10 @@ export async function ensureSignedIn(
         gateScreen("choose", w, planNote),
         c.key,
         planPoll
-          ? (x) => x.plan.kind !== "none" || x.balance_micros > 0
+          ? (x) =>
+              x.plan.kind !== "none" ||
+              x.balance_micros > 0 ||
+              (x.available_micros ?? 0) > 0
           : undefined,
       );
       planNote = null;

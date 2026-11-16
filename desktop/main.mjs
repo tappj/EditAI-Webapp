@@ -126,7 +126,7 @@ async function unlockEditor() {
     );
     store.database
       .prepare(
-        "INSERT INTO sessions (id,install_id,credential,choice,owner,created_at,expires_at,last_event,consent,telemetry) VALUES (?,?,?,?,?,?,?,0,0,1) ON CONFLICT(id) DO UPDATE SET credential=excluded.credential,choice=excluded.choice,expires_at=excluded.expires_at",
+        "INSERT INTO sessions (id,install_id,credential,choice,owner,created_at,expires_at,last_event,consent,telemetry) VALUES (?,?,?,?,?,?,?,0,0,1) ON CONFLICT(id) DO UPDATE SET credential=excluded.credential,choice=excluded.choice,expires_at=excluded.expires_at,own_key=CASE WHEN sessions.owner=excluded.owner THEN sessions.own_key ELSE NULL END,consent=CASE WHEN sessions.owner=excluded.owner THEN sessions.consent ELSE 0 END,install_id=excluded.install_id,owner=excluded.owner",
       )
       .run(
         id,
@@ -180,10 +180,12 @@ app.setName("EditAI");
 app.setPath("userData", join(app.getPath("appData"), "EditAI Desktop"));
 async function startDesktop() {
   try {
-    process.env.PUBLIK_APP_TOKEN ||= (
-      await readFile(join(sourceRoot, "publik-app-token.txt"), "utf8")
-    ).trim();
-  } catch {}
+    process.env.PUBLIK_APP_TOKEN =
+      process.env.PUBLIK_DESKTOP_APP_TOKEN ||
+      (await readFile(join(sourceRoot, "publik-app-token.txt"), "utf8")).trim();
+  } catch {
+    delete process.env.PUBLIK_APP_TOKEN;
+  }
   const credentialFile = sdk.credentialPath();
   await sdk.configureCredentialStore(
     () => readVault(credentialFile),
@@ -498,6 +500,12 @@ app
     app.exit(1);
   });
 app.on("window-all-closed", () => app.quit());
-app.on("before-quit", () => {
-  for (const id of video?.jobs.keys() || []) void video.cancel(id);
+let quitAfterCleanup = false;
+app.on("before-quit", (event) => {
+  if (quitAfterCleanup || !video?.jobs.size) return;
+  event.preventDefault();
+  quitAfterCleanup = true;
+  Promise.all(
+    [...video.jobs.keys()].map((id) => video.cancel(id).catch(() => {})),
+  ).finally(() => app.quit());
 });

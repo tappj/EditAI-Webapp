@@ -80,8 +80,16 @@ export function TimeCalculator() {
       >
         <defs>
           <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--m-accent)" stopOpacity=".2" />
-            <stop offset="1" stopColor="var(--m-accent)" stopOpacity=".01" />
+            <stop
+              offset="0"
+              stopColor="var(--m-accent-bright)"
+              stopOpacity=".2"
+            />
+            <stop
+              offset="1"
+              stopColor="var(--m-accent-bright)"
+              stopOpacity=".01"
+            />
           </linearGradient>
         </defs>
         {[0, 1, 2, 3, 4].map((step) => (
@@ -120,7 +128,12 @@ export function TimeCalculator() {
           fill="#f7faff"
           stroke="#526780"
         />
-        <circle cx="750" cy={y(targetMonth)} r="4" fill="var(--m-accent)" />
+        <circle
+          cx="750"
+          cy={y(targetMonth)}
+          r="4"
+          fill="var(--m-accent-bright)"
+        />
       </svg>
       <div className="chart-legend">
         <span>

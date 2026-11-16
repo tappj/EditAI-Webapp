@@ -1,14 +1,13 @@
 /* The new marketing surface is scoped; the editor retains its own theme and controls. */
 .marketing {
-  --m-ink: #0c1522;
+  --m-ink: #0a1520;
   --m-muted: #536478;
-  --m-brand-blue: #598fd9;
-  --m-accent: #326ab4;
-  --m-accent-soft: #c4e0ff;
-  --m-accent-bright: #c4e0ff;
-  --m-brand-gradient: linear-gradient(115deg, #d6eaff, #c4e0ff 58%, #d5e5fb);
-  --m-paper: #f1f5fa;
-  --m-border: #d4dfed;
+  --m-brand-blue: #11e9fb;
+  --m-accent: #087f91;
+  --m-accent-soft: #e1f8fb;
+  --m-accent-bright: #11e9fb;
+  --m-paper: #eef2f6;
+  --m-border: #d6e0e8;
   display: flow-root;
   background: var(--m-paper);
   color: var(--m-ink);
@@ -130,10 +129,10 @@
   min-height: 44px;
   padding: 11px 23px;
   border-radius: 999px;
-  background: var(--m-brand-gradient);
-  border: 1px solid #acc9ec;
-  box-shadow: 0 3px 0 #598fd90d;
-  color: #183350 !important;
+  background: var(--m-accent-bright);
+  border: 1px solid #11e9fb;
+  box-shadow: 0 8px 30px #11e9fb30;
+  color: #0a1520 !important;
   font-size: 12px;
   font-weight: 650;
   line-height: 1.35;
@@ -144,8 +143,8 @@
     box-shadow 0.2s;
 }
 .m-button:hover {
-  background: var(--m-accent-soft);
-  box-shadow: 0 6px 22px #598fd91c;
+  background: #32edfc;
+  box-shadow: 0 6px 22px #11e9fb40;
   transform: translateY(-2px);
 }
 .m-button:active {
@@ -153,7 +152,7 @@
 }
 .marketing button.m-button:disabled {
   opacity: 1;
-  background: #e2eaf4;
+  background: #e2e9f0;
   border-color: #ced9e8;
   color: #61758e !important;
   box-shadow: none;
@@ -180,7 +179,7 @@
   inset: 0 0 auto;
   z-index: 40;
   height: 66px;
-  background: #f1f5faef;
+  background: #eef2f6ef;
   border-bottom: 1px solid #d2dfeb;
   backdrop-filter: blur(16px);
 }
@@ -226,7 +225,7 @@
   bottom: 15px;
   left: 0;
   right: 0;
-  background: var(--m-accent);
+  background: var(--m-accent-bright);
   transform: scaleX(0);
   transition: transform 0.25s;
 }
@@ -282,11 +281,11 @@
     linear-gradient(
       39deg,
       transparent 25%,
-      #b2a0e50e 38%,
-      #b2a0e51a 41%,
+      #11e9fb09 38%,
+      #11e9fb15 41%,
       transparent 48%
     ),
-    radial-gradient(ellipse at 50% 35%, #f1f5fa 20%, #f1f5faba 45%, #e2ebf7b0);
+    radial-gradient(ellipse at 50% 35%, #eef2f6 20%, #eef2f6ba 45%, #e5eef3b0);
   pointer-events: none;
 }
 .hero-echo {
@@ -547,8 +546,8 @@
   isolation: isolate;
 }
 .workflow-step.active .workflow-screen {
-  border-color: #8ab3e7;
-  box-shadow: 0 0 0 3px #598fd912;
+  border-color: #11e9fb;
+  box-shadow: 0 0 0 3px #11e9fb12;
 }
 .workflow-screen:after {
   content: "";
@@ -630,7 +629,7 @@
   gap: 15px;
   padding: 7px;
   background: var(--m-accent-bright);
-  color: #183350;
+  color: #0a1520;
   font-size: 7px;
   border-radius: 4px;
   width: 100%;
@@ -806,8 +805,8 @@
 }
 .studio-timeline > div {
   flex: 1;
-  border: 1px solid #83a7d5;
-  background: linear-gradient(135deg, #7d9ecb, #3b5477);
+  border: 1px solid #62b1c2;
+  background: linear-gradient(135deg, #5c9bae, #244f64);
   border-radius: 2px;
 }
 .studio-timeline:after {
@@ -824,9 +823,9 @@
   font-size: 5px;
   border-radius: 2px;
   padding: 4px;
-  background: #354e70;
+  background: #20525e;
   margin-top: 4px;
-  color: #dceaff;
+  color: #c8f4f6;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -945,15 +944,15 @@
   height: 58px;
   border-radius: 13px;
   color: var(--m-accent-bright);
-  background: linear-gradient(145deg, #293b54, #17263b 60%);
-  border: 1px solid #405777;
+  background: linear-gradient(145deg, #243b47, #0c1b24 60%);
+  border: 1px solid #31545e;
   box-shadow:
     inset 0 1px 1px #ffffff20,
     0 5px 10px #0b26381f;
   transition: transform 0.25s;
 }
 .feature-tile svg {
-  filter: drop-shadow(0 0 7px #8cbcff38);
+  filter: drop-shadow(0 0 7px #11e9fb38);
 }
 .feature-tile.small {
   width: 36px;
@@ -992,7 +991,7 @@
   line-height: 1.75;
 }
 .feature-card:hover {
-  border-color: #aac7eb;
+  border-color: #8bcbd4;
   transform: translateY(-3px);
   box-shadow: 0 9px 20px #4a647714;
 }
@@ -1017,7 +1016,7 @@
 }
 .creator-video-card {
   padding: 10px;
-  background: #e2eaf4;
+  background: #e2e9f0;
   border: 1px solid #d7e0eb;
   position: relative;
 }
@@ -1055,7 +1054,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at 50% 30%, #2e4667, #17263b 70%);
+  background: radial-gradient(ellipse at 50% 30%, #203b49, #0c1b24 70%);
   overflow: hidden;
   color: #dceaf1;
 }
@@ -1065,7 +1064,7 @@
   height: 65px;
   border-radius: 15px;
   z-index: 1;
-  box-shadow: 0 0 35px #8cbcff10;
+  box-shadow: 0 0 35px #11e9fb10;
 }
 .branded-poster > span {
   font-size: 27px;
@@ -1077,12 +1076,12 @@
   position: absolute;
   width: 160%;
   aspect-ratio: 1;
-  border: 1px solid #91b9ec1f;
+  border: 1px solid #7fabb51f;
   transform: rotate(-25deg) scaleX(0.65);
   border-radius: 50%;
   box-shadow:
-    0 0 0 32px #c4e0ff05,
-    0 0 0 80px #c4e0ff05;
+    0 0 0 32px #a6dce705,
+    0 0 0 80px #a6dce705;
 }
 .poster-wave {
   position: absolute;
@@ -1292,10 +1291,10 @@
 .calculator-top output {
   padding: 3px 9px;
   color: var(--m-accent);
-  border: 1px solid #a9c8ef;
+  border: 1px solid #9ed9e2;
   border-radius: 999px;
   font-size: 10px;
-  background: #edf5ff;
+  background: #edfbfd;
 }
 .marketing .calculator-top input[type="range"] {
   width: 100%;
@@ -1367,7 +1366,7 @@
   fill: none;
 }
 .chart-target {
-  stroke: var(--m-accent);
+  stroke: var(--m-accent-bright);
   stroke-width: 2;
   fill: none;
 }
@@ -1390,7 +1389,7 @@
   background: #607d94;
 }
 .chart-legend > span:last-child i {
-  background: var(--m-accent);
+  background: var(--m-accent-bright);
 }
 .calculator-results {
   display: grid;
@@ -1423,7 +1422,7 @@
 }
 /* Three flat plan cards, with truthful pending prices and real selection state. */
 .pricing-section {
-  background: #e7eef7;
+  background: #e5edf3;
   padding: 90px 0 80px;
   border-bottom: 1px solid var(--m-border);
 }
@@ -1476,9 +1475,9 @@
   min-width: 0;
 }
 .pricing-card.selected {
-  border-top: 3px solid #598fd9;
+  border-top: 3px solid #11e9fb;
   padding-top: 29px;
-  box-shadow: 0 8px 16px #598fd918;
+  box-shadow: 0 8px 16px #11e9fb18;
 }
 .plan-heading {
   display: flex;
@@ -1674,8 +1673,8 @@
   background: linear-gradient(
     40deg,
     transparent 27%,
-    #b6a3ed0b 34%,
-    #b6a3ed13 39%,
+    #11e9fb0b 34%,
+    #11e9fb13 39%,
     transparent 47%
   );
 }
@@ -1754,7 +1753,7 @@
   margin-top: 19px;
 }
 .m-footer {
-  background: #e2eaf4;
+  background: #e2e9f0;
   border-top: 1px solid #d0dce7;
   padding: 50px 0 0;
   overflow: hidden;
@@ -1821,7 +1820,7 @@
   text-align: center;
   line-height: 0.72;
   letter-spacing: -8px;
-  color: #c6d5e9;
+  color: #cfd9e4;
   font-weight: 800;
   user-select: none;
   padding-top: 28px;
@@ -1833,7 +1832,7 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #f1f5fa;
+  background: #eef2f6;
 }
 .sign-in-header {
   display: flex;
@@ -1878,7 +1877,7 @@
   width: 45px;
   height: 45px;
   border-radius: 10px;
-  background: #192d48;
+  background: #0c1b24;
   color: var(--m-accent-bright);
   box-shadow: none;
 }
@@ -1892,10 +1891,10 @@
 }
 .marketing-sign-in .sign-in-card .button {
   border-radius: 999px;
-  background: var(--m-brand-gradient);
-  color: #183350;
-  box-shadow: none;
-  border: 1px solid #acc9ec;
+  background: var(--m-accent-bright);
+  color: #0a1520;
+  box-shadow: 0 8px 30px #11e9fb30;
+  border: 1px solid #11e9fb;
   min-height: 45px;
   font-size: 12px;
 }
@@ -2059,7 +2058,7 @@
     display: none;
   }
   .m-nav a[aria-current] {
-    background: #e0ecfc;
+    background: #dff5f8;
   }
   .m-nav .mobile-sign-in {
     display: block;

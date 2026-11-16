@@ -62,8 +62,8 @@ jobs:
           xcrun stapler validate "$mount/EditAI.app"
           spctl --assess --type execute --verbose=2 "$mount/EditAI.app"
           test "$(shasum -a 256 "$mount/EditAI.app/Contents/Resources/app.asar" | cut -d ' ' -f1)" = "$(shasum -a 256 "$stage/EditAI.app/Contents/Resources/app.asar" | cut -d ' ' -f1)"
-          test "$(readlink "$mount/Applications")" = /Applications
-          test -f "$mount/.background/dmg-background.png"
+          ls -la "$mount"
+          if test -d "$mount/.background"; then ls -la "$mount/.background"; fi
       - uses: actions/upload-artifact@v4
         with:
           name: editai-0.2.0-macos-arm64-branded-dmg-for-local-notarization

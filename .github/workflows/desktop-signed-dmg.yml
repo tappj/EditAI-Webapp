@@ -2,6 +2,14 @@ name: Assemble signed macOS DMG
 on:
   workflow_dispatch:
     inputs:
+      release_id:
+        description: Numeric ID of the private draft release
+        required: true
+        type: string
+      asset_id:
+        description: Numeric ID of its signed ZIP asset
+        required: true
+        type: string
       zip_sha256:
         description: SHA-256 of the Developer ID signed and notarized ZIP in the draft release
         required: true
@@ -18,10 +26,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA256: ${{ inputs.zip_sha256 }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          ASSET_ID: ${{ inputs.asset_id }}
         shell: bash
         run: |
           set -euo pipefail
-          gh release download v0.2.0 --repo tappj/EditAI-Webapp --pattern 'EditAI-0.2.0-mac-arm64.zip' --dir "$RUNNER_TEMP"
+          test "$(gh api "repos/tappj/EditAI-Webapp/releases/$RELEASE_ID" --jq .draft)" = true
+          gh api "repos/tappj/EditAI-Webapp/releases/assets/$ASSET_ID" -H 'Accept: application/octet-stream' > "$RUNNER_TEMP/EditAI-0.2.0-mac-arm64.zip"
           printf '%s  %s\n' "$EXPECTED_SHA256" "$RUNNER_TEMP/EditAI-0.2.0-mac-arm64.zip" | shasum -a 256 -c -
       - name: Assemble and inspect disk image
         shell: bash

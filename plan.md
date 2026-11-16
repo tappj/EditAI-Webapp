@@ -34,3 +34,7 @@ TypeScript and production builds pass; fifteen model/security tests and nine fix
 - No domain purchased: editai.com is registered; geteditai.com is a candidate pending registrar confirmation.
 - Physical camera/microphone permissions and actual Safari/iPhone device checks remain manual; WebKit engine checks pass.
 - Publik wallets without a public account identifier use verified linked-key storage scope, disclosed in Settings; cross-browser account sync cannot be promised for these accounts.
+
+## Webapp migration and desktop preview — November 15, 2026
+
+Primary source migrated with complete web history to tappj/EditAI-Webapp, branch codex/desktop-migration. iOS is unchanged; main was not pushed. Shared Electron/native FFmpeg desktop editor, encrypted Publik sessions, official separate registration, popup/recovery onboarding, benchmarks and guarded GitHub release/update tools are implemented. Production web version 8 and 24 deployed browser checks plus real AI/restore/export acceptance passed. See docs/desktop/VERIFICATION.md for exact evidence and release blockers. Public installers await Developer ID/notarization; no unsigned download is advertised. Existing web listing repository migration and desktop catalog review need Publik's supported process. Desktop backups are local and automatic cross-device project synchronization remains unimplemented.

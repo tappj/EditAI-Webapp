@@ -30,7 +30,8 @@ try {
     !signed.gatekeeper ||
     !signed.stapled ||
     !signed.publikSelfTest ||
-    signed.arch !== arch
+    signed.arch !== arch ||
+    !(Date.parse(accepted.date) >= Date.parse(signed.date))
   )
     throw Error("Signed release verification is missing.");
   if (
@@ -62,7 +63,8 @@ try {
     (n) =>
       n === "latest-mac.yml" ||
       (n.startsWith(`EditAI-0.2.0-mac-${arch}.`) &&
-        /\.(dmg|zip|blockmap)$/.test(n)),
+        /\.(dmg|zip|blockmap)$/.test(n) &&
+        !n.endsWith(".dmg.blockmap")),
   );
   if (
     !names.some((n) => n.endsWith(".dmg")) ||

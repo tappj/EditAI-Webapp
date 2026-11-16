@@ -28,6 +28,8 @@ mac:
   extendInfo:
     NSCameraUsageDescription: EditAI records video when you enable its camera.
     NSMicrophoneUsageDescription: EditAI records audio when you enable its microphone.
+dmg:
+  writeUpdateInfo: false
 win:
   target: nsis
   icon: desktop/build/icon.png

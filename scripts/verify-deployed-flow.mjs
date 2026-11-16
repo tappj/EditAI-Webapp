@@ -13,6 +13,7 @@ const context = await browser.newContext({
   acceptDownloads: true,
 });
 const page = await context.newPage();
+let verificationProject = null;
 const report = {
   origin: baseURL,
   fixtures: false,
@@ -37,7 +38,7 @@ try {
     throw Error("Finish the normal live sign-in flow first.");
   report.authentication = true;
   const all = await json("projects");
-  const saved = all.projects.find((p) => {
+  let saved = all.projects.find((p) => {
     const d = JSON.parse(p.document);
     return (
       d.sources.length === 1 &&
@@ -51,6 +52,19 @@ try {
     );
   const document = JSON.parse(saved.document),
     source = document.sources[0];
+  // Use an isolated copy so a prior Warm edit cannot turn the requested edit
+  // into a correct no-op, and preserve the existing project during acceptance.
+  verificationProject = crypto.randomUUID();
+  saved = {
+    ...saved,
+    id: verificationProject,
+    title: "Migration verification " + Date.now(),
+  };
+  for (const clip of document.segments) clip.appearance.filter = "Clear";
+  await json("projects", {
+    method: "POST",
+    data: { id: saved.id, title: saved.title, document },
+  });
   report.persistedWords = document.words.length;
   report.persistedCaptions = document.texts.length;
   const sourceFile = await readFile("outputs/synthetic-speech.mp4");
@@ -162,6 +176,12 @@ try {
   process.exitCode = 1;
   console.log("Deployed verification:", e.message);
 } finally {
+  if (verificationProject) {
+    await page.goto(baseURL).catch(() => {});
+    await json("projects/" + verificationProject, { method: "DELETE" }).catch(
+      () => {},
+    );
+  }
   await writeFile(
     "outputs/deployed-real-verification.json",
     JSON.stringify(report, null, 2),

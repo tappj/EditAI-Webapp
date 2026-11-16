@@ -16,7 +16,10 @@ try {
     "-p",
     "codesigning",
   ]);
-  if (!identities.includes("Developer ID Application:"))
+  const identity = identities.match(
+    /\b([A-F0-9]{40})\s+"Developer ID Application:[^"]+"/,
+  )?.[1];
+  if (!identity)
     throw Error(
       "Install a Developer ID Application identity in Keychain. Apple Development is for local QA only.",
     );
@@ -62,6 +65,7 @@ try {
       "node_modules/electron-builder/cli.js",
       "--config",
       "desktop/electron-builder.yml",
+      "--config.mac.identity=" + identity,
       "--mac",
       "--" + process.arch,
       "--publish",
@@ -96,8 +100,38 @@ try {
     (n) =>
       n === "latest-mac.yml" ||
       (n.startsWith(`EditAI-0.2.0-mac-${process.arch}.`) &&
-        /\.(dmg|zip|blockmap)$/.test(n)),
+        /\.(dmg|zip|blockmap)$/.test(n) &&
+        !n.endsWith(".dmg.blockmap")),
   );
+  for (const name of artifactNames.filter((n) => n.endsWith(".dmg"))) {
+    const image = resolve("desktop/release", name);
+    run("codesign", ["--force", "--sign", identity, "--timestamp", image]);
+    const notarization = JSON.parse(
+      run("xcrun", [
+        "notarytool",
+        "submit",
+        image,
+        "--keychain-profile",
+        process.env.APPLE_KEYCHAIN_PROFILE,
+        "--wait",
+        "--output-format",
+        "json",
+      ]),
+    );
+    if (notarization.status !== "Accepted")
+      throw Error("Disk-image notarization was not accepted.");
+    run("xcrun", ["stapler", "staple", image]);
+    run("xcrun", ["stapler", "validate", image]);
+    run("spctl", [
+      "--assess",
+      "--type",
+      "open",
+      "--context",
+      "context:primary-signature",
+      "--verbose=2",
+      image,
+    ]);
+  }
   const artifactSha256 = {};
   for (const name of artifactNames)
     artifactSha256[name] = createHash("sha256")

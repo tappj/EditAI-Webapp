@@ -39,6 +39,13 @@ export function runBinary(binary, args, options = {}) {
     );
   });
 }
+// Reject network protocols and playlist demuxers for user-selected local files.
+const localInput = [
+  "-protocol_whitelist",
+  "file,pipe",
+  "-format_whitelist",
+  "mov,matroska,webm,avi,mp3,wav,flac,ogg,aac,image2,png_pipe,jpeg_pipe,webp_pipe",
+];
 export class NativeVideo {
   constructor({ ffmpeg, ffprobe, store, chooseDestination }) {
     Object.assign(this, { ffmpeg, ffprobe, store, chooseDestination });
@@ -61,6 +68,7 @@ export class NativeVideo {
         "error",
         "-ss",
         String(start),
+        ...localInput,
         "-i",
         this.store.path(id),
         "-t",
@@ -81,6 +89,36 @@ export class NativeVideo {
       );
     } finally {
       await unlink(out).catch(() => {});
+      const { rmdir } = await import("node:fs/promises");
+      await rmdir(directory).catch(() => {});
+    }
+  }
+  async normalize(bytes) {
+    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength > 1024 ** 3)
+      throw Error("Recording is too large.");
+    const directory = await mkdtemp(join(tmpdir(), "editai-recording-")),
+      input = join(directory, "input.webm"),
+      output = join(directory, "output.webm");
+    try {
+      await writeFile(input, Buffer.from(bytes), { mode: 0o600 });
+      await runBinary(this.ffmpeg, [
+        "-v",
+        "error",
+        ...localInput,
+        "-i",
+        input,
+        "-c",
+        "copy",
+        output,
+      ]);
+      const result = await readFile(output);
+      return result.buffer.slice(
+        result.byteOffset,
+        result.byteOffset + result.byteLength,
+      );
+    } finally {
+      await unlink(input).catch(() => {});
+      await unlink(output).catch(() => {});
       const { rmdir } = await import("node:fs/promises");
       await rmdir(directory).catch(() => {});
     }
@@ -115,6 +153,92 @@ export class NativeVideo {
     }
     return (this.selectedEncoder = "libx264");
   }
+  canRenderNative(document) {
+    return (
+      !document.texts.length &&
+      !document.overlays.length &&
+      document.segments.every(
+        ({ appearance: a }) =>
+          a.filter === "Clear" &&
+          a.brightness === 0 &&
+          a.contrast === 1 &&
+          a.saturation === 1 &&
+          a.warmth === 0 &&
+          a.rotation === 0 &&
+          !a.flipX &&
+          !a.flipY &&
+          a.opacity === 1 &&
+          a.crop.x === 0 &&
+          a.crop.y === 0 &&
+          a.crop.width === 1 &&
+          a.crop.height === 1 &&
+          Object.values(a.adjustments || {}).every((v) => v === 0),
+      )
+    );
+  }
+  async renderNative(job) {
+    const sources = [
+        ...new Set(job.document.segments.map((s) => s.sourceIndex)),
+      ],
+      graph = [],
+      labels = [];
+    for (const source of sources) {
+      const indexes = job.document.segments
+        .map((s, i) => (s.sourceIndex === source ? i : -1))
+        .filter((i) => i >= 0);
+      graph.push(
+        `[${sources.indexOf(source)}:v]split=${indexes.length}` +
+          indexes.map((i) => `[source${i}]`).join(""),
+      );
+    }
+    job.document.segments.forEach((s, i) => {
+      const scale =
+        job.document.framing === "fill"
+          ? `scale=${job.width}:${job.height}:force_original_aspect_ratio=increase,crop=${job.width}:${job.height}`
+          : `scale=${job.width}:${job.height}:force_original_aspect_ratio=decrease,pad=${job.width}:${job.height}:(ow-iw)/2:(oh-ih)/2:color=0x101216`;
+      graph.push(
+        `[source${i}]trim=start=${s.start}:end=${s.end},setpts=(PTS-STARTPTS)/${s.speed},${scale},setsar=1,fps=${job.fps}[part${i}]`,
+      );
+      labels.push(`[part${i}]`);
+    });
+    graph.push(labels.join("") + `concat=n=${labels.length}:v=1:a=0[rendered]`);
+    await runBinary(
+      this.ffmpeg,
+      [
+        "-v",
+        "error",
+        ...sources.flatMap((source) => [
+          ...localInput,
+          "-hwaccel",
+          "auto",
+          "-i",
+          this.store.path(job.document.sources[source].id),
+        ]),
+        "-filter_complex",
+        graph.join(";"),
+        "-map",
+        "[rendered]",
+        "-an",
+        "-c:v",
+        job.encoder,
+        ...(job.encoder === "libx264"
+          ? ["-preset", "veryfast", "-crf", "20"]
+          : ["-b:v", "12M"]),
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        job.video,
+      ],
+      { signal: job.controller.signal },
+    );
+    job.frames = Math.ceil(
+      job.document.segments.reduce(
+        (sum, s) => sum + (s.end - s.start) / s.speed,
+        0,
+      ) * job.fps,
+    );
+  }
   async begin(document, width, height, fps) {
     if (this.jobs.size)
       throw Error("Finish or cancel the current export first.");
@@ -131,6 +255,23 @@ export class NativeVideo {
       directory = await mkdtemp(join(tmpdir(), "editai-export-")),
       video = join(directory, "video.mp4"),
       encoder = await this.encoder();
+    if (this.canRenderNative(document)) {
+      this.jobs.set(id, {
+        id,
+        directory,
+        video,
+        destination,
+        document,
+        fps,
+        width,
+        height,
+        frames: 0,
+        encoder,
+        native: true,
+        controller: new AbortController(),
+      });
+      return { id, mode: "native" };
+    }
     const args = [
       "-v",
       "error",
@@ -158,6 +299,7 @@ export class NativeVideo {
       stdio: ["pipe", "ignore", "pipe"],
       windowsHide: true,
     });
+    process.stdin.on("error", () => {});
     let error = "";
     process.stderr.on("data", (b) => {
       error = (error + b).slice(-4000);
@@ -180,12 +322,13 @@ export class NativeVideo {
       destination,
       process,
       completion,
+      controller: new AbortController(),
       document,
       fps,
       frames: 0,
       encoder,
     });
-    return id;
+    return { id, mode: "frames" };
   }
   async frame(id, png) {
     const job = this.jobs.get(id);
@@ -209,8 +352,20 @@ export class NativeVideo {
   async finish(id) {
     const job = this.jobs.get(id);
     if (!job) throw Error("Unknown export.");
-    job.process.stdin.end();
-    await job.completion;
+    job.finishing = this.finishJob(job);
+    try {
+      return await job.finishing;
+    } finally {
+      await this.cleanup(id);
+    }
+  }
+  async finishJob(job) {
+    const id = job.id;
+    if (job.native) await this.renderNative(job);
+    else {
+      job.process.stdin.end();
+      await job.completion;
+    }
     const paths = [
         ...new Set([
           ...job.document.segments.map((s) => s.sourceIndex),
@@ -224,14 +379,19 @@ export class NativeVideo {
       const path = this.store.path(job.document.sources[source].id),
         probe = JSON.parse(
           (
-            await runBinary(this.ffprobe, [
-              "-v",
-              "error",
-              "-show_streams",
-              "-of",
-              "json",
-              path,
-            ])
+            await runBinary(
+              this.ffprobe,
+              [
+                "-v",
+                "error",
+                ...localInput,
+                "-show_streams",
+                "-of",
+                "json",
+                path,
+              ],
+              { signal: job.controller.signal },
+            )
           ).output,
         );
       if (probe.streams.some((s) => s.codec_type === "audio")) {
@@ -300,7 +460,7 @@ export class NativeVideo {
         "error",
         "-i",
         job.video,
-        ...inputs.flatMap((path) => ["-i", path]),
+        ...inputs.flatMap((path) => [...localInput, "-i", path]),
       ];
     if (labels.length) {
       filters.push(
@@ -329,24 +489,26 @@ export class NativeVideo {
       "+faststart",
       out,
     );
-    await runBinary(this.ffmpeg, args);
+    await runBinary(this.ffmpeg, args, { signal: job.controller.signal });
+    job.controller.signal.throwIfAborted();
     await copyFile(out, job.destination);
-    await this.cleanup(id);
     return { encoder: job.encoder, frames: job.frames };
   }
   async cancel(id) {
     const job = this.jobs.get(id);
-    job?.process.kill();
-    await job?.completion.catch(() => {});
+    job?.controller.abort();
+    job?.process?.kill();
+    if (job?.completion) await job.completion.catch(() => {});
+    await job?.finishing?.catch(() => {});
     await this.cleanup(id);
   }
   async cleanup(id) {
     const job = this.jobs.get(id);
     if (!job) return;
+    this.jobs.delete(id);
     const { readdir, rmdir } = await import("node:fs/promises");
     for (const file of await readdir(job.directory))
       await unlink(join(job.directory, file));
     await rmdir(job.directory);
-    this.jobs.delete(id);
   }
 }

@@ -6,6 +6,8 @@ export async function readVault(file) {
     const encoded = JSON.parse(await readFile(file, "utf8"));
     if (encoded.format !== "editai-vault-v1")
       throw Error("Unsupported credential storage.");
+    if (!(await safeStorage.isAsyncEncryptionAvailable()))
+      throw Error("OS credential storage is unavailable.");
     const decrypted = await safeStorage.decryptStringAsync(
       Buffer.from(encoded.payload, "base64"),
     );

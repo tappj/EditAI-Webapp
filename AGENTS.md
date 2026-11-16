@@ -10,7 +10,7 @@ Read `plan.md` and `docs/VERIFICATION.md` before claiming completion. Tests usin
 - Word-timed transcription: audio/uploads -> signed PUT -> audio/transcriptions with chirp-3, verbose_json and word timestamps -> poll; do not POST a new paid job to check progress.
 - Sign in with publik: the request-scoped module gate runs before the first application screen; it also sends usage telemetry.
 - Hosted keys stay server-side, encrypted in D1; session cookies are HTTP-only. No global shared visitor key.
-- App token: hosted PUBLIK_APP_TOKEN secret. Never read .env files to find a credential.
+- App token: hosted PUBLIK_APP_TOKEN secret for web; desktop/publik-app-token.txt is Publik's explicitly public, app-scoped bootstrap resource required for source installs. It is not a private per-user key. Never print its value. Never read .env files to find a credential.
 - 402: show error.message and its one error.top_up_url.
 - Show use as wallet used_percent, never money or per-call cost in product screens.
 - Telemetry: official app_opened and active_session only; require signed-in genuine activity and honor opt-out. No synthetic users/engagement/credit consumption.

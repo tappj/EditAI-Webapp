@@ -18,7 +18,8 @@
     "desktop:build": "node scripts/build-desktop.mjs",
     "desktop:start": "electron desktop/dist",
     "desktop:pack": "electron-builder --config desktop/electron-builder.yml --dir",
-    "desktop:release": "electron-builder --config desktop/electron-builder.yml --publish never"
+    "desktop:release": "node scripts/release-desktop.mjs",
+    "test:desktop": "node --experimental-strip-types --test desktop/tests/*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -35,7 +36,6 @@
     "electron-updater": "^6.8.11",
     "embla-carousel-react": "^8.6.0",
     "ffmpeg-static": "^5.3.0",
-    "ffprobe-static": "^3.1.0",
     "idb": "^8.0.4",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",

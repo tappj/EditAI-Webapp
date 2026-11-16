@@ -680,16 +680,22 @@ export class Player {
     this.pause();
     this.exporting = true;
     let job: string | undefined;
+    const cancel = () => {
+      if (job) void bridge.cancelExport(job);
+    };
+    signal.addEventListener("abort", cancel, { once: true });
     try {
       await this.init();
       await document.fonts.ready;
-      job = await bridge.beginExport(
+      const started = await bridge.beginExport(
         this.doc,
         this.canvas.width,
         this.canvas.height,
         fps,
       );
-      const frames = Math.ceil(duration(this.doc) * fps);
+      job = started.id;
+      const frames =
+        started.mode === "native" ? 0 : Math.ceil(duration(this.doc) * fps);
       for (let frame = 0; frame < frames; frame++) {
         signal.throwIfAborted();
         await this.renderFrame(
@@ -714,6 +720,7 @@ export class Player {
       if (job) await bridge.cancelExport(job).catch(() => {});
       throw error;
     } finally {
+      signal.removeEventListener("abort", cancel);
       this.exporting = false;
       this.seek(oldTime);
     }
@@ -862,6 +869,12 @@ export class Player {
 // MediaRecorder WebM has no duration header. Remux without re-encoding before import.
 export async function normalizeRecording(file: File) {
   if (!file.type.includes("webm")) return file;
+  if (desktop())
+    return new File(
+      [await desktop()!.normalizeRecording(await file.arrayBuffer())],
+      file.name,
+      { type: "video/webm" },
+    );
   const f = await ffmpeg(),
     id = crypto.randomUUID(),
     input = id + ".in.webm",

@@ -54,6 +54,7 @@ export interface Wallet {
   account: { handle: string | null } | null;
   plan: { kind: "none" | "plan" | "pack"; label: string | null };
   balance_micros: number;
+  available_micros?: number;
   top_up_url: string;
   linked_at: string | null;
   prepaid_remaining_percent?: number | null; // 0..100 of prepaid money left; null: never a top-up or a grant
@@ -127,6 +128,8 @@ function writeCredential(c: PublikCredential | null): void {
   pendingPersistence = pendingPersistence.then(() => persistCredential(c));
 }
 export function forgetCredential() {
+  if (timer) clearInterval(timer);
+  timer = null;
   writeCredential(null);
 }
 let activeUsage = () => true;
@@ -198,7 +201,8 @@ export async function provision(): Promise<PublikCredential> {
         claim_url: body.claim_url ?? null,
         choice: prior?.choice ?? null,
       };
-      writeCredential(c); // the key reaches disk before anything else sees it
+      writeCredential(c);
+      await flushCredentialStore(); // Persist the OS-encrypted key before using it.
       return c;
     }
     if (res.status === 200 || body.error?.type === "install_revoked") {
@@ -266,7 +270,12 @@ export function gateScreen(
   const who = w?.account?.handle
     ? `You are signed in as @${w.account.handle}.`
     : "You are signed in to publik.";
-  if (!w || (w.plan.kind === "none" && w.balance_micros === 0))
+  if (
+    !w ||
+    (w.plan.kind === "none" &&
+      w.balance_micros === 0 &&
+      !(w.available_micros && w.available_micros > 0))
+  )
     return {
       id,
       title: "Choose how to pay for AI",

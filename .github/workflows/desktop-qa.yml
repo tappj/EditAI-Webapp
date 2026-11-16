@@ -1,0 +1,52 @@
+name: Desktop QA
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/desktop-migration]
+    paths:
+      [
+        "desktop/**",
+        "lib/**",
+        "app/**",
+        "components/**",
+        "scripts/build-desktop.mjs",
+        "package*.json",
+        ".github/workflows/desktop-qa.yml",
+      ]
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      DO_NOT_TRACK: "1"
+      PUBLIK_TELEMETRY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: node node_modules/electron/install.js
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run desktop:build
+      - run: npm run test:desktop
+      # Internal QA bundles only. No unsigned installer is uploaded or published.
+      - if: runner.os == 'Windows'
+        run: npx electron-builder --config desktop/electron-builder.yml --dir --win --x64 -c.forceCodeSigning=false --publish never
+      - if: runner.os == 'macOS'
+        run: npx electron-builder --config desktop/electron-builder.yml --dir --mac -c.forceCodeSigning=false -c.mac.identity=- -c.mac.notarize=false --publish never
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PUBLIK_SELF_TEST = '1'
+          $result = & './desktop/release/win-unpacked/EditAI.exe' 2>&1 | Out-String
+          if ($result -notmatch 'publik self-test: ok editai-desktop 0.2.0') { throw 'Packaged Publik self-test failed' }
+          Write-Output 'Packaged Publik self-test passed. Windows interactive editing/install is not yet certified.'

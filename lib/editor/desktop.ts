@@ -10,6 +10,7 @@ export type NativeMedia = {
 export type MediaResource = Blob | NativeMedia;
 export type DesktopBridge = {
   platform: string;
+  signOut(): Promise<void>;
   importFile(id: string, file: File): Promise<NativeMedia | null>;
   writeMedia(
     id: string,
@@ -19,12 +20,13 @@ export type DesktopBridge = {
   getMedia(id: string): Promise<NativeMedia | null>;
   deleteMedia(ids: string[]): Promise<void>;
   extractAudio(id: string, start: number, length: number): Promise<ArrayBuffer>;
+  normalizeRecording(bytes: ArrayBuffer): Promise<ArrayBuffer>;
   beginExport(
     document: Document,
     width: number,
     height: number,
     fps: number,
-  ): Promise<string>;
+  ): Promise<{ id: string; mode: "native" | "frames" }>;
   exportFrame(job: string, png: ArrayBuffer): Promise<void>;
   finishExport(job: string): Promise<void>;
   cancelExport(job: string): Promise<void>;

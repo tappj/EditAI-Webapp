@@ -1,4 +1,4 @@
-# EditAI Studio
+# EditAI Web and Desktop
 
 Independent web version of the EditAI iOS video editor. Live: https://editai-web.givingarmadillo8.chatgpt.site · Source: https://github.com/tappj/EditAI-Webapp/tree/codex/desktop-migration
 
@@ -11,3 +11,5 @@ Node 22.13+: `npm ci`, `npm run dev`, `npm run typecheck`, `npm test`, `npm run 
 Runtime secrets: `PUBLIK_APP_TOKEN` and a base64 32-byte `SESSION_ENCRYPTION_KEY`, configured through hosting secret management. Never read existing environment files to recover credentials, place keys in browser variables, log them, or commit private browser test state. Do not rotate the encryption key without a credential migration. Visitor install/API keys are encrypted at rest; session cookies are HTTP-only.
 
 Read [feature parity](docs/WEB-PARITY.md), [actual verification and limits](docs/VERIFICATION.md), [domain/cost research](docs/DOMAINS-AND-COSTS.md), and [progress](plan.md). In particular, accounts whose Publik wallet lacks a public identity use browser-scoped persistence; source backups are optional; browser exports are re-encoded SDR; catalog review and physical camera/Safari checks remain outstanding.
+
+Desktop preview: shared local Electron editor, native FFmpeg and OS-encrypted Publik credentials. See [desktop architecture, benchmarks, release process and remaining limits](docs/desktop/README.md). Public installers are pending signing, notarization and release acceptance.

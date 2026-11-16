@@ -5,12 +5,16 @@ directories:
   output: desktop/release
 files:
   - '**/*'
+  - '!node_modules/**'
 extraResources:
   - from: desktop/bin
     to: bin
 asar: true
 forceCodeSigning: true
 mac:
+  binaries:
+    - Contents/Resources/bin/ffmpeg
+    - Contents/Resources/bin/ffprobe
   category: public.app-category.video
   icon: desktop/build/icon.icns
   target:

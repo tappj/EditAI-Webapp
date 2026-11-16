@@ -2,15 +2,17 @@ const { contextBridge, ipcRenderer, webUtils } = require("electron");
 const call = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
 contextBridge.exposeInMainWorld("editaiDesktop", {
   platform: process.platform,
+  signOut: () => ipcRenderer.invoke("account:sign-out"),
   importFile: (id, file) => {
     const path = webUtils.getPathForFile(file);
     return path
-      ? call("media:retain", id, path, file.type)
+      ? call("media:retain", id, path, file.type || "video/mp4")
       : Promise.resolve(null);
   },
   writeMedia: (id, bytes, type) => call("media:write", id, bytes, type),
   getMedia: (id) => call("media:get", id),
   deleteMedia: (ids) => call("media:delete", ids),
+  normalizeRecording: (bytes) => call("video:normalize", bytes),
   extractAudio: (id, start, length) => call("video:audio", id, start, length),
   beginExport: (document, w, h, fps) =>
     call("video:begin", document, w, h, fps),

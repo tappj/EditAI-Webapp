@@ -137,6 +137,14 @@ export const deleteProject = async (id: string) => {
 };
 export const clearStorage = async () => {
   const d = await db();
+  if (desktop())
+    await desktop()!.deleteMedia([
+      ...new Set(
+        (await listProjects()).flatMap((p) =>
+          p.document.sources.map((s) => s.id),
+        ),
+      ),
+    ]);
   for (const k of await d.getAllKeys("media"))
     if (String(k).startsWith(scope + ":")) await d.delete("media", k);
   for (const p of await listProjects()) await d.delete("projects", p.id);

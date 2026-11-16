@@ -1,4 +1,5 @@
 "use client";
+import { DesktopDownloads } from "../components/desktop-downloads";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ArrowLeft,
@@ -993,15 +994,20 @@ export default function App() {
     if (!player.current || !project) return;
     setExportOpen(false);
     abort.current = new AbortController();
-    await run("Rendering your video · keep this tab open", async () => {
-      const b = await player.current!.export(
-        fps,
-        setProgress,
-        abort.current!.signal,
-      );
-      if (b) download(b, project.title + ".mp4");
-      setNotice("MP4 exported. Your editable project is saved.");
-    });
+    await run(
+      desktop()
+        ? "Rendering your video locally"
+        : "Rendering your video · keep this tab open",
+      async () => {
+        const b = await player.current!.export(
+          fps,
+          setProgress,
+          abort.current!.signal,
+        );
+        if (b) download(b, project.title + ".mp4");
+        setNotice("MP4 exported. Your editable project is saved.");
+      },
+    );
     setPlaying(false);
   }
   function download(b: Blob, name: string) {
@@ -1170,6 +1176,7 @@ export default function App() {
                 Turn your recordings into videos worth sharing. Find your best
                 takes, add captions, and make every frame yours.
               </p>
+              <DesktopDownloads openWeb />
               <div className="trust-row">
                 <ShieldCheck size={17} /> Private footage. Browser-based
                 editing.
@@ -1331,7 +1338,9 @@ export default function App() {
                 </strong>
               </div>
               <div className="topbar-right">
-                <span className="web-badge">WEB STUDIO</span>
+                <span className="web-badge">
+                  {desktop() ? "DESKTOP STUDIO" : "WEB STUDIO"}
+                </span>
                 {screen === "editor" && (
                   <Button
                     onClick={() => {
@@ -1357,6 +1366,7 @@ export default function App() {
                       What will you create today<span>?</span>
                     </h1>
                     <p>Your next great video starts with a first take.</p>
+                    {!desktop() && <DesktopDownloads />}
                   </div>
                   <span className="ios-badge compact">iOS — Coming Soon</span>
                 </div>
@@ -2604,7 +2614,9 @@ export default function App() {
                     <Button
                       secondary
                       onClick={() =>
-                        void api("logout", {}).then(() => location.reload())
+                        void api("logout", {}).then(() =>
+                          desktop() ? desktop()!.signOut() : location.reload(),
+                        )
                       }
                     >
                       <LogOut size={16} />
@@ -2791,7 +2803,8 @@ export default function App() {
                             await api("account", undefined, "DELETE");
                             await clearStorage();
                             localStorage.removeItem("editai-preferences");
-                            location.reload();
+                            if (desktop()) await desktop()!.signOut();
+                            else location.reload();
                           });
                       }}
                     >
@@ -2949,9 +2962,9 @@ export default function App() {
               <strong>MP4 · H.264 + AAC</strong>
             </div>
             <p className="panel-note">
-              Rendering takes about the length of your video, then MP4 encoding.
-              Keep this tab visible. Browser export is SDR; original HDR/VFR
-              preservation is not available.
+              {desktop()
+                ? "Native FFmpeg exports to a file you choose. Simple cuts use the native pipeline; effects and captions use the same EditAI compositor. Export is SDR."
+                : "Rendering takes about the length of your video, then MP4 encoding. Keep this tab visible. Browser export is SDR; original HDR/VFR preservation is not available."}
             </p>
             <Button onClick={() => void exportVideo()}>
               <Download size={17} />
@@ -2973,9 +2986,9 @@ export default function App() {
               </IconButton>
             </div>
             <p>
-              EditAI Web keeps editing and rendering in your browser. Drafts and
-              source files are stored in this browser’s IndexedDB. Clearing
-              browser storage removes local files.
+              {desktop()
+                ? "EditAI Desktop reads selected source files from disk and renders with native FFmpeg. Projects and optional backup copies stay in this computer’s app storage. Keep originals in place. Credentials are encrypted with the OS credential vault."
+                : "EditAI Web keeps editing and rendering in your browser. Drafts and source files are stored in this browser’s IndexedDB. Clearing browser storage removes local files."}
             </p>
             <h3>Your account and cloud storage</h3>
             <p>

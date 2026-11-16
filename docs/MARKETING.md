@@ -1,12 +1,12 @@
 # EditAI marketing handoff — current design
 
-The owner's `Website resources/cutai new` screenshots supersede the previous rounded blue/glass page. The old metric cards, award cards and mini-profile block are removed. The seven-feature grid and four-icon ribbon are the only retained old section, rebuilt with ink/lavender tiles and the new flat card treatment. See `REFERENCE_AUDIT.md` for every supplied reference.
+The owner's `Website resources/cutai new` screenshots supersede the previous rounded blue/glass page. The old metric cards, award cards and mini-profile block are removed. The seven-feature grid and four-icon ribbon are the only retained old section, rebuilt with ink/blue tiles and the new flat card treatment. See `REFERENCE_AUDIT.md` for every supplied reference.
 
-The owner’s palette refinement uses the original app icon’s pastel blue, lavender and blush with readable indigo accents throughout navigation, feature icons, previews, charts and pricing. The quieter footer wordmark remains intentionally cropped at the bottom and is reduced to a 220px desktop cap and 20vw on mobile. Marketing tokens are scoped in `app/marketing.css`; the editor theme is unchanged.
+The main accent uses the existing EditAI editor blues: brand `#598fd9`, readable control/text `#326ab4` and soft accent `#c4e0ff`. These drive navigation, headings, buttons, feature icons, previews, charts and pricing. Lavender and blush remain subtle supporting tones in the original icon and decoration. The quieter footer wordmark remains intentionally cropped at the bottom and is reduced to a 220px desktop cap and 20vw on mobile. Marketing tokens are scoped in `app/marketing.css`; the editor theme is unchanged.
 
 ## Design and routes
 
-The page uses a continuous pale lavender canvas, dark Inter headings, soft blue/lavender/blush gradient CTAs, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → workflow comparison + editable estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
+The page uses a continuous pale blue-gray canvas, dark Inter headings, EditAI blue gradient CTAs, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → workflow comparison + editable estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
 
 `/` still opens the studio for an already authenticated visitor, preserving existing behavior. An anonymous visitor sees the marketing page. `/sign-in` presents the existing official Publik gate with the new styling; provider calls, popup isolation, recovery links, consent and sessions are unchanged. Use a private browser window to inspect the public page when already signed in.
 

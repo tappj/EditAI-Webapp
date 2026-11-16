@@ -550,3 +550,85 @@ test("blocked sign-in popups expose a direct official recovery link", async ({
     page.getByRole("button", { name: "Create a video" }),
   ).toHaveCount(0);
 });
+
+for (const device of [
+  {
+    name: "iPhone",
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+    platform: "iPhone",
+    touch: 5,
+    downloads: false,
+  },
+  {
+    name: "Android",
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36",
+    platform: "Linux armv8l",
+    touch: 5,
+    downloads: false,
+  },
+  {
+    name: "iPad desktop mode",
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15",
+    platform: "MacIntel",
+    touch: 5,
+    downloads: false,
+  },
+  {
+    name: "Mac narrow window",
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+    platform: "MacIntel",
+    touch: 0,
+    downloads: true,
+  },
+]) {
+  test(`desktop installers respect device on login and home: ${device.name}`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      userAgent: device.userAgent,
+      viewport: { width: 390, height: 844 },
+    });
+    await context.addInitScript(({ platform, touch }) => {
+      Object.defineProperty(navigator, "platform", { get: () => platform });
+      Object.defineProperty(navigator, "maxTouchPoints", { get: () => touch });
+    }, device);
+    const page = await context.newPage();
+    try {
+      await page.route("**/api/session", (r) =>
+        r.fulfill({
+          json: {
+            profile: { consent: false, telemetry: false },
+            screen: {
+              id: "sign_in",
+              title: "Sign in with publik",
+              body: "Continue with Publik.",
+              buttons: [{ action: "sign_in", label: "Sign in with publik" }],
+            },
+          },
+        }),
+      );
+      await page.goto("/");
+      await expect(
+        page.getByRole("button", { name: "Sign in with publik", exact: true }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Open EditAI Web" }).click();
+      await expect(
+        page.getByRole("button", { name: "Sign in with publik", exact: true }),
+      ).toBeFocused();
+      await expect(
+        page.getByRole("link", { name: /Download for macOS/ }),
+      ).toHaveCount(device.downloads ? 1 : 0);
+      await authenticated(page);
+      await openStudio(page);
+      await expect(
+        page.getByRole("link", { name: /Download for macOS/ }),
+      ).toHaveCount(device.downloads ? 1 : 0);
+    } finally {
+      await context.close();
+    }
+  });
+}

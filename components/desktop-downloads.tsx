@@ -21,8 +21,13 @@ const available = (releases as Release[]).filter(
     ),
 );
 export function DesktopDownloads({ openWeb = false }: { openWeb?: boolean }) {
-  const [preferred, setPreferred] = useState("macos");
+  // Wait for device detection before rendering installers, including during SSR.
+  const [preferred, setPreferred] = useState<string | null>(null);
   useEffect(() => {
+    const mobile =
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (mobile) return;
     setPreferred(/Windows/i.test(navigator.userAgent) ? "windows" : "macos");
   }, []);
   const sorted = [...available].sort(
@@ -45,18 +50,23 @@ export function DesktopDownloads({ openWeb = false }: { openWeb?: boolean }) {
           Open EditAI Web <span aria-hidden="true">↗</span>
         </button>
       )}
-      {sorted.map((r) => (
-        <a className="desktop-download" key={r.platform + r.arch} href={r.url}>
-          Download for {r.platform === "macos" ? "macOS" : "Windows"} ·{" "}
-          {r.arch === "arm64"
-            ? "Apple silicon"
-            : r.platform === "macos"
-              ? "Intel"
-              : "Intel / AMD"}{" "}
-          <small>v{r.version}</small>
-        </a>
-      ))}
-      {!available.length && (
+      {preferred &&
+        sorted.map((r) => (
+          <a
+            className="desktop-download"
+            key={r.platform + r.arch}
+            href={r.url}
+          >
+            Download for {r.platform === "macos" ? "macOS" : "Windows"} ·{" "}
+            {r.arch === "arm64"
+              ? "Apple silicon"
+              : r.platform === "macos"
+                ? "Intel"
+                : "Intel / AMD"}{" "}
+            <small>v{r.version}</small>
+          </a>
+        ))}
+      {preferred && !available.length && (
         <p className="desktop-status">
           Desktop preview: local files and native FFmpeg. Public installers are
           awaiting signing and release verification.{" "}

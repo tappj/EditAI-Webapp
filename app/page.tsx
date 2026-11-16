@@ -1,4 +1,9 @@
 "use client";
+import {
+  MarketingLanding,
+  MarketingSignIn,
+} from "../components/marketing/landing";
+import "./marketing.css";
 import { DesktopDownloads } from "../components/desktop-downloads";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
@@ -150,7 +155,7 @@ async function api(path: string, body?: unknown, method?: string) {
   }
   return b;
 }
-export default function App() {
+export default function App({ signIn = false }: { signIn?: boolean }) {
   const [session, setSession] = useState<any>(null),
     [gateError, setGateError] = useState(""),
     [pending, setPending] = useState(true),
@@ -309,7 +314,7 @@ export default function App() {
     );
   }, [theme, language, profileName]);
   useEffect(() => {
-    if (session?.screen.id === "ready") return;
+    if (session?.screen.id === "ready" || (!signIn && !desktop())) return;
     const started = Date.now();
     const resumed = () => {
       if (document.visibilityState === "visible") void refresh();
@@ -329,7 +334,7 @@ export default function App() {
       window.removeEventListener("focus", resumed);
       document.removeEventListener("visibilitychange", resumed);
     };
-  }, [session?.screen.id, refresh]);
+  }, [session?.screen.id, refresh, signIn]);
   useEffect(() => {
     if (session?.screen.id !== "ready") return;
     setStorageScope(session.profile.ownerId || session.profile.handle);
@@ -1172,52 +1177,8 @@ export default function App() {
         }}
       />
       {pending || session?.screen.id !== "ready" ? (
-        <div className="landing">
-          <header className="landing-header">
-            <Wordmark />
-            <span className="ios-badge">
-              EditAI for iOS <span>Coming Soon</span>
-            </span>
-          </header>
-          <main className="landing-main">
-            <div className="hero-copy">
-              <div className="eyebrow">
-                <span />
-                YOUR FOOTAGE. YOUR VOICE.
-              </div>
-              <h1>
-                Less editing.
-                <br />
-                <span>More creating.</span>
-              </h1>
-              <p>
-                Turn your recordings into videos worth sharing. Find your best
-                takes, add captions, and make every frame yours.
-              </p>
-              <DesktopDownloads openWeb />
-              <div className="trust-row">
-                <ShieldCheck size={17} /> Private footage. Browser-based
-                editing.
-              </div>
-              <div className="hero-tools">
-                <span>
-                  <Scissors />
-                  Edit
-                </span>
-                <span>
-                  <Subtitles />
-                  Caption
-                </span>
-                <span>
-                  <AudioLines />
-                  Transcribe
-                </span>
-                <span>
-                  <Download />
-                  Export
-                </span>
-              </div>
-            </div>
+        signIn || desktop() ? (
+          <MarketingSignIn onPrivacy={() => setPrivacy(true)}>
             <section className="sign-in-card">
               <div className="app-symbol">
                 <Clapperboard />
@@ -1274,20 +1235,10 @@ export default function App() {
                 AI powered by publik. Editing powered by you.
               </small>
             </section>
-          </main>
-          <section className="landing-bottom">
-            <span>
-              01 <b>Bring your footage</b>
-            </span>
-            <span>
-              02 <b>Make it yours</b>
-            </span>
-            <span>
-              03 <b>Share your story</b>
-            </span>
-            <button onClick={() => setPrivacy(true)}>Privacy & data</button>
-          </section>
-        </div>
+          </MarketingSignIn>
+        ) : (
+          <MarketingLanding onPrivacy={() => setPrivacy(true)} />
+        )
       ) : (
         <div className={`app-shell ${screen === "editor" ? "is-editor" : ""}`}>
           <aside className={`sidebar ${menu ? "open" : ""}`}>

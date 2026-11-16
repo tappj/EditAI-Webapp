@@ -37,8 +37,15 @@ test("public first page requires Publik sign-in; responsive and no secret exposu
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Less editing. More creating." }),
+    page.getByRole("heading", {
+      name: "Film freely. Let EditAI do the editing.",
+    }),
   ).toBeVisible();
+  await page
+    .getByRole("link", { name: "Open EditAI Web", exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
     page.getByRole("heading", { name: "Sign in with publik", exact: true }),
   ).toBeVisible();
@@ -496,10 +503,13 @@ test("Publik popup remains official, has no opener, and approval opens the studi
   await expect(
     page.getByRole("button", { name: "Create a video" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Open EditAI Web" }).click();
+  await page
+    .getByRole("link", { name: "Open EditAI Web", exact: true })
+    .first()
+    .click();
   await expect(
     page.getByRole("button", { name: "Sign in with publik", exact: true }),
-  ).toBeFocused();
+  ).toBeVisible();
   const created = context.waitForEvent("page");
   await page
     .getByRole("button", { name: "Sign in with publik", exact: true })
@@ -513,9 +523,9 @@ test("Publik popup remains official, has no opener, and approval opens the studi
     page.getByRole("heading", { name: "What will you create today?" }),
   ).toBeVisible({ timeout: 15000 });
   if (!popup.isClosed()) await popup.close();
-  expect(
-    await page.getByRole("link", { name: /Download for macOS/ }).count(),
-  ).toBe(0);
+  // The authenticated dashboard still offers supported desktop downloads.
+  // Verify the marketing/sign-in surface was completely replaced instead.
+  await expect(page.locator(".marketing")).toHaveCount(0);
 });
 
 test("blocked sign-in popups expose a direct official recovery link", async ({
@@ -538,7 +548,7 @@ test("blocked sign-in popups expose a direct official recovery link", async ({
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/sign-in");
   await page
     .getByRole("button", { name: "Sign in with publik", exact: true })
     .click();
@@ -611,14 +621,11 @@ for (const device of [
           },
         }),
       );
-      await page.goto("/");
+      await page.goto("/sign-in");
       await expect(
         page.getByRole("button", { name: "Sign in with publik", exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Open EditAI Web" }).click();
-      await expect(
-        page.getByRole("button", { name: "Sign in with publik", exact: true }),
-      ).toBeFocused();
+      await expect(page).toHaveTitle("EditAI: #1 Video Editor");
       await expect(
         page.getByRole("link", { name: /Download for macOS/ }),
       ).toHaveCount(device.downloads ? 1 : 0);

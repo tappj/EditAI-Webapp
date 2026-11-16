@@ -1,6 +1,6 @@
 # Verification — November 16, 2026 (local)
 
-Production: https://editai-web.givingarmadillo8.chatgpt.site — Sites version 8, source de4c2605c0e449d7df343009aa084bb099d47eaf. Same project, D1/R2 bindings, environment revision, encryption key, session cookie and web Publik identity. Original iOS tree remains unchanged; only the owner's pre-existing untracked handbook PDF is present there.
+Production: https://editai-web.givingarmadillo8.chatgpt.site — Sites version 9, source 4cdd86a30e1c505355878ea170ac981a332691b1, adds the verified macOS installer link. Full workflow regression ran on version 8, source de4c2605c0e449d7df343009aa084bb099d47eaf; a deployed Chromium browser check confirmed the version 9 macOS button points to the public v0.2.0 DMG, and the asset returned HTTP 200. Same project, D1/R2 bindings, environment revision, encryption key, session cookie and web Publik identity. Original iOS tree remains unchanged; only the owner's pre-existing untracked handbook PDF is present there.
 
 ## Observed results
 

@@ -4,8 +4,16 @@ import { readFile, mkdir } from "node:fs/promises";
 import sharp from "sharp";
 
 const source = await readFile("desktop/build/icon.png");
-const mask = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><rect x="28" y="28" width="968" height="968" rx="220" fill="white"/></svg>`);
-const rounded = await sharp(source).ensureAlpha().composite([{ input: mask, blend: "dest-in" }]).png().toBuffer();
+// macOS displays the whole canvas, including its transparent margins. Keep the
+// visible tile within 824 px (100 px on each side), matching native app icons.
+// Resize the complete artwork so the scissors retain their original proportions.
+const tileSize = 824;
+const inset = (1024 - tileSize) / 2;
+const mask = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${tileSize}" height="${tileSize}"><rect width="${tileSize}" height="${tileSize}" rx="185" fill="white"/></svg>`);
+const tile = await sharp(source).resize(tileSize, tileSize).ensureAlpha()
+  .composite([{ input: mask, blend: "dest-in" }]).png().toBuffer();
+const rounded = await sharp({ create: { width: 1024, height: 1024, channels: 4, background: "#00000000" } })
+  .composite([{ input: tile, left: inset, top: inset }]).png().toBuffer();
 await sharp(rounded).toFile("desktop/build/icon-mac.png");
 await mkdir("desktop/build/icon.iconset", { recursive: true });
 for (const size of [16, 32, 128, 256, 512]) {

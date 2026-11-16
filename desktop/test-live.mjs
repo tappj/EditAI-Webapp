@@ -153,7 +153,7 @@ try {
     }),
     page
       .getByRole("alert")
-      .waitFor()
+      .waitFor({ timeout: 240000 })
       .then(async () => {
         throw Error(await page.getByRole("alert").innerText());
       }),

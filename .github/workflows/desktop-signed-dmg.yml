@@ -1,0 +1,52 @@
+name: Assemble signed macOS DMG
+on:
+  workflow_dispatch:
+    inputs:
+      zip_sha256:
+        description: SHA-256 of the Developer ID signed and notarized ZIP in the draft release
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  dmg:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact signed app from draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA256: ${{ inputs.zip_sha256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release download v0.2.0 --repo tappj/EditAI-Webapp --pattern 'EditAI-0.2.0-mac-arm64.zip' --dir "$RUNNER_TEMP"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$RUNNER_TEMP/EditAI-0.2.0-mac-arm64.zip" | shasum -a 256 -c -
+      - name: Assemble and inspect disk image
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/editai-dmg-stage"
+          mkdir -p "$stage"
+          ditto -x -k "$RUNNER_TEMP/EditAI-0.2.0-mac-arm64.zip" "$stage"
+          codesign --verify --deep --strict "$stage/EditAI.app"
+          xcrun stapler validate "$stage/EditAI.app"
+          spctl --assess --type execute --verbose=2 "$stage/EditAI.app"
+          ln -s /Applications "$stage/Applications"
+          hdiutil create -srcfolder "$stage" -volname 'EditAI 0.2.0' -fs HFS+ -format UDZO -ov 'EditAI-0.2.0-mac-arm64.dmg'
+          hdiutil verify 'EditAI-0.2.0-mac-arm64.dmg'
+          mount="$RUNNER_TEMP/editai-dmg-mount"
+          mkdir -p "$mount"
+          trap 'hdiutil detach "$mount" -quiet || true' EXIT
+          hdiutil attach 'EditAI-0.2.0-mac-arm64.dmg' -readonly -nobrowse -mountpoint "$mount"
+          codesign --verify --deep --strict "$mount/EditAI.app"
+          xcrun stapler validate "$mount/EditAI.app"
+          spctl --assess --type execute --verbose=2 "$mount/EditAI.app"
+          test "$(readlink "$mount/Applications")" = /Applications
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editai-0.2.0-macos-arm64-dmg-for-local-notarization
+          path: EditAI-0.2.0-mac-arm64.dmg
+          if-no-files-found: error
+          retention-days: 2

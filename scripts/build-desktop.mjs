@@ -91,14 +91,8 @@ for (const name of ["ffmpeg", "ffprobe"])
     { stdio: "ignore" },
   );
 await mkdir(join(out, "notices"), { recursive: true });
-await copyFile(
-  ffmpeg + ".LICENSE",
-  join(out, "notices/FFmpeg-LICENSE.txt"),
-);
-await copyFile(
-  ffmpeg + ".README",
-  join(out, "notices/FFmpeg-README.txt"),
-);
+await copyFile(ffmpeg + ".LICENSE", join(out, "notices/FFmpeg-LICENSE.txt"));
+await copyFile(ffmpeg + ".README", join(out, "notices/FFmpeg-README.txt"));
 await copyFile("desktop/THIRD-PARTY.md", join(out, "notices/THIRD-PARTY.md"));
 
 const licenseReport = [];
@@ -106,14 +100,21 @@ const packageLock = JSON.parse(await readFile("package-lock.json", "utf8"));
 for (const [path, meta] of Object.entries(packageLock.packages)) {
   if (!path || meta.dev) continue;
   const name = path.split("node_modules/").at(-1);
-  licenseReport.push(`${name}@${meta.version} (${meta.license || "see package"})`);
+  licenseReport.push(
+    `${name}@${meta.version} (${meta.license || "see package"})`,
+  );
   const files = await readdir(path).catch(() => []);
-  for (const file of files.filter(n => /^(license|licence|copying|notice)(\.|$)/i.test(n))) {
-    const content = await readFile(join(path,file),"utf8").catch(() => null);
+  for (const file of files.filter((n) =>
+    /^(license|licence|copying|notice)(\.|$)/i.test(n),
+  )) {
+    const content = await readFile(join(path, file), "utf8").catch(() => null);
     if (content) licenseReport.push(content);
   }
 }
-await writeFile(join(out,"notices/DEPENDENCY-LICENSES.txt"),licenseReport.join("\n\n"));
+await writeFile(
+  join(out, "notices/DEPENDENCY-LICENSES.txt"),
+  licenseReport.join("\n\n"),
+);
 
 const token =
   process.env.PUBLIK_APP_TOKEN ||

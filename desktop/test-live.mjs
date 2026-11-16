@@ -2,9 +2,12 @@
 // DNT prevents automated verification from counting as fellowship engagement.
 import { _electron as electron, expect } from "@playwright/test";
 import { resolve } from "node:path";
-import { writeFile } from "node:fs/promises";
+import {createHash} from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 const app = await electron.launch({
-  ...(process.env.EDITAI_EXECUTABLE ? {executablePath:process.env.EDITAI_EXECUTABLE,args:[]} : {args:["desktop/dist"]}),
+  ...(process.env.EDITAI_EXECUTABLE
+    ? { executablePath: process.env.EDITAI_EXECUTABLE, args: [] }
+    : { args: ["desktop/dist"] }),
   env: {
     ...process.env,
     PUBLIK_SELF_TEST: "",
@@ -74,13 +77,18 @@ try {
   await expect(
     page.getByRole("button", { name: "Split clip at playhead" }),
   ).toBeVisible();
-  const sources = await app.evaluate(({ app }) => ({
+  const {archivePath, ...sources} = await app.evaluate(({app,BrowserWindow}) => ({
     packaged: app.isPackaged,
+    archivePath: app.isPackaged ? app.getAppPath() : null,
     version: app.getVersion(),
+    sandbox: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().sandbox,
+    contextIsolation: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().contextIsolation,
+    nodeIntegration: BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().nodeIntegration,
     node: process.versions.node,
     electron: process.versions.electron,
     gpu: app.getGPUFeatureStatus(),
   }));
+  sources.archiveSha256 = archivePath ? createHash("sha256").update(await readFile(archivePath)).digest("hex") : null;
   report.runtime = sources;
   if (!process.env.EDITAI_RESUME_TEST)
     await page

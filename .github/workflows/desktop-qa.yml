@@ -40,13 +40,19 @@ jobs:
       - run: npm run test:desktop
       # Internal QA bundles only. No unsigned installer is uploaded or published.
       - if: runner.os == 'Windows'
-        run: npx electron-builder --config desktop/electron-builder.yml --dir --win --x64 -c.forceCodeSigning=false --publish never
+        run: npx electron-builder --config desktop/electron-builder.qa.yml --win nsis --x64 --publish never
       - if: runner.os == 'macOS'
-        run: npx electron-builder --config desktop/electron-builder.yml --dir --mac -c.forceCodeSigning=false -c.mac.identity=- -c.mac.notarize=false --publish never
+        run: npx electron-builder --config desktop/electron-builder.qa.yml --dir --mac --publish never
       - if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:PUBLIK_SELF_TEST = '1'
-          $result = & './desktop/release/win-unpacked/EditAI.exe' 2>&1 | Out-String
+          $installer = Get-ChildItem desktop/release -Filter '*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'NSIS installer not built' }
+          $destination = Join-Path $env:LOCALAPPDATA 'Programs/EditAI-QA'
+          $install = Start-Process $installer.FullName -ArgumentList '/S',"/D=$destination" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw 'QA installer failed' }
+          if (-not (Test-Path "$destination/EditAI.exe")) { throw 'Installed executable missing' }
+          $env:PUBLIK_SELF_TEST = '1' 
+          $result = & "$destination/EditAI.exe" 2>&1 | Out-String
           if ($result -notmatch 'publik self-test: ok editai-desktop 0.2.0') { throw 'Packaged Publik self-test failed' }
           Write-Output 'Packaged Publik self-test passed. Windows interactive editing/install is not yet certified.'

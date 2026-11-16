@@ -458,3 +458,62 @@ test("visual style references attach actual browser-decoded image frames to chat
   expect(reference.kind).toBe("image");
   expect(reference.frames[0].base64JPEG.startsWith("/9j/")).toBe(true);
 });
+
+test("Publik popup remains official, has no opener, and approval opens the studio", async ({
+  page,
+  context,
+}) => {
+  let linked = false;
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
+      json: linked
+        ? session
+        : {
+            screen: {
+              id: "sign_in",
+              title: "Sign in with publik",
+              body: "Continue with your Publik account.",
+              buttons: [{ action: "sign_in", label: "Sign in with publik" }],
+            },
+            claimURL: "https://publikhq.com/claim/EDITAI-TEST",
+            profile: { consent: false, telemetry: false },
+          },
+    }),
+  );
+  await page.route("**/api/projects", (r) =>
+    r.fulfill({ json: { projects: [] } }),
+  );
+  await page.route("**/api/telemetry", (r) =>
+    r.fulfill({ json: { ok: true } }),
+  );
+  await context.route("https://publikhq.com/claim/EDITAI-TEST", (r) =>
+    r.fulfill({
+      contentType: "text/html",
+      body: "<title>Isolated transport fixture</title><p>Publik sign-in fixture; no real account or telemetry.</p>",
+    }),
+  );
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Create a video" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Open EditAI Web" }).click();
+  await expect(
+    page.getByRole("button", { name: "Sign in with publik", exact: true }),
+  ).toBeFocused();
+  const created = context.waitForEvent("page");
+  await page
+    .getByRole("button", { name: "Sign in with publik", exact: true })
+    .click();
+  const popup = await created;
+  await popup.waitForURL("https://publikhq.com/claim/EDITAI-TEST");
+  expect(await popup.evaluate(() => window.opener === null)).toBe(true);
+  linked = true;
+  await page.bringToFront();
+  await expect(
+    page.getByRole("heading", { name: "What will you create today?" }),
+  ).toBeVisible({ timeout: 15000 });
+  if (!popup.isClosed()) await popup.close();
+  expect(
+    await page.getByRole("link", { name: /Download for macOS/ }).count(),
+  ).toBe(0);
+});

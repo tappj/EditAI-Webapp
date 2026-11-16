@@ -189,6 +189,8 @@ export default function App() {
     [menu, setMenu] = useState(false),
     [cloud, setCloud] = useState(false);
   const authPopup = useRef<Window | null>(null);
+  const [authOpened, setAuthOpened] = useState(false);
+  const [blockedAuthURL, setBlockedAuthURL] = useState("");
   const recordingDirty = useRef(false);
   const lastPlayheadPaint = useRef(0);
   const input = useRef<HTMLInputElement>(null),
@@ -261,8 +263,12 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (session?.screen.id !== "sign_in" && authPopup.current) {
-      authPopup.current.close();
+      // COOP may sever the WindowProxy after cross-origin navigation. Closing
+      // is best effort; never weaken media isolation to control an auth window.
+      if (!authPopup.current.closed) authPopup.current.close();
       authPopup.current = null;
+      setAuthOpened(false);
+      setBlockedAuthURL("");
     }
   }, [session?.screen.id]);
   const refresh = useCallback(async () => {
@@ -303,6 +309,11 @@ export default function App() {
   useEffect(() => {
     if (session?.screen.id === "ready") return;
     const started = Date.now();
+    const resumed = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    window.addEventListener("focus", resumed);
+    document.addEventListener("visibilitychange", resumed);
     const id = setInterval(() => {
       if (Date.now() - started >= 600000) {
         clearInterval(id);
@@ -311,7 +322,11 @@ export default function App() {
       }
       if (document.visibilityState === "visible") void refresh();
     }, 3000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", resumed);
+      document.removeEventListener("visibilitychange", resumed);
+    };
   }, [session?.screen.id, refresh]);
   useEffect(() => {
     if (session?.screen.id !== "ready") return;
@@ -501,11 +516,12 @@ export default function App() {
             "editai-publik",
             "popup,width=540,height=720",
           );
+          setAuthOpened(true);
           if (popup) {
             popup.opener = null;
             popup.location.href = url;
             authPopup.current = popup;
-          } else window.open(url, "_blank", "noopener,noreferrer");
+          } else setBlockedAuthURL(url);
         }
         return;
       }
@@ -1238,6 +1254,17 @@ export default function App() {
                     <ArrowUpRight size={16} />
                   </Button>
                 ))
+              )}
+              {authOpened && (
+                <p className="panel-note" role="status">
+                  Approve in the Publik sign-in window, then return here. Your
+                  studio continues automatically.
+                </p>
+              )}
+              {blockedAuthURL && (
+                <a href={blockedAuthURL} target="_blank" rel="noreferrer">
+                  Open Publik sign-in ↗
+                </a>
               )}
               <small>
                 One account for your creative tools.

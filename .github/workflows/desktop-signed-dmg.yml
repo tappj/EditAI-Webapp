@@ -27,7 +27,9 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
-      - name: Download exact signed app from draft release
+      # electron-builder loads desktop/dist package metadata even with --prepackaged.
+      - run: npm run desktop:build
+      - name: Download exact signed app from release
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA256: ${{ inputs.zip_sha256 }}
@@ -59,6 +61,7 @@ jobs:
           codesign --verify --deep --strict "$mount/EditAI.app"
           xcrun stapler validate "$mount/EditAI.app"
           spctl --assess --type execute --verbose=2 "$mount/EditAI.app"
+          test "$(shasum -a 256 "$mount/EditAI.app/Contents/Resources/app.asar" | cut -d ' ' -f1)" = "$(shasum -a 256 "$stage/EditAI.app/Contents/Resources/app.asar" | cut -d ' ' -f1)"
           test "$(readlink "$mount/Applications")" = /Applications
           test -f "$mount/.background/dmg-background.png"
       - uses: actions/upload-artifact@v4

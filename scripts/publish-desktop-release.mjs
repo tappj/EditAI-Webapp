@@ -113,20 +113,29 @@ try {
       arch +
       ". Shared editor, local media and native FFmpeg. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai-web.givingarmadillo8.chatgpt.site. Windows is not included.\n",
   );
-  const commit = run("git", ["rev-parse", "HEAD"]).trim();
+  // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
+  // Keep it private until every release artifact and the installed app pass.
+  const draft = JSON.parse(github([
+    "release", "view", tag, "--repo", "tappj/EditAI-Webapp", "--json", "isDraft,assets",
+  ]));
+  if (!draft.isDraft) throw Error("Expected a private draft release before publication.");
+  const zipName = `EditAI-0.2.0-mac-${arch}.zip`;
+  const remoteZip = draft.assets.find((asset) => asset.name === zipName);
+  if (!remoteZip || remoteZip.size !== (await readFile(resolve(dir, zipName))).length)
+    throw Error("Draft signed ZIP is missing or differs in size.");
   github([
-    "release",
-    "create",
-    tag,
-    ...names.map((n) => resolve(dir, n)),
-    "--repo",
-    "tappj/EditAI-Webapp",
-    "--target",
-    commit,
-    "--title",
-    "EditAI Desktop 0.2.0",
-    "--notes-file",
-    notes,
+    "release", "upload", tag, ...names.map((n) => resolve(dir, n)),
+    "--repo", "tappj/EditAI-Webapp", "--clobber",
+  ]);
+  const staged = JSON.parse(github([
+    "release", "view", tag, "--repo", "tappj/EditAI-Webapp", "--json", "isDraft,assets",
+  ]));
+  if (!staged.isDraft || names.some((name) => !staged.assets.some(
+    (asset) => asset.name === name,
+  ))) throw Error("Draft release is missing an uploaded artifact.");
+  github([
+    "release", "edit", tag, "--repo", "tappj/EditAI-Webapp",
+    "--title", "EditAI Desktop 0.2.0", "--notes-file", notes, "--draft=false",
   ]);
   const dmg = names.find((n) => n.endsWith(".dmg"));
   await writeFile(

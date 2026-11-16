@@ -147,10 +147,13 @@ await writeFile(
 const token =
   process.env.PUBLIK_DESKTOP_APP_TOKEN ||
   (await readFile("desktop/publik-app-token.txt", "utf8").catch(() => null));
-if (token)
-  await writeFile(join(out, "publik-app-token.txt"), token.trim(), {
-    mode: 0o600,
-  });
+if (!token || !/^pat_[A-Za-z0-9_.-]+$/.test(token.trim()))
+  throw Error(
+    "Desktop builds require the public app-scoped bootstrap resource, not a private user key.",
+  );
+await writeFile(join(out, "publik-app-token.txt"), token.trim(), {
+  mode: 0o600,
+});
 for (const name of await readdir(join(out, "renderer/ffmpeg")).catch(() => []))
   await unlink(join(out, "renderer/ffmpeg", name));
 await rmdir(join(out, "renderer/ffmpeg")).catch(() => {});

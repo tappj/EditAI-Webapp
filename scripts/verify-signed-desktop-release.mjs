@@ -65,7 +65,7 @@ try {
     publikSelfTest: run(join(app, "Contents/MacOS/EditAI"), [], {
       env: { ...process.env, PUBLIK_SELF_TEST: "1", DO_NOT_TRACK: "1", PUBLIK_TELEMETRY: "false" },
     }).includes("publik self-test: ok editai-desktop 0.2.0"),
-    ciDmgRun: "43825094383",
+    ciDmgRun: process.env.EDITAI_DMG_CI_RUN_ID || null,
     artifacts: files,
   };
   if (!report.publikSelfTest) throw Error("Packaged Publik self-test failed.");

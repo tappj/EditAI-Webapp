@@ -10,20 +10,24 @@ import {
   ArrowRight,
   ArrowUpRight,
   AudioLines,
-  ChevronDown,
-  Clapperboard,
+  Check,
+  ChevronRight,
   Download,
   Film,
+  FolderOpen,
+  Image as ImageIcon,
   Layers,
   Menu,
   Minus,
   Monitor,
+  Pause,
+  Play,
   Plus,
   Scissors,
-  ShieldCheck,
   Sparkles,
   Star,
   Subtitles,
+  Upload,
   X,
 } from "lucide-react";
 import { DesktopDownloads } from "@/components/desktop-downloads";
@@ -33,9 +37,9 @@ import {
   type FeatureIcon,
   type Review,
 } from "@/lib/marketing/content";
-import { AmbientHeroBackground } from "./ambient-hero";
 import { MarketingVideo } from "./video-player";
 import { PricingSelector } from "./pricing";
+import { TimeCalculator } from "./time-calculator";
 
 const iconMap = {
   cut: Scissors,
@@ -56,16 +60,17 @@ export function FeatureTile({
   const Icon = iconMap[icon];
   return (
     <span className={`feature-tile ${small ? "small" : ""}`} aria-hidden="true">
-      <Icon size={small ? 20 : 29} strokeWidth={1.8} />
-      <span className="tile-shine" />
+      <Icon size={small ? 21 : 29} strokeWidth={1.7} />
     </span>
   );
 }
 export function MarketingBrand() {
   return (
     <a className="m-brand" href={content.links.home} aria-label="EditAI home">
-      <img src="/favicon.svg" width="25" height="25" alt="" />
-      <span>EditAI</span>
+      <img src="/brand/editai-icon-192.png" alt="" width="32" height="32" />
+      <span>
+        Edit<span>AI</span>
+      </span>
     </a>
   );
 }
@@ -73,15 +78,15 @@ function MainCta({ children = content.hero.cta }: { children?: ReactNode }) {
   return (
     <a className="m-button" href={content.links.app}>
       {children}
-      <ArrowUpRight size={17} />
+      <ArrowRight size={16} />
     </a>
   );
 }
 function FloatingNav() {
   const [active, setActive] = useState(""),
     [open, setOpen] = useState(false);
-  const toggle = useRef<HTMLButtonElement>(null),
-    header = useRef<HTMLElement>(null);
+  const header = useRef<HTMLElement>(null),
+    toggle = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const sections = Array.from(
       document.querySelectorAll<HTMLElement>("[data-nav-section]"),
@@ -95,99 +100,105 @@ function FloatingNav() {
         const current = sections.find((section) => visible.get(section));
         if (current) setActive(current.dataset.navSection || "");
       },
-      { rootMargin: "-15% 0px -45% 0px", threshold: 0 },
+      { rootMargin: "-16% 0px -40% 0px", threshold: 0 },
     );
     sections.forEach((section) => observer.observe(section));
-    const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         setOpen(false);
         toggle.current?.focus();
       }
     };
-    const outside = (e: PointerEvent) => {
-      if (!header.current?.contains(e.target as Node)) setOpen(false);
+    const outside = (event: PointerEvent) => {
+      if (!header.current?.contains(event.target as Node)) setOpen(false);
     };
-    document.addEventListener("keydown", key);
+    document.addEventListener("keydown", close);
     document.addEventListener("pointerdown", outside);
     return () => {
-      observer.disconnect();
-      document.removeEventListener("keydown", key);
+      document.removeEventListener("keydown", close);
       document.removeEventListener("pointerdown", outside);
     };
-  }, []);
+  }, [open]);
   return (
     <header className="m-header" ref={header}>
-      <div className="m-pill brand-pill">
+      <div className="m-header-inner m-container">
         <MarketingBrand />
-      </div>
-      <nav
-        className={`m-pill m-nav ${open ? "is-open" : ""}`}
-        id="marketing-navigation"
-        aria-label="Main navigation"
-      >
-        {content.navigation.map((item) => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            aria-current={active === item.id ? "location" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            {item.label}
-          </a>
-        ))}
-        <a className="mobile-sign-in" href={content.links.app}>
-          Sign in
-        </a>
-      </nav>
-      <div className="m-pill nav-actions">
-        <a className="nav-sign-in" href={content.links.app}>
-          Sign in
-        </a>
-        <a className="m-button nav-cta" href={content.ios.href}>
-          {content.ios.label}
-        </a>
-        <button
-          ref={toggle}
-          className="m-menu-button"
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          aria-controls="marketing-navigation"
-          onClick={() => setOpen(!open)}
+        <nav
+          id="marketing-navigation"
+          className={`m-nav ${open ? "is-open" : ""}`}
+          aria-label="Main navigation"
         >
-          {open ? <X size={21} /> : <Menu size={21} />}
-        </button>
+          {content.navigation.map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              aria-current={active === item.id ? "location" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              {item.label}
+            </a>
+          ))}
+          <a className="mobile-sign-in" href={content.links.app}>
+            Sign in
+          </a>
+        </nav>
+        <div className="nav-actions">
+          <a className="nav-sign-in" href={content.links.app}>
+            Sign in
+          </a>
+          <a className="m-button nav-cta" href={content.ios.href}>
+            {content.ios.label}
+            <ArrowRight size={13} />
+          </a>
+          <button
+            className="m-menu-button"
+            ref={toggle}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-controls="marketing-navigation"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
     </header>
-  );
-}
-function Stars({ rating }: { rating?: number }) {
-  if (!rating) return null;
-  return (
-    <span className="review-stars" aria-label={`${rating} out of 5 stars`}>
-      {Array.from({ length: Math.min(5, Math.floor(rating)) }, (_, i) => (
-        <Star key={i} size={12} fill="currentColor" />
-      ))}
-    </span>
   );
 }
 function ReviewCard({ review }: { review: Review }) {
   return (
     <article className="review-card">
-      <Stars rating={review.rating} />
+      {review.rating && (
+        <span
+          className="review-stars"
+          aria-label={`${review.rating} out of 5 stars`}
+        >
+          {Array.from(
+            { length: Math.min(5, Math.round(review.rating)) },
+            (_, i) => (
+              <Star key={i} size={11} fill="currentColor" />
+            ),
+          )}
+        </span>
+      )}
       <h3>{review.title}</h3>
       <p>{review.text}</p>
       <div className="review-credit">
         {review.avatar && (
           <img
             src={review.avatar}
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             alt=""
             loading="lazy"
           />
         )}
         <span>
-          {review.author} <small>· {review.source}</small>
+          {review.author} · {review.source}
         </span>
       </div>
     </article>
@@ -196,8 +207,8 @@ function ReviewCard({ review }: { review: Review }) {
 export function ReviewMarquee({
   reviews = approvedReviews,
 }: { reviews?: Review[] } = {}) {
-  const cards = reviews.length ? reviews : content.capabilities;
-  // Fill a whole viewport before duplicating a track, including a single approved review.
+  const approved = reviews.filter((review) => review.approved);
+  const cards = approved.length ? approved : content.capabilities;
   const items = Array.from(
     { length: Math.max(cards.length, 6) },
     (_, i) => cards[i % cards.length],
@@ -206,7 +217,7 @@ export function ReviewMarquee({
     <div
       className="hero-marquees"
       aria-label={
-        reviews.length ? "Creator reviews" : "Explore the EditAI workflow"
+        approved.length ? "Creator reviews" : "Explore the EditAI workflow"
       }
     >
       {[0, 1].map((row) => (
@@ -228,21 +239,21 @@ export function ReviewMarquee({
                   const item = items[(i + row * 3) % items.length];
                   return (
                     <div
-                      key={i}
                       className="marquee-cell"
+                      key={i}
                       aria-hidden={i >= cards.length || undefined}
                     >
-                      {reviews.length ? (
+                      {approved.length ? (
                         <ReviewCard review={item as Review} />
                       ) : (
                         <article className="capability-card">
                           <span className="capability-label">
-                            EDITAI · YOUR CREATIVE WORKFLOW
+                            EDITAI WORKFLOW
                           </span>
                           <h3>{item.title}</h3>
-                          <p>{"text" in item ? item.text : ""}</p>
+                          <p>{item.text}</p>
                           <span className="capability-footer">
-                            More room for your ideas <ArrowUpRight size={12} />
+                            YOUR FOOTAGE. YOUR FINAL SAY.
                           </span>
                         </article>
                       )}
@@ -260,358 +271,246 @@ export function ReviewMarquee({
 function Hero() {
   return (
     <section
-      className="marketing-hero m-shell"
+      className="marketing-hero"
       data-nav-section=""
       aria-labelledby="hero-title"
     >
-      <AmbientHeroBackground />
-      <div className="hero-heading">
+      <div className="hero-mist" aria-hidden="true" />
+      <div className="hero-echo" aria-hidden="true">
+        {[...content.capabilities, ...content.capabilities.slice(0, 2)].map(
+          (item, i) => (
+            <div key={i}>
+              <span>EDITAI WORKFLOW</span>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </div>
+          ),
+        )}
+      </div>
+      <div className="hero-heading m-container">
+        <div className="hero-availability">
+          <img src="/brand/editai-icon-32.png" width="20" height="20" alt="" />
+          <span>Your story. Your creative control.</span>
+          <span className="platform-badge">
+            <Monitor size={11} /> Web + macOS
+          </span>
+        </div>
         <h1 id="hero-title">
           {content.hero.firstLine}
           <br />
           <span>{content.hero.secondLine}</span>
         </h1>
         <p>{content.hero.subtitle}</p>
-        <MainCta />
-        <span className="hero-availability">
-          <Monitor size={14} /> Your browser. Your creative space.
-        </span>
+        <div className="hero-actions">
+          <MainCta />
+          <a className="hero-watch" href="#how-it-works">
+            <Play size={12} /> See it in action
+          </a>
+        </div>
+        <div className="hero-meta">EDIT · CAPTION · TRANSCRIBE · EXPORT</div>
       </div>
       <ReviewMarquee />
     </section>
   );
 }
-function TrustBar() {
-  const creators = content.creators.filter((creator) => creator.approved);
+function LandscapeScene({ caption = false }: { caption?: boolean }) {
   return (
-    <div className="trust-bar">
-      {creators.length > 0 && (
-        <div className="trust-avatars">
-          {creators.slice(0, 3).map((creator) => (
-            <img
-              key={creator.id}
-              src={creator.portrait}
-              alt={creator.name}
-              width="30"
-              height="30"
-              loading="lazy"
-            />
-          ))}
-        </div>
-      )}
-      <div>
+    <div className="studio-landscape" aria-hidden="true">
+      <div className="scene-sun" />
+      <div className="scene-ridge ridge-back" />
+      <div className="scene-ridge ridge-middle" />
+      <div className="scene-ridge ridge-front" />
+      {caption && <span>the little moments.</span>}
+    </div>
+  );
+}
+function WorkflowScreen({
+  kind,
+  title,
+  note,
+}: {
+  kind: "import" | "cut" | "review" | "export";
+  title: string;
+  note: string;
+}) {
+  return (
+    <div className={`workflow-screen screen-${kind}`}>
+      <div className="studio-chrome">
         <span>
-          <ShieldCheck size={14} /> Original footage. Your final say.
+          <i />
+          <i />
+          <i />
         </span>
-        <small>
-          Available on web & macOS <span aria-hidden="true">·</span> iOS coming
-          soon
-        </small>
+        <span>EditAI</span>
+        <span>•••</span>
       </div>
-    </div>
-  );
-}
-function MetricCards() {
-  return (
-    <div className="metric-cards m-container">
-      {content.metrics.map((metric, i) => (
-        <article
-          className="metric-card m-reveal"
-          style={{ "--stagger": `${i * 80}ms` } as CSSProperties}
-          key={metric.value}
-        >
-          <span className="metric-flare" />
-          <strong>{metric.value}</strong>
-          <p>{metric.label}</p>
-        </article>
-      ))}
-    </div>
-  );
-}
-function Laurel({ flip = false }: { flip?: boolean }) {
-  return (
-    <svg
-      className={`m-laurel ${flip ? "flip" : ""}`}
-      viewBox="0 0 30 100"
-      aria-hidden="true"
-    >
-      <path
-        d="M24 95C8 72 7 32 24 5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <g key={i} transform={`translate(${i < 3 ? 2 - i : i - 4},${i * 13})`}>
-          <path
-            d="M16 19C2 17 2 6 3 4c8 2 14 7 13 15M16 21c-1-11 6-17 11-18 1 10-4 16-11 18"
-            fill="currentColor"
-          />
-        </g>
-      ))}
-    </svg>
-  );
-}
-function CreatorProof() {
-  const awards = content.awards.filter((award) => award.approved),
-    creators = content.creators.filter((creator) => creator.approved);
-  return (
-    <section className="creator-proof m-container">
-      <div className="m-section-heading m-reveal">
-        <h2>
-          {awards.length || creators.length
-            ? "Trusted by creators"
-            : "Made for your kind of creating."}
-        </h2>
-      </div>
-      <p className="m-eyebrow">
-        {awards.length
-          ? "STRAIGHT FROM OUR CREATORS"
-          : "A LITTLE LESS BUSYWORK. A LITTLE MORE YOU."}
-      </p>
-      <div className="award-grid">
-        {awards.length
-          ? awards.map((award) => (
-              <article className="award-card m-reveal" key={award.id}>
-                <Laurel />
-                <div>
-                  <Stars rating={award.rating} />
-                  <h3>{award.quote}</h3>
-                  <small>{award.source}</small>
-                </div>
-                <Laurel flip />
-              </article>
-            ))
-          : [
-              "Keep your creative voice.",
-              "Make every frame yours.",
-              "Stay in the director’s seat.",
-            ].map((text) => (
-              <div className="award-card m-reveal" key={text}>
-                <Laurel />
-                <h3>{text}</h3>
-                <Laurel flip />
+      <div className="studio-screen-body">
+        <div className="studio-screen-heading">{title}</div>
+        {kind === "import" ? (
+          <>
+            <img
+              className="studio-app-icon"
+              src="/brand/editai-icon-192.png"
+              width="54"
+              height="54"
+              alt=""
+            />
+            <div className="studio-import-zone">
+              <Upload size={23} />
+              <strong>Bring your footage</strong>
+              <span>Your next story starts with a take.</span>
+              <div>
+                Import a video <Plus size={10} />
               </div>
-            ))}
+            </div>
+            <div className="studio-file-row">
+              <Film size={14} />
+              <span>Your project library</span>
+              <ChevronRight size={12} />
+            </div>
+          </>
+        ) : (
+          <>
+            <LandscapeScene caption={kind !== "cut"} />
+            {kind === "cut" ? (
+              <>
+                <div className="studio-analysis-label">
+                  <Sparkles size={12} /> AI-assisted first cut
+                </div>
+                <div className="studio-transcript-lines">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </div>
+                <div className="studio-process-steps">
+                  <span>
+                    <Check size={10} /> Transcribe
+                  </span>
+                  <span>
+                    <Scissors size={10} /> Review the cut
+                  </span>
+                </div>
+              </>
+            ) : kind === "review" ? (
+              <>
+                <div className="studio-playbar">
+                  <Play size={10} />
+                  <span>00:00 ──────── 00:24</span>
+                </div>
+                <div className="studio-tool-row">
+                  <Scissors />
+                  <Subtitles />
+                  <ImageIcon />
+                  <AudioLines />
+                </div>
+                <div className="studio-timeline">
+                  <div />
+                  <div />
+                  <div />
+                </div>
+                <div className="studio-audio-track">
+                  <AudioLines size={12} />
+                  <span>Original audio</span>
+                </div>
+                <div className="studio-caption-track">
+                  Captions · your style
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="studio-export-note">
+                  <Check size={13} /> Your finished cut
+                </div>
+                <div className="studio-export-settings">
+                  <span>
+                    Format<b>MP4</b>
+                  </span>
+                  <span>
+                    Video<b>H.264</b>
+                  </span>
+                  <span>
+                    Audio<b>AAC</b>
+                  </span>
+                </div>
+                <div className="studio-export-action">
+                  <Download size={12} /> Export your story
+                </div>
+              </>
+            )}
+          </>
+        )}
+        <div className="studio-note">{note}</div>
       </div>
-      <p className="m-eyebrow proof-second-label">
-        {creators.length
-          ? "CREATED WITH EDITAI"
-          : "FROM AN IDEA TO SOMETHING WORTH SHARING"}
-      </p>
-      <div className="creator-profiles">
-        {creators.length
-          ? creators.map((creator) => (
-              <article className="creator-profile m-reveal" key={creator.id}>
-                <img
-                  src={creator.portrait}
-                  alt=""
-                  width="42"
-                  height="42"
-                  loading="lazy"
-                />
-                <h3>{creator.name}</h3>
-                <p>
-                  {creator.platform}
-                  {creator.followers ? ` · ${creator.followers}` : ""}
-                </p>
-              </article>
-            ))
-          : [
-              {
-                icon: "cut",
-                title: "Find your story",
-                text: "AI-assisted editorial suggestions",
-              },
-              {
-                icon: "captions",
-                title: "Add your voice",
-                text: "Expressive, editable captions",
-              },
-              {
-                icon: "export",
-                title: "Make it yours",
-                text: "A timeline with room to play",
-              },
-            ].map((item) => (
-              <article className="creator-profile m-reveal" key={item.title}>
-                <FeatureTile icon={item.icon as FeatureIcon} small />
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </article>
-            ))}
+      <div className="studio-bottom-bar">
+        <FolderOpen />
+        <Scissors />
+        <Subtitles />
+        <Download />
       </div>
-    </section>
+      <span className="interface-note">ILLUSTRATIVE WORKFLOW PREVIEW</span>
+    </div>
   );
 }
-function BeforeAfterComparison() {
-  const pair = useRef<HTMLDivElement>(null);
-  const sync = (source: HTMLVideoElement) => {
-    const other = pair.current?.querySelectorAll("video")[0];
-    if (
-      other &&
-      other !== source &&
-      !other.paused &&
-      Math.abs(other.duration - source.duration) < 0.5 &&
-      Math.abs(other.currentTime - source.currentTime) > 0.35
-    )
-      other.currentTime = source.currentTime;
-  };
+function WorkflowSection() {
+  const [active, setActive] = useState("cut");
   return (
     <section
-      className="comparison-section m-container"
-      aria-labelledby="how-title"
+      className="workflow-section"
+      id="how-it-works"
+      data-nav-section=""
+      aria-labelledby="workflow-title"
     >
-      <div className="comparison-copy m-reveal">
-        <span className="m-eyebrow">HOW IT WORKS</span>
-        <h2 id="how-title">How EditAI works</h2>
-        <p>
-          Bring the whole take. Find the story inside it. Then give it your own
-          finishing touch.
-        </p>
-        <div className="comparison-journey">
-          <strong>Your take</strong>
-          <ArrowRight size={20} />
-          <strong>Your story</strong>
-        </div>
-        <small>AI suggests. You decide.</small>
-      </div>
-      <div className="comparison-pair m-reveal" ref={pair}>
-        {(["before", "after"] as const).map((key) => (
-          <div key={key}>
-            <div className={`comparison-label ${key}`}>
-              <h3>{content.comparison[key].title}</h3>
-              <p>{content.comparison[key].description}</p>
+      <div className="m-container">
+        <h2 id="workflow-title" className="m-sr-only">
+          How EditAI works
+        </h2>
+        <div
+          className="workflow-switcher"
+          aria-label="Explore the editing workflow"
+        >
+          {content.workflow.map((step, i) => (
+            <div key={step.id}>
+              <button
+                aria-pressed={active === step.id}
+                onClick={() => setActive(step.id)}
+              >
+                {step.title}
+              </button>
+              {i < 3 && <ArrowRight size={14} />}
             </div>
-            <MarketingVideo
-              asset={content.comparison[key]}
-              emphasis={key === "after"}
-              onProgress={key === "after" ? sync : undefined}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
+        <div className="workflow-grid">
+          {content.workflow.map((step, i) => (
+            <article
+              className={`workflow-step m-reveal ${active === step.id ? "active" : ""}`}
+              style={{ "--stagger": `${i * 65}ms` } as CSSProperties}
+              key={step.id}
+            >
+              {step.image ? (
+                <img
+                  className="workflow-authentic-image"
+                  src={step.image}
+                  alt={step.alt || step.title}
+                  width="360"
+                  height="680"
+                  loading="lazy"
+                />
+              ) : (
+                <WorkflowScreen
+                  kind={step.id}
+                  title={step.screenTitle}
+                  note={step.screenNote}
+                />
+              )}
+              <span className="m-eyebrow">{step.label}</span>
+              <p>{step.text}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
-  );
-}
-function InterfacePreview({ kind }: { kind: "cut" | "batch" | "export" }) {
-  return (
-    <div
-      className={`interface-preview preview-kind-${kind}`}
-      aria-label="Illustrative EditAI interface preview"
-    >
-      <div className="preview-chrome">
-        <span>
-          <i />
-          <i />
-          <i />
-        </span>
-        <b>EditAI</b>
-        <MoreDots />
-      </div>
-      <div className="preview-toolbar">
-        <span>
-          <Clapperboard size={12} /> Your workspace
-        </span>
-        <span>↗</span>
-      </div>
-      {kind === "batch" ? (
-        <div className="preview-projects">
-          <h3>Your next great idea.</h3>
-          <p>A little room for every story.</p>
-          {["Morning light", "A new perspective", "The little moments"].map(
-            (label, i) => (
-              <div className="preview-project" key={label}>
-                <span className={`project-thumb thumb-${i}`}>
-                  <Film size={18} />
-                </span>
-                <span>
-                  <strong>{label}</strong>
-                  <small>Ready to edit</small>
-                </span>
-                <ArrowUpRight size={13} />
-              </div>
-            ),
-          )}
-          <div className="preview-add">
-            <Plus size={16} /> Import footage
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="preview-scene">
-            <div className="scene-sun" />
-            <div className="scene-hill hill-back" />
-            <div className="scene-hill hill-front" />
-            {kind === "export" && (
-              <span className="preview-caption">the little moments.</span>
-            )}
-            {kind === "cut" && (
-              <span className="preview-cut">
-                <Sparkles size={14} /> Find your story
-              </span>
-            )}
-          </div>
-          <div className="preview-playbar">
-            <span>▶</span>
-            <span>00:00 ──────── 00:24</span>
-            <span>⊕</span>
-          </div>
-          <div className="preview-timeline">
-            <div className="timeline-ruler" />
-            <div className="timeline-blocks">
-              {[0, 1, 2, 3].map((i) => (
-                <span key={i} />
-              ))}
-            </div>
-            <div className="timeline-audio">
-              <AudioLines size={18} />
-              <span>Original audio</span>
-            </div>
-            {kind === "export" && (
-              <div className="timeline-captions">Captions · your style</div>
-            )}
-            <div className="preview-playhead" />
-          </div>
-        </>
-      )}
-      <span className="interface-note">INTERFACE PREVIEW</span>
-    </div>
-  );
-}
-function MoreDots() {
-  return <span aria-hidden="true">•••</span>;
-}
-function ProductDemoCards() {
-  return (
-    <div className="demo-cards m-container">
-      {content.demos.map((demo, i) => (
-        <article
-          className="demo-card m-reveal"
-          style={{ "--stagger": `${i * 90}ms` } as CSSProperties}
-          key={demo.kind}
-        >
-          <h3>
-            {demo.title.split("\n").map((line) => (
-              <span key={line}>{line}</span>
-            ))}
-          </h3>
-          <span className="demo-label">{demo.label}</span>
-          {demo.image ? (
-            <img
-              className="demo-authentic-image"
-              src={demo.image}
-              alt={demo.alt}
-              loading="lazy"
-              width="700"
-              height="900"
-            />
-          ) : (
-            <InterfacePreview kind={demo.kind} />
-          )}
-        </article>
-      ))}
-    </div>
   );
 }
 function AnimatedFeatureIcons() {
@@ -625,6 +524,7 @@ function AnimatedFeatureIcons() {
     <div
       className="feature-ribbon motion-region"
       aria-label="Edit, caption, transcribe and export"
+      tabIndex={0}
     >
       <div className="feature-ribbon-path" />
       <div className="feature-ribbon-track">
@@ -649,20 +549,21 @@ function AnimatedFeatureIcons() {
 function FeatureGrid() {
   return (
     <section
-      className="features-section m-shell"
-      data-nav-section="how-it-works"
+      className="features-section"
+      data-nav-section=""
+      aria-labelledby="features-title"
     >
       <div className="m-container">
         <div className="m-section-heading m-reveal">
           <span className="m-eyebrow">FEATURES</span>
-          <h2>Tools that do the editing for you</h2>
+          <h2 id="features-title">Tools that do the editing for you</h2>
         </div>
         <AnimatedFeatureIcons />
         <div className="feature-grid">
           {content.features.map((feature, i) => (
             <article
               className="feature-card m-reveal"
-              style={{ "--stagger": `${(i % 4) * 60}ms` } as CSSProperties}
+              style={{ "--stagger": `${(i % 4) * 55}ms` } as CSSProperties}
               key={feature.icon}
             >
               <FeatureTile icon={feature.icon} small />
@@ -675,250 +576,298 @@ function FeatureGrid() {
     </section>
   );
 }
-export function ReviewWall({
-  reviews = approvedReviews,
-}: { reviews?: Review[] } = {}) {
+function CreatorVideoGallery() {
+  const realVideos = content.videos.some((video) => video.src);
+  const [paused, setPaused] = useState(false);
   return (
     <section
+      className="gallery-section"
+      id="creators"
       data-nav-section="creators"
-      className="review-section m-shell"
-      aria-labelledby="review-title"
+      aria-labelledby="creators-title"
     >
       <div className="m-container">
         <div className="m-section-heading m-reveal">
-          <span className="m-eyebrow">
-            {reviews.length ? "CREATOR STORIES" : "YOUR CREATIVE FLOW"}
-          </span>
-          <h2 id="review-title">
-            {reviews.length ? (
-              <>
-                More time for{" "}
-                <span className="editorial-underline">creating.</span>
-              </>
-            ) : (
-              <>
-                Less busywork.{" "}
-                <span className="editorial-underline">More you.</span>
-              </>
-            )}
+          <h2 id="creators-title">
+            Your next great story.
+            <br />
+            Made with EditAI.
           </h2>
+          <p>
+            {realVideos
+              ? "Finished videos, from the people behind the camera. Tap for sound."
+              : "A space for your stories. Authentic creator videos coming soon."}
+          </p>
         </div>
-        {reviews.length ? (
-          <div
-            className="review-wall motion-region"
-            tabIndex={0}
-            role="region"
-            aria-label="Creator reviews"
-          >
-            {[0, 1].map((column) => (
-              <div
-                className={`review-wall-column column-${column}`}
-                key={column}
-              >
-                <div className="review-wall-track">
-                  {[0, 1].map((copy) => (
-                    <div
-                      className="review-wall-group"
-                      key={copy}
-                      aria-hidden={copy === 1 || undefined}
-                    >
-                      {Array.from(
-                        { length: Math.max(3, reviews.length) },
-                        (_, i) => (
-                          <div
-                            key={i}
-                            aria-hidden={i >= reviews.length || undefined}
-                          >
-                            <ReviewCard
-                              review={reviews[(i + column) % reviews.length]}
-                            />
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  ))}
-                </div>
+        <div className="creator-video-grid">
+          {content.videos.map((asset, i) => (
+            <article className="creator-video-card m-reveal" key={asset.id}>
+              <div className="gallery-frame-label">
+                {String(i + 1).padStart(2, "0")} · EDITAI STORIES
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="workflow-wall">
-            {content.workflow.map((step) => (
-              <article className="workflow-card m-reveal" key={step.label}>
-                <span className="m-eyebrow">{step.label}</span>
-                <h3>{step.title}</h3>
-                <p>{step.text}</p>
-                <span className="workflow-brand">
-                  <img src="/favicon.svg" alt="" width="19" height="19" />{" "}
-                  EditAI workflow
+              <MarketingVideo asset={asset} paused={paused} />
+              <div className="creator-video-credit">
+                <span>
+                  {asset.creator?.approved ? asset.creator.name : asset.title}
                 </span>
-              </article>
-            ))}
-          </div>
+                <ArrowUpRight size={14} />
+              </div>
+              <small>
+                {asset.creator?.approved
+                  ? `${asset.creator.platform || "CREATOR"}${asset.creator.followers ? ` · ${asset.creator.followers}` : ""}`
+                  : "YOUR FOOTAGE. YOUR POINT OF VIEW."}
+              </small>
+            </article>
+          ))}
+        </div>
+        <p className="gallery-caption">
+          REAL STORIES · A LITTLE MORE YOU · MADE WITH EDITAI
+        </p>
+        {realVideos ? (
+          <button
+            className="gallery-pause"
+            aria-pressed={paused}
+            onClick={() => setPaused(!paused)}
+          >
+            {paused ? <Play size={12} /> : <Pause size={12} />}
+            {paused ? "Resume the videos" : "Pause the videos"}
+          </button>
+        ) : (
+          <p className="gallery-pending">CREATOR SHOWCASE COMING SOON</p>
         )}
       </div>
     </section>
   );
 }
-function CreatorVideoGallery() {
-  const realVideos = content.videos.some((asset) => asset.src);
+function WorkflowComparison() {
   return (
     <section
-      className="gallery-section m-shell"
+      className="comparison-section"
       data-nav-section="creators"
-      id="creators"
-      aria-labelledby="creators-title"
+      aria-labelledby="comparison-title"
     >
       <div className="m-container">
-        <div className="m-section-heading m-reveal">
-          <h2 id="creators-title">Real videos, made with EditAI</h2>
+        <div className="comparison-heading m-reveal">
+          <h2 id="comparison-title">
+            Give your ideas
+            <br />
+            <span>more of your time.</span>
+          </h2>
           <p>
-            {realVideos
-              ? "A little inspiration for your next story. Tap for sound."
-              : "A space for your stories. Creator videos coming soon."}
+            Bring the point of view. Keep the creative decisions.
+            <br />
+            Let the tools help with the steps in between.
           </p>
         </div>
-        <div className="creator-video-grid">
-          {content.videos.map((asset) => (
-            <div key={asset.id} className="m-reveal">
-              <MarketingVideo asset={asset} />
-            </div>
-          ))}
+        <p className="table-scroll-hint">
+          Scroll to compare <ArrowRight size={12} />
+        </p>
+        <div
+          className="workflow-table-wrap m-reveal"
+          tabIndex={0}
+          role="region"
+          aria-label="Compare the EditAI workflow"
+        >
+          <table className="workflow-table">
+            <caption className="m-sr-only">
+              From original footage through AI assistance to your final EditAI
+              cut
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span className="m-sr-only">Workflow</span>
+                </th>
+                <th scope="col">YOUR FOOTAGE</th>
+                <th scope="col">AI ASSISTANCE</th>
+                <th scope="col">EDITAI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {content.comparisonRows.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  {row.values.map((value, i) => (
+                    <td key={i}>{value}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p className="gallery-caption">CREATORS · STORIES MADE WITH EDITAI</p>
+        <p className="estimate-eyebrow m-eyebrow">
+          MAKE ROOM FOR CREATING <span>· EXPLORE YOUR OWN ESTIMATE</span>
+        </p>
+        <TimeCalculator />
       </div>
     </section>
   );
 }
+const faqGroups = content.faqCategories;
 function FaqAccordion() {
-  const [expanded, setExpanded] = useState(false),
+  const [group, setGroup] = useState(0),
     [open, setOpen] = useState<number | null>(null);
   return (
     <section
-      data-nav-section="faq"
-      className="faq-section m-shell"
+      className="faq-section"
       id="faq"
+      data-nav-section="faq"
       aria-labelledby="faq-title"
     >
-      <div className="m-container">
-        <div className="m-section-heading m-reveal">
-          <span className="m-eyebrow">FAQ</span>
-          <h2 id="faq-title">Got a question?</h2>
+      <div className="m-container faq-layout">
+        <div className="faq-intro m-reveal">
+          <h2 id="faq-title">
+            Still have
+            <br />
+            questions?
+          </h2>
+          <a className="m-secondary-button" href={content.links.support}>
+            Contact us <ArrowRight size={14} />
+          </a>
         </div>
-        <div className="faq-list">
-          {content.faqs.slice(0, expanded ? undefined : 3).map((faq, i) => (
-            <article
-              className={`faq-row ${open === i ? "is-open" : ""}`}
-              key={faq.question}
-            >
-              <h3>
-                <button
-                  id={`faq-question-${i}`}
-                  aria-expanded={open === i}
-                  aria-controls={`faq-answer-${i}`}
-                  onClick={() => setOpen(open === i ? null : i)}
-                >
-                  {faq.question}
-                  <span>
-                    {open === i ? <Minus size={17} /> : <Plus size={17} />}
-                  </span>
-                </button>
-              </h3>
-              <div
-                id={`faq-answer-${i}`}
-                role="region"
-                aria-labelledby={`faq-question-${i}`}
-                className="faq-answer"
-                inert={open !== i}
+        <div className="faq-content">
+          <div
+            className="faq-categories"
+            role="group"
+            aria-label="Question categories"
+          >
+            {faqGroups.map((item, i) => (
+              <button
+                aria-pressed={group === i}
+                onClick={() => {
+                  setGroup(i);
+                  setOpen(null);
+                }}
+                key={item.name}
               >
-                <div>
-                  <p>{faq.answer}</p>
-                </div>
-              </div>
-            </article>
-          ))}
+                {item.name}
+              </button>
+            ))}
+          </div>
+          <div className="faq-list">
+            {faqGroups[group].indices.map((index) => {
+              const item = content.faqs[index];
+              return (
+                <article
+                  className={`faq-row ${open === index ? "is-open" : ""}`}
+                  key={index}
+                >
+                  <h3>
+                    <button
+                      id={`faq-question-${index}`}
+                      aria-expanded={open === index}
+                      aria-controls={`faq-answer-${index}`}
+                      onClick={() => setOpen(open === index ? null : index)}
+                    >
+                      {item.question}
+                      {open === index ? (
+                        <Minus size={14} />
+                      ) : (
+                        <Plus size={14} />
+                      )}
+                    </button>
+                  </h3>
+                  <div
+                    className="faq-answer"
+                    id={`faq-answer-${index}`}
+                    role="region"
+                    aria-labelledby={`faq-question-${index}`}
+                    inert={open !== index}
+                  >
+                    <div>
+                      <p>{item.answer}</p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
-        <button
-          className="m-secondary-button all-questions"
-          aria-expanded={expanded}
-          onClick={() => {
-            setExpanded(!expanded);
-            if (expanded && open !== null && open > 2) setOpen(null);
-          }}
-        >
-          {expanded
-            ? "Show fewer questions"
-            : `See all ${content.faqs.length} questions`}
-          <ChevronDown size={15} className={expanded ? "turned" : ""} />
-        </button>
-        <p className="faq-contact">
-          Still have questions? <a href={content.links.support}>Contact us</a>
-        </p>
       </div>
     </section>
   );
 }
 function ClosingCtaFooter({ onPrivacy }: { onPrivacy: () => void }) {
   return (
-    <section
-      className="closing-section m-shell"
-      id="get-editai"
-      data-nav-section="faq"
-    >
-      <div className="closing-clouds" aria-hidden="true" />
-      <div className="closing-copy m-reveal">
-        <h2>
-          {content.footer.firstLine}
-          <br />
-          <span>{content.footer.secondLine}</span>
-        </h2>
-        <p>Find your story. Give it your own finishing touch.</p>
-        <MainCta />
-        <div className="marketing-downloads">
-          <DesktopDownloads />
+    <>
+      <section
+        className="closing-section"
+        id="get-editai"
+        data-nav-section="faq"
+      >
+        <div className="closing-sweep" aria-hidden="true" />
+        <div className="closing-copy m-reveal">
+          <h2>
+            <span>
+              Stop <em className="strike-word">editing.</em>
+            </span>
+            <span>
+              Start <em className="circle-word">creating.</em>
+            </span>
+          </h2>
+          <p>
+            Record the whole take. Find your story.
+            <br />
+            Give it your own finishing touch.
+          </p>
+          <MainCta />
+          <div className="marketing-downloads">
+            <DesktopDownloads />
+          </div>
+          <small id="ios-coming-soon">{content.footer.note}</small>
         </div>
-        <small id="ios-coming-soon">{content.footer.note}</small>
-      </div>
-      <footer className="m-footer m-container">
-        <div className="footer-brand">
-          <MarketingBrand />
-          <p>{content.footer.description}</p>
-          <small>© {new Date().getFullYear()} EditAI</small>
-        </div>
-        <div>
-          <h3>PRODUCT</h3>
-          {content.footer.product.map((link) => (
-            <a href={link.href} key={link.label}>
-              {link.label}
+      </section>
+      <footer className="m-footer">
+        <div className="m-container">
+          <div className="footer-grid">
+            <div className="footer-brand">
+              <MarketingBrand />
+              <p>{content.footer.description}</p>
+            </div>
+            <div>
+              <h3>PRODUCT</h3>
+              {content.footer.product.map((link) => (
+                <a key={link.label} href={link.href}>
+                  {link.label}
+                </a>
+              ))}
+              <a href="#faq">FAQ</a>
+            </div>
+            <div>
+              <h3>LEGAL & SUPPORT</h3>
+              <button onClick={onPrivacy}>Privacy & data</button>
+              <a href={content.links.app}>Privacy choices</a>
+              <a href={content.links.support}>Support</a>
+              <a
+                href="https://github.com/tappj/EditAI-Webapp/blob/main/LICENSE"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open source <ArrowUpRight size={11} />
+              </a>
+            </div>
+            <div className="footer-cta">
+              <a className="m-button" href={content.ios.href}>
+                {content.ios.label}
+                <ArrowRight size={13} />
+              </a>
+            </div>
+          </div>
+          <div className="footer-baseline">
+            <span>© {new Date().getFullYear()} EDITAI</span>
+            <a href={content.links.source} target="_blank" rel="noreferrer">
+              YOUR FOOTAGE. YOUR CREATIVE CONTROL.
             </a>
-          ))}
-          <span className="footer-ios">iOS coming soon</span>
-        </div>
-        <div>
-          <h3>CONTACTS</h3>
-          <a href={content.links.support}>Help & support</a>
-          <a href={content.links.support}>Contact us</a>
-          <a href={content.links.source} target="_blank" rel="noreferrer">
-            Desktop source <ArrowUpRight size={11} />
-          </a>
-        </div>
-        <div>
-          <h3>PRIVACY</h3>
-          <button onClick={onPrivacy}>Privacy & data</button>
-          <a href="/sign-in">Privacy choices in Settings</a>
-          <a
-            href="https://publikhq.com/privacy"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Publik privacy <ArrowUpRight size={11} />
-          </a>
+          </div>
+          <div className="footer-wordmark" aria-hidden="true">
+            EDITAI
+          </div>
         </div>
       </footer>
-    </section>
+    </>
   );
 }
-export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
+function usePageMotion() {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = root.current!,
@@ -931,7 +880,7 @@ export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
             reveal.unobserve(entry.target);
           }
         }),
-      { threshold: 0.08 },
+      { threshold: 0.06 },
     );
     el.querySelectorAll(".m-reveal").forEach((item) => reveal.observe(item));
     el.dataset.enhanced = "true";
@@ -958,6 +907,10 @@ export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
       reduced.removeEventListener("change", visibility);
     };
   }, []);
+  return root;
+}
+export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
+  const root = usePageMotion();
   return (
     <div className="marketing" ref={root}>
       <a className="m-skip-link" href="#main-content">
@@ -966,22 +919,10 @@ export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
       <FloatingNav />
       <main id="main-content">
         <Hero />
-        <section className="proof-section m-shell" data-nav-section="">
-          <TrustBar />
-          <MetricCards />
-          <CreatorProof />
-        </section>
-        <section
-          className="product-section m-shell"
-          id="how-it-works"
-          data-nav-section="how-it-works"
-        >
-          <BeforeAfterComparison />
-          <ProductDemoCards />
-        </section>
+        <WorkflowSection />
         <FeatureGrid />
-        <ReviewWall />
         <CreatorVideoGallery />
+        <WorkflowComparison />
         <PricingSelector />
         <FaqAccordion />
         <ClosingCtaFooter onPrivacy={onPrivacy} />
@@ -998,10 +939,8 @@ export function MarketingSignIn({
 }) {
   return (
     <div className="marketing marketing-sign-in">
-      <header>
-        <div className="m-pill brand-pill">
-          <MarketingBrand />
-        </div>
+      <header className="sign-in-header m-container">
+        <MarketingBrand />
         <a href={content.links.home} className="back-to-site">
           Back to EditAI <ArrowUpRight size={14} />
         </a>

@@ -1,16 +1,16 @@
-import { chromium, expect } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
-const output = "outputs/marketing";
+const output = "outputs/new-design";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({
     viewport: { width: 1536, height: 1000 },
     extraHTTPHeaders: { DNT: "1" },
+    reducedMotion: "reduce",
   });
-  // Only test the public presentation. No provider requests or app activity telemetry.
-  await page.route("**/api/session", (route) =>
-    route.fulfill({
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
       json: {
         screen: {
           id: "sign_in",
@@ -26,63 +26,34 @@ try {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(process.env.TEST_BASE_URL || "http://127.0.0.1:5190/");
   await page.evaluate(() => document.fonts.ready);
-  await expect(page.locator(".ambient-hero")).toHaveAttribute(
-    "data-running",
-    "true",
-  );
-  await page.mouse.move(180, 350, { steps: 15 });
-  await page.waitForTimeout(350);
-  await page.screenshot({ path: `${output}/hero-pointer-left.png` });
-  await page.mouse.move(1200, 280, { steps: 35 });
-  await page.waitForTimeout(350);
-  await page.screenshot({ path: `${output}/hero-pointer-right.png` });
-  const samples = await page.evaluate(
-    () =>
-      new Promise((resolve) => {
-        const deltas = [];
-        let last = 0;
-        const tick = (time) => {
-          if (last) deltas.push(time - last);
-          last = time;
-          if (deltas.length < 90) requestAnimationFrame(tick);
-          else {
-            deltas.sort((a, b) => a - b);
-            resolve({
-              samples: deltas.length,
-              medianMs: deltas[45],
-              p95Ms: deltas[85],
-            });
-          }
-        };
-        requestAnimationFrame(tick);
-      }),
-  );
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.screenshot({ path: `${output}/desktop.png`, fullPage: true });
+  await page.screenshot({ path: `${output}/hero.png` });
+  const hide = await page.addStyleTag({
+    content: ".m-header{visibility:hidden}",
+  });
   for (const [name, selector] of [
-    ["hero", ".marketing-hero"],
-    ["values", ".proof-section"],
-    ["comparison", "#how-it-works"],
-    ["demos", ".demo-cards"],
+    ["workflow", ".workflow-section"],
     ["features", ".features-section"],
-    ["workflow", ".review-section"],
     ["gallery", "#creators"],
+    ["comparison", ".comparison-section"],
     ["pricing", "#pricing"],
     ["faq", "#faq"],
-    ["footer", ".closing-section"],
+    ["closing", ".closing-section"],
+    ["footer", ".m-footer"],
   ]) {
-    const region = page.locator(selector);
-    await region.scrollIntoViewIfNeeded();
-    await region.screenshot({ path: `${output}/section-${name}.png` });
+    const el = page.locator(selector);
+    await el.scrollIntoViewIfNeeded();
+    await el.screenshot({ path: `${output}/section-${name}.png` });
   }
+  await hide.evaluate((el) => el.remove());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.screenshot({ path: `${output}/mobile.png`, fullPage: true });
   await writeFile(
     `${output}/visual-check.json`,
-    JSON.stringify(
-      { viewport: { width: 1536, height: 1000 }, frameTiming: samples, errors },
-      null,
-      2,
-    ),
+    JSON.stringify({ widths: [1536, 390], errors }, null, 2),
   );
-  console.log(JSON.stringify({ output, frameTiming: samples, errors }));
+  console.log(JSON.stringify({ output, errors }));
 } finally {
   await browser.close();
 }

@@ -38,7 +38,7 @@ test("public first page requires Publik sign-in; responsive and no secret exposu
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Film freely. Let EditAI do the editing.",
+      name: "Turn your raw footage into something worth sharing.",
     }),
   ).toBeVisible();
   await page

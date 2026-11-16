@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play, Volume2, VolumeX, Film } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { VideoAsset } from "@/lib/marketing/content";
 
 /** Emit one document-local event to enforce a single audible preview. */
@@ -9,9 +9,11 @@ export function MarketingVideo({
   asset,
   emphasis = false,
   onProgress,
+  paused = false,
 }: {
   asset: VideoAsset;
   emphasis?: boolean;
+  paused?: boolean;
   onProgress?: (video: HTMLVideoElement) => void;
 }) {
   const host = useRef<HTMLDivElement>(null),
@@ -28,7 +30,7 @@ export function MarketingVideo({
     const media = video.current;
     const update = () => {
       if (!media) return;
-      if (!inView.current || document.hidden) {
+      if (!inView.current || document.hidden || paused) {
         media.pause();
         media.muted = true;
         setMuted(true);
@@ -65,7 +67,7 @@ export function MarketingVideo({
       reduced.removeEventListener("change", update);
       media?.pause();
     };
-  }, [asset.id, loaded]);
+  }, [asset.id, loaded, paused]);
   const toggle = () => {
     const media = video.current;
     if (!media) return;
@@ -112,7 +114,13 @@ export function MarketingVideo({
           ) : (
             <>
               <div className="poster-ring" />
-              <Film size={38} strokeWidth={1.3} />
+              <img
+                className="poster-app-logo"
+                src="/brand/editai-icon-192.png"
+                width="64"
+                height="64"
+                alt=""
+              />
               <span>EditAI</span>
               <div className="poster-wave">
                 {Array.from({ length: 23 }, (_, i) => (

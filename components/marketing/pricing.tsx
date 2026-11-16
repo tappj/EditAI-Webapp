@@ -1,141 +1,124 @@
 "use client";
 import { useState } from "react";
-import { Check, ArrowRight } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { marketingContent as content } from "@/lib/marketing/content";
 export function PricingSelector() {
-  const [usage, setUsage] = useState(1),
-    [cadence, setCadence] = useState<"monthly" | "annual">("monthly"),
-    [planId, setPlanId] = useState(content.pricing.plans[1].id);
-  const plan = content.pricing.plans.find((p) => p.id === planId)!;
-  const offer = plan[cadence];
-  const safeCheckout =
-    offer && /^https:\/\//.test(offer.checkoutUrl) ? offer.checkoutUrl : null;
-  const available = content.pricing.approved && offer && safeCheckout;
+  const [cadence, setCadence] = useState<"monthly" | "annual">("monthly");
+  const [planId, setPlanId] = useState(content.pricing.plans[1].id);
+  const selected = content.pricing.plans.find((p) => p.id === planId)!;
   return (
     <section
-      className="marketing-section pricing-section"
-      data-nav-section="pricing"
+      className="pricing-section"
       id="pricing"
+      data-nav-section="pricing"
       aria-labelledby="pricing-title"
     >
-      <div className="pricing-panel m-reveal">
-        <div className="m-section-heading">
-          <span className="m-eyebrow">PRICING</span>
-          <h2 id="pricing-title">Find your creative rhythm.</h2>
+      <div className="m-container">
+        <div className="m-section-heading m-reveal">
+          <h2 id="pricing-title">
+            Simple plans.
+            <br />
+            For your next chapter.
+          </h2>
           <p>
             {content.pricing.approved
-              ? "Choose the plan that fits your workflow."
+              ? "Choose the plan that fits your creative rhythm."
               : "A preview of what’s next. Plan details coming soon."}
           </p>
         </div>
-        <div className="pricing-columns">
-          <div className="pricing-options">
-            <fieldset className="usage-options">
-              <legend>How often do you create?</legend>
-              <div>
-                {content.pricing.usage.map((item, i) => (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-pressed={usage === i}
-                    onClick={() => {
-                      setUsage(i);
-                      setPlanId(content.pricing.plans[i].id);
-                    }}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-            <div
-              className="billing-options"
-              role="group"
-              aria-label="Billing period"
+        <div
+          className="billing-options"
+          role="group"
+          aria-label="Billing period"
+        >
+          {(["monthly", "annual"] as const).map((item) => (
+            <button
+              key={item}
+              aria-pressed={cadence === item}
+              onClick={() => setCadence(item)}
             >
-              {(["monthly", "annual"] as const).map((item) => (
-                <button
-                  key={item}
-                  aria-pressed={cadence === item}
-                  onClick={() => setCadence(item)}
-                >
-                  {item === "monthly" ? "Monthly" : "Annual"}
-                </button>
-              ))}
-            </div>
-            <fieldset className="plan-options">
-              <legend className="m-sr-only">Choose a plan preview</legend>
-              {content.pricing.plans.map((p) => (
-                <label key={p.id} className={planId === p.id ? "selected" : ""}>
+              {item === "monthly" ? "Monthly" : "Annual"}
+            </button>
+          ))}
+        </div>
+        <fieldset className="pricing-grid">
+          <legend className="m-sr-only">Choose a plan preview</legend>
+          {content.pricing.plans.map((plan) => {
+            const offer = plan[cadence];
+            const checkout =
+              content.pricing.approved &&
+              offer &&
+              /^https:\/\//.test(offer.checkoutUrl)
+                ? offer.checkoutUrl
+                : null;
+            return (
+              <article
+                className={`pricing-card m-reveal ${plan.id === planId ? "selected" : ""}`}
+                key={plan.id}
+              >
+                <label className="plan-heading">
                   <input
                     type="radio"
                     name="marketing-plan"
-                    value={p.id}
-                    checked={planId === p.id}
-                    onChange={() => setPlanId(p.id)}
+                    value={plan.id}
+                    checked={plan.id === planId}
+                    onChange={() => setPlanId(plan.id)}
                   />
-                  <span>
-                    <strong>{p.name}</strong>
-                    <small>{p.description}</small>
-                  </span>
-                  <span className="plan-price">
-                    {content.pricing.approved && p[cadence]
-                      ? p[cadence]!.price
-                      : "Coming soon"}
-                    <small>
-                      {content.pricing.approved && p[cadence]
-                        ? cadence === "monthly"
-                          ? "/ month"
-                          : "/ year"
-                        : "Plan preview"}
-                    </small>
-                  </span>
+                  <span>{plan.name}</span>
+                  {content.pricing.approved && plan.recommended && (
+                    <small>RECOMMENDED</small>
+                  )}
                 </label>
-              ))}
-            </fieldset>
-          </div>
-          <div className="pricing-benefits">
-            <div aria-live="polite">
-              <span className="m-eyebrow">
-                {plan.name}{" "}
-                {content.pricing.approved ? "INCLUDES" : "WORKFLOW PREVIEW"}
-              </span>
-              <ul>
-                {plan.benefits.map((benefit) => (
-                  <li key={benefit}>
-                    <Check size={17} />
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {available ? (
-              <a className="m-button" href={safeCheckout!}>
-                Choose {plan.name}
-                <ArrowRight size={17} />
-              </a>
-            ) : (
-              <button className="m-button" disabled>
-                Plans coming soon
-              </button>
-            )}
-            <p className="billing-summary" aria-live="polite">
-              {available
-                ? `${offer!.price} billed ${cadence === "monthly" ? "monthly" : "annually"}.`
-                : `${plan.name} · ${cadence === "monthly" ? "Monthly" : "Annual"} pricing to be announced. No checkout is available.`}
-            </p>
-            <a href={content.links.app} className="pricing-web-link">
-              Explore the web editor <ArrowRight size={14} />
-            </a>
-            <p className="pricing-disclosure">
-              Current AI access is connected through Publik. Your account there
-              shows your actual plan and usage.
-            </p>
-            <a className="m-small-link" href={content.links.support}>
-              Have a question? Contact us
-            </a>
-          </div>
-        </div>
+                <p className="plan-description">{plan.description}</p>
+                <div
+                  className={`plan-price ${!content.pricing.approved || !offer ? "pending" : ""}`}
+                >
+                  {content.pricing.approved && offer
+                    ? offer.price
+                    : "Coming soon"}
+                </div>
+                <p className="plan-cadence">
+                  {content.pricing.approved && offer
+                    ? cadence === "monthly"
+                      ? "per month, billed monthly"
+                      : "per year, billed annually"
+                    : `${cadence === "monthly" ? "Monthly" : "Annual"} pricing to be announced`}
+                </p>
+                <ul>
+                  {plan.benefits.map((benefit) => (
+                    <li key={benefit}>
+                      <Check size={15} />
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+                {checkout ? (
+                  <a className="m-button" href={checkout}>
+                    Choose {plan.name}
+                    <ArrowRight size={16} />
+                  </a>
+                ) : (
+                  <button className="m-button" disabled>
+                    Plans coming soon <ArrowRight size={16} />
+                  </button>
+                )}
+              </article>
+            );
+          })}
+        </fieldset>
+        <p className="billing-summary" aria-live="polite">
+          {selected.name} · {cadence === "monthly" ? "Monthly" : "Annual"}
+          {content.pricing.approved && selected[cadence]
+            ? ` · ${selected[cadence]!.price}`
+            : " pricing to be announced. No checkout is available."}
+        </p>
+        <p className="pricing-disclosure">
+          Current AI access is connected through Publik. Your account there
+          shows your actual plan and usage.
+        </p>
+        <a className="pricing-web-link" href={content.links.app}>
+          Explore the web editor <ArrowRight size={14} />
+        </a>
       </div>
     </section>
   );

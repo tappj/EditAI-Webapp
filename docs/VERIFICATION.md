@@ -81,7 +81,24 @@ These fixture browser checks do **not** establish new real Publik connectivity. 
 
 Owner insertion keys and asset paths: `docs/MARKETING.md`, `lib/marketing/content.ts`.
 
-
 ## Marketing publication authorization — November 16, 2026
 
 Following local acceptance, the owner explicitly authorized pushing all changes to GitHub `main` and updating `https://editai.it.com`. The domain was confirmed active with active TLS on the existing public Sites project. The GitHub repository previously had only `codex/desktop-migration`, so `main` is created from that history without force-pushing or replacing an existing branch. The existing Sites source repository uses `main`; publication packages the exact verified source commit and retains its audience, database, media storage and runtime secrets. Historical local-only entries above describe the initial implementation phase.
+
+## Superseding marketing design — November 16, 2026
+
+The owner supplied `Website resources/cutai new` and explicitly removed the former value/metric, laurel/award and mini-profile block. Only the seven-feature/ribbon section is retained from the previous visual design. All ten new references were inspected before coding: eight depict the replacement site and two depict unrelated restaurant menus. `REFERENCE_AUDIT.md` records the mapping. The owner's exact scissors image now supplies the logo, PNG/ICO favicon and Apple touch icon; the full-resolution canonical copy is `public/brand/editai-icon.png`. The original E favicon and old hero-canvas module are removed.
+
+The new flat cool-gray/cyan design includes a single full-width header, a centered editorial hero with flat opposing strips, four independently authored/labeled workflow previews, the retained feature section with redesigned icon tiles, framed owner-video slots, a factual workflow comparison, user-input planning calculator, three pricing cards, grouped FAQ and a crossed-out/circled closing headline with a quiet oversized footer wordmark. No old metric/award/profile section or vertical review wall remains in the rendered page. Real editor, auth, API, source word IDs, native logic, verified installer URL and open-source licenses remain unchanged.
+
+Validation on a fresh production Worker:
+
+- `npm run typecheck`, `npm test` (15 model/security tests) and `npm run build` pass.
+- All **26 browser cases pass in Chromium (31.2s) and WebKit (36.6s)**. This includes all existing editor upload/edit/export/recording/storage/captions/batch/auth-popup and installer-device checks, plus new section removal/order, owner logo/favicon, workflow selection, price/cadence selection with disabled pending checkout, calculator changes and zero-clamp, categorized keyboard FAQ, full-width/active header, opposing strips, retained icon movement, hover/focus pause, reduced motion and observer disposal.
+- `npm run desktop:build` and all nine desktop contract tests pass. No release binaries were replaced or published.
+- Targeted marketing/source-test ESLint: zero errors; eight advisory native-image warnings. Native sized/lazy image primitives support the shared web/Electron renderer.
+- Browser captures at 1536, 1440, 1280, 1024, 768, 390 and 375 pixels have no document/headline overflow in either engine. Narrow comparison tables scroll within a focusable region with a visible scroll hint; creator cards use a horizontal snap gallery. Desktop and mobile captures and every main section were visually inspected against the new references. A reproducer is `scripts/capture-marketing.mjs`; output is ignored under `outputs/new-design/`, including `desktop.png`, `mobile.png`, `hero.png`, `section-*.png`, both engines' width captures and sign-in views. Reference sheets are under `outputs/new-design-reference/`.
+
+Content boundaries remain explicit. Creator media and reviews are not fabricated. Pricing is a presentation-ready three-card preview with no invented price/trial or checkout. Calculator results are hypothetical targets derived solely from editable user inputs, not measured EditAI time savings or creator statistics. The workflow images are labeled illustrations until authentic screenshots are supplied. iOS remains coming soon. Factual defaults and media insertion fields live in `lib/marketing/content.ts`; the updated handoff is `docs/MARKETING.md`.
+
+Fixture browser checks do not establish new real Publik connectivity. They exercise real browser media and exports with intercepted authentication/AI responses; no production bypass or paid AI request was introduced. Physical Safari/iPhone hardware and future owner-supplied media/checkout remain outside these automated checks.

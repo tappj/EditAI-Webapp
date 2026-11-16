@@ -38,8 +38,8 @@ export type Plan = {
 };
 export const marketingContent = {
   hero: {
-    firstLine: "Film freely.",
-    secondLine: "Let EditAI do the editing.",
+    firstLine: "Turn your raw footage into",
+    secondLine: "something worth sharing.",
     subtitle:
       "We find your best takes, add captions, and make every frame yours.",
     cta: "Open EditAI Web",
@@ -53,26 +53,12 @@ export const marketingContent = {
       "https://github.com/tappj/EditAI-Webapp/tree/codex/desktop-migration",
   },
   navigation: [
-    { id: "how-it-works", label: "How it works" },
     { id: "creators", label: "Creators" },
     { id: "pricing", label: "Pricing" },
     { id: "faq", label: "FAQ" },
   ],
   // TODO: approved, authentic customer reviews, awards and creator profiles.
   reviews: [] as Review[],
-  awards: [] as {
-    id: string;
-    approved: boolean;
-    quote: string;
-    source: string;
-    rating?: number;
-  }[],
-  creators: [] as Creator[],
-  metrics: [
-    { value: "Your cut.", label: "AI assistance. Your final say." },
-    { value: "Your style.", label: "Captions, color & a personal touch." },
-    { value: "Your story.", label: "From first take to final export." },
-  ],
   capabilities: [
     {
       title: "A first cut, a fresh start.",
@@ -105,44 +91,6 @@ export const marketingContent = {
       icon: "export",
     },
   ] as { title: string; text: string; icon: FeatureIcon }[],
-  comparison: {
-    before: {
-      id: "before",
-      title: "Before",
-      description: "Your original footage",
-    },
-    after: { id: "after", title: "After", description: "Your EditAI cut" },
-  } as { before: VideoAsset; after: VideoAsset },
-  // TODO: replace neutral previews with authentic screenshots, keeping alt text accurate.
-  demos: [
-    {
-      title: "Find the take.\nKeep the story.",
-      kind: "cut",
-      image: "",
-      alt: "",
-      label: "AI-assisted first cut",
-    },
-    {
-      title: "Big ideas.\nOne tidy workspace.",
-      kind: "batch",
-      image: "",
-      alt: "",
-      label: "Your project library",
-    },
-    {
-      title: "Your finishing touch.\nIn every frame.",
-      kind: "export",
-      image: "",
-      alt: "",
-      label: "Captions & MP4 export",
-    },
-  ] as {
-    title: string;
-    kind: "cut" | "batch" | "export";
-    image: string;
-    alt: string;
-    label: string;
-  }[],
   features: [
     {
       icon: "cut",
@@ -182,26 +130,83 @@ export const marketingContent = {
   ] as { icon: FeatureIcon; title: string; text: string }[],
   workflow: [
     {
-      title: "Start with the real thing.",
-      text: "Import your recordings, or record in the studio with a teleprompter. Keep your original footage.",
-      label: "01 · BRING YOUR FOOTAGE",
+      id: "import",
+      title: "Import",
+      label: "01 · IMPORT",
+      text: "Bring a recording into your workspace. Keep your original footage intact.",
+      screenTitle: "Your story starts here.",
+      screenNote: "Import your footage",
     },
     {
-      title: "Let the first cut find you.",
-      text: "Connect your Publik account for transcription and AI editing. Review every suggested change.",
-      label: "02 · FIND YOUR STORY",
+      id: "cut",
+      title: "AI first cut",
+      label: "02 · AI FIRST CUT",
+      text: "Connect your AI account for a transcript and editorial suggestions.",
+      screenTitle: "Find the story inside.",
+      screenNote: "AI suggests. You decide.",
     },
     {
-      title: "A little more you.",
-      text: "Shape the timing, style your captions and add the finishing touches on the timeline.",
-      label: "03 · MAKE IT YOURS",
+      id: "review",
+      title: "Review",
+      label: "03 · REVIEW",
+      text: "Refine timing, style your captions and add your finishing touches.",
+      screenTitle: "Make the frame yours.",
+      screenNote: "Your creative control",
     },
     {
-      title: "And out into the world.",
-      text: "Export your finished MP4 and share it wherever your story belongs.",
-      label: "04 · READY TO SHARE",
+      id: "export",
+      title: "Export",
+      label: "04 · EXPORT",
+      text: "Export your finished MP4. Ready for wherever your story goes next.",
+      screenTitle: "A story worth sharing.",
+      screenNote: "MP4 · H.264 + AAC",
     },
+  ] as {
+    id: "import" | "cut" | "review" | "export";
+    title: string;
+    label: string;
+    text: string;
+    screenTitle: string;
+    screenNote: string;
+    image?: string;
+    alt?: string;
+  }[],
+  comparisonRows: [
+    {
+      label: "GETTING STARTED",
+      values: [
+        "Your original recording",
+        "A connected AI account",
+        "One creative workspace",
+      ],
+    },
+    {
+      label: "THE FIRST CUT",
+      values: [
+        "Your raw takes",
+        "Transcript-based suggestions",
+        "Review and refine",
+      ],
+    },
+    {
+      label: "CAPTIONS",
+      values: [
+        "Your own words",
+        "Word-timed transcription",
+        "Your choice of style",
+      ],
+    },
+    {
+      label: "FINISHING TOUCHES",
+      values: [
+        "Your point of view",
+        "Suggestions you can change",
+        "Color, text, music & overlays",
+      ],
+    },
+    { label: "THE FINAL SAY", values: ["Yours", "Yours", "Always yours"] },
   ],
+  calculator: { videos: 10, currentMinutes: 60, targetMinutes: 15 },
   // TODO: supply approved portrait videos/posters, e.g. /marketing/creator-01.mp4.
   videos: [
     {
@@ -259,6 +264,11 @@ export const marketingContent = {
       },
     ] as Plan[],
   },
+  faqCategories: [
+    { name: "The edit", indices: [1, 3, 4, 5] },
+    { name: "The app", indices: [0, 6, 7, 9] },
+    { name: "Getting started", indices: [2, 8, 10, 11] },
+  ],
   faqs: [
     {
       question: "Where can I use EditAI?",

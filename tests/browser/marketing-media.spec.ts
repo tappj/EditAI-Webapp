@@ -12,11 +12,10 @@ test.beforeAll(async () => {
       contents: `
     import React, {StrictMode, useState} from 'react';
     import {createRoot} from 'react-dom/client';
-    import {AmbientHeroBackground} from './components/marketing/ambient-hero';
-    import {ReviewMarquee, ReviewWall} from './components/marketing/landing';
+    import {MarketingLanding, ReviewMarquee} from './components/marketing/landing';
     import {MarketingVideo} from './components/marketing/video-player';
     const reviews = Array.from({length:4}, (_,i)=>({id:'fixture-'+i,approved:true,title:'Isolated review fixture '+i,text:'Component test content. This is not a real customer endorsement.',author:'Test fixture',source:'Automated QA',rating:5}));
-    function Harness(){const [mounted,setMounted]=useState(true);return <div className='marketing'><button id='unmount' onClick={()=>setMounted(false)}>Unmount components</button>{mounted && <><section className='marketing-hero' style={{marginTop:0,height:750}}><AmbientHeroBackground/><h1 style={{padding:40}}>Isolated component QA</h1><ReviewMarquee reviews={reviews}/></section><div style={{display:'flex',gap:20,width:500,margin:'40px auto'}}><div style={{width:240}}><MarketingVideo asset={{id:'test-a',title:'Test A',description:'Generated fixture',src:'/marketing-fixture.mp4'}}/></div><div style={{width:240}}><MarketingVideo asset={{id:'test-b',title:'Test B',description:'Generated fixture',src:'/marketing-fixture.mp4'}}/></div></div><ReviewWall reviews={reviews}/><div id='offscreen' style={{height:1500}}>Offscreen test target</div></>}</div>}
+    function Harness(){const [mounted,setMounted]=useState(true);return <div><button style={{position:'fixed',bottom:12,right:12,zIndex:200}} id='unmount' onClick={()=>setMounted(false)}>Unmount components</button>{mounted && <><MarketingLanding onPrivacy={()=>{}}/><section className='marketing review-fixture'><ReviewMarquee reviews={reviews}/></section><div className='marketing' style={{display:'flex',gap:20,width:500,margin:'40px auto'}}><div style={{width:240}}><MarketingVideo asset={{id:'test-a',title:'Test A',description:'Generated fixture',src:'/marketing-fixture.mp4'}}/></div><div style={{width:240}}><MarketingVideo asset={{id:'test-b',title:'Test B',description:'Generated fixture',src:'/marketing-fixture.mp4'}}/></div></div><div id='offscreen' style={{height:1800}}>Offscreen test target</div></>}</div>}
     createRoot(document.getElementById('root')).render(<StrictMode><Harness/></StrictMode>);
   `,
       resolveDir: process.cwd(),
@@ -89,9 +88,9 @@ test("configured media autoplay muted, exclusive sound, user pause, visibility a
   });
   await expect(second.locator("video")).toHaveJSProperty("paused", true);
   await expect(second.locator("video")).toHaveJSProperty("muted", true);
-  await expect(page.locator(".ambient-hero")).toHaveAttribute(
-    "data-running",
-    "false",
+  await expect(page.locator(".marketing[data-enhanced]")).toHaveAttribute(
+    "data-paused",
+    "true",
   );
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
@@ -121,44 +120,27 @@ test("configured media autoplay muted, exclusive sound, user pause, visibility a
   await expect(second.locator("video")).toHaveJSProperty("paused", true);
 });
 
-test("approved review infrastructure moves independently, pauses on focus and becomes static under reduced motion", async ({
+test("approved strips pause on focus and become static under reduced motion", async ({
   page,
 }) => {
   await page.goto("/__marketing-component-qa");
-  await expect(page.locator(".hero-marquees .review-card")).toHaveCount(24);
-  await expect(page.locator('.marquee-group[aria-hidden="true"]')).toHaveCount(
-    2,
-  );
-  await page.getByRole("region", { name: "Workflow strip 1" }).focus();
+  const fixture = page.locator(".review-fixture");
+  await expect(fixture.locator(".review-card")).toHaveCount(24);
+  await expect(
+    fixture.locator('.marquee-group[aria-hidden="true"]'),
+  ).toHaveCount(2);
+  await fixture.getByRole("region", { name: "Workflow strip 1" }).focus();
+  const tracks = fixture.locator(".marquee-track");
   expect(
-    await page
-      .locator(".marquee-track")
+    await tracks
       .first()
       .evaluate((node) => getComputedStyle(node).animationPlayState),
   ).toBe("paused");
-  await page.locator(".review-wall").scrollIntoViewIfNeeded();
-  const tracks = page.locator(".review-wall-track");
   expect(
     await tracks.evaluateAll((nodes) =>
       nodes.map((node) => getComputedStyle(node).animationDirection),
     ),
   ).toEqual(["normal", "reverse"]);
-  const start = await tracks
-    .first()
-    .evaluate((node) => getComputedStyle(node).transform);
-  await expect
-    .poll(() =>
-      tracks.first().evaluate((node) => getComputedStyle(node).transform),
-    )
-    .not.toBe(start);
-  await page.locator(".review-wall").focus();
-  await expect
-    .poll(() =>
-      tracks
-        .first()
-        .evaluate((node) => getComputedStyle(node).animationPlayState),
-    )
-    .toBe("paused");
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(
     await tracks
@@ -166,7 +148,7 @@ test("approved review infrastructure moves independently, pauses on focus and be
       .evaluate((node) => getComputedStyle(node).animationName),
   ).toBe("none");
   await expect(
-    page.locator('.review-wall-group[aria-hidden="true"]').first(),
+    fixture.locator('.marquee-group[aria-hidden="true"]').first(),
   ).toBeHidden();
   await page.locator('[data-video-id="test-a"]').scrollIntoViewIfNeeded();
   await expect(page.locator('[data-video-id="test-a"] video')).toHaveJSProperty(
@@ -183,7 +165,7 @@ test("approved review infrastructure moves independently, pauses on focus and be
     .toBe(true);
 });
 
-test("canvas frames and observers are released on unmount and rapid resizing stays bounded", async ({
+test("page observers are released on unmount and rapid resizing stays bounded", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -236,22 +218,20 @@ test("canvas frames and observers are released on unmount and rapid resizing sta
     });
   });
   await page.goto("/__marketing-component-qa");
-  await expect(page.locator(".ambient-hero")).toHaveAttribute(
-    "data-running",
+  await expect(page.locator(".marketing[data-enhanced]")).toHaveAttribute(
+    "data-enhanced",
     "true",
   );
   for (const width of [390, 1440, 768, 1536])
     await page.setViewportSize({ width, height: 900 });
-  const size = await page
-    .locator(".ambient-hero canvas")
-    .evaluate((node: HTMLCanvasElement) => ({
-      width: node.width,
-      host: node.getBoundingClientRect().width,
-    }));
-  expect(size.width).toBeLessThanOrEqual(size.host * 1.5 + 1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   await page.locator("#unmount").click();
   await expect(
-    page.locator("canvas, video, .marquee-track, .review-wall-track"),
+    page.locator("video, .marquee-track, .feature-ribbon-track"),
   ).toHaveCount(0);
   await expect
     .poll(() =>
@@ -259,6 +239,15 @@ test("canvas frames and observers are released on unmount and rapid resizing sta
         () =>
           (window as unknown as { __pendingMarketingFrames: number })
             .__pendingMarketingFrames,
+      ),
+    )
+    .toBe(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __activeMarketingObservers: number })
+            .__activeMarketingObservers,
       ),
     )
     .toBe(0);

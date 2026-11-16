@@ -1,65 +1,71 @@
-# EditAI marketing handoff
+# EditAI marketing handoff — current design
 
-Implementation stays in this independent web/desktop repository on `codex/desktop-migration`. The initial implementation was local-only; the owner subsequently authorized pushing all changes to `main` and publishing to `https://editai.it.com`. See `VERIFICATION.md` for validation and publication evidence. Native code, Publik endpoints, credentials, billing APIs and editorial contracts are unchanged.
+The owner's `Website resources/cutai new` screenshots supersede the previous rounded blue/glass page. The old metric cards, award cards and mini-profile block are removed. The seven-feature grid and four-icon ribbon are the only retained old section, rebuilt with ink/cyan tiles and the new flat card treatment. See `REFERENCE_AUDIT.md` for every supplied reference.
 
-## Content and assets
+## Design and routes
 
-Edit **`lib/marketing/content.ts`**. Keep all claims owner-approved. Local reference screenshots and the animation recording are never runtime assets.
+The page uses a continuous cool-gray canvas, dark Inter headings, cyan CTAs, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → workflow comparison + editable estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
 
-| Key                                          | What to supply                                                                                                                                                                                                                                                                   |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hero.firstLine`, `hero.secondLine`          | Editable provisional headline. `hero.subtitle` is the required exact sentence.                                                                                                                                                                                                   |
-| `ios.label`, `ios.href`                      | Currently `iOS coming soon`, linking to the availability note. Replace only when the real iOS onboarding funnel is published.                                                                                                                                                    |
-| `links.app`, `links.support`, `links.source` | Actual app entry, current support email, desktop source. Signed installer destinations remain maintained by the existing `lib/desktop-releases.json` release verifier, not a marketing-only list.                                                                                |
-| `reviews[]`                                  | Authentic `id`, `title`, `text`, `author`, `source`, optional `rating`/`avatar`; set `approved: true` only after approval. Both horizontal strips and the vertical wall consume this array. Empty production state uses factual workflow cards, without ratings or endorsements. |
-| `awards[]`                                   | Approved `quote`, `source`, optional `rating`, unique `id`, and `approved: true`. Empty state uses neutral brand statements.                                                                                                                                                     |
-| `creators[]`                                 | Approved `id`, `name`, `portrait`, optional real `platform` and `followers`, `approved: true`. Empty state uses capability cards.                                                                                                                                                |
-| `metrics[]`                                  | Verified metric text and labels, or retain the truthful nonnumeric benefits.                                                                                                                                                                                                     |
-| `comparison.before`, `comparison.after`      | Add `src`, `poster`, `title`, `description`. Equal-duration comparison previews receive gentle time correction; differently timed edits play independently.                                                                                                                      |
-| `demos[0..2].image`, `.alt`                  | Authentic UI screenshots and accurate alternative text. Empty values render independently authored, clearly labeled interface illustrations.                                                                                                                                     |
-| `features[]`, `capabilities[]`, `workflow[]` | Real product descriptions. Keep the seven feature cards and four-icon Edit / Caption / Transcribe / Export ribbon.                                                                                                                                                               |
-| `videos[0..2]`                               | Authentic portrait `src` and `poster`, `title`, `description`; optional approved `creator` object. No supplied videos means branded poster states.                                                                                                                               |
-| `pricing.plans[]`                            | Approved plan names, descriptions, real benefits and `monthly` / `annual` objects: `{ price: "owner-approved display string", checkoutUrl: "https://actual-checkout..." }`. `null` offers have no checkout.                                                                      |
-| `pricing.approved`                           | Remains `false`. Enable only after actual pricing and valid HTTPS checkout URLs are configured. Selection works now; no price, quota, discount, trial or commercial offer is invented.                                                                                           |
-| `faqs[]`, `footer`                           | Actual answers, real links and editable closing copy. Only implemented privacy/account destinations are shown.                                                                                                                                                                   |
+`/` still opens the studio for an already authenticated visitor, preserving existing behavior. An anonymous visitor sees the marketing page. `/sign-in` presents the existing official Publik gate with the new styling; provider calls, popup isolation, recovery links, consent and sessions are unchanged. Use a private browser window to inspect the public page when already signed in.
 
-Suggested owner asset names, after approval:
+The earlier owner instruction authorizes pushing changes to `main` and publishing to `https://editai.it.com`; current review/capture evidence is recorded in `VERIFICATION.md`. The original iOS project, private marketing repository, signed desktop releases and native editing contracts are separate and unchanged.
 
-- `public/marketing/before.mp4`, `before.webp`, `after.mp4`, `after.webp`
-- `public/marketing/creator-01.mp4`, `creator-01.webp` (repeat for 02 / 03)
-- `public/marketing/demo-first-cut.webp`, `demo-library.webp`, `demo-export.webp`
-- `public/marketing/creator-01-avatar.webp` and approved review avatars
+## Editable content and assets
 
-Use the corresponding `/marketing/...` paths in the manifest. These files are suggestions, not broken links shipped in the current manifest. Supply actual EditAI media; don't copy competitor content. Use compressed poster images and browser-compatible H.264 MP4 with AAC audio. Aspect-ratio containers reserve space before load. Players load on intersection, autoplay muted when visible, pause offscreen/background, honor user pause and reduced motion, and allow only one audible video. Native video/image primitives also work in the existing Electron renderer.
+Edit `lib/marketing/content.ts`:
 
-## Routes and code
+| Key                                                   | Current behavior / insertion point                                                                                                                                                                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hero.firstLine`, `hero.secondLine`, `hero.subtitle`  | Provisional EditAI headline. Preserve the required exact supporting sentence until the owner changes it.                                                                                                                                                                  |
+| `ios.label`, `ios.href`                               | `iOS coming soon`, linking to the real availability note. Replace with the authentic onboarding funnel only after release.                                                                                                                                                |
+| `links`, `navigation`                                 | Real sign-in, support and source links; new header destinations are Creators, Pricing and FAQ. Workflow remains linked from the hero and footer.                                                                                                                          |
+| `reviews[]`                                           | Authentic reviews require `approved: true`. Optional genuine rating/avatar/source fields are supported. Empty state shows factual workflow cards, with no fabricated testimonials or stars.                                                                               |
+| `capabilities[]`                                      | Factual cards in the new hero strips and faint decorative background texture.                                                                                                                                                                                             |
+| `workflow[0..3]`                                      | Import / AI first cut / Review / Export titles, descriptions and illustrative screen copy. Optional `image` and `alt` fields replace an authored workflow preview with an authentic screenshot; no broken placeholder image paths are shipped.                            |
+| `features[]`                                          | Seven verified product capabilities. Keep the independent four-icon ribbon and the 4+3 desktop grid.                                                                                                                                                                      |
+| `videos[0..2]`                                        | Supply authentic `src`/`poster`, title and description. Optional `creator` needs `approved: true` plus a real name/portrait/platform; follower counts are optional and must be genuine.                                                                                   |
+| `comparisonRows[]`                                    | Factual workflow comparison. No invented competitor prices, revenue or measured time savings.                                                                                                                                                                             |
+| `calculator`                                          | Initial user-editable planning assumptions: videos per week, current minutes and target minutes. Results are explicitly hypothetical user estimates, not measured EditAI performance.                                                                                     |
+| `pricing.plans[]`, `pricing.approved`                 | Three interactive preview cards and monthly/annual selection. `approved` remains false, prices are unannounced and checkout is disabled. Add real `monthly`/`annual` `{ price, checkoutUrl }` objects and enable only after owner approval. Checkout URLs must use HTTPS. |
+| `faqs[]`, `faqCategories[]`                           | Twelve code-backed answers, grouped into three four-question filters. Update the category indices if rearranging questions.                                                                                                                                               |
+| `footer.product`, `footer.description`, `footer.note` | Real footer destinations, factual tagline and availability. The graphic closing statement lives in `ClosingCtaFooter`.                                                                                                                                                    |
 
-- `/`: public marketing before authentication; existing authenticated visitors still reach the studio, preserving current behavior.
-- `/sign-in`: the existing request-scoped Publik gate, with new visual presentation. Official popup approval, blocked-popup recovery, retry and errors remain in `app/page.tsx`. No Google/email/password provider was fabricated.
-- Privacy links open the existing disclosure and retain keyboard focus/Escape behavior. Support remains `editaiapp@gmail.com`. Terms/cookie documents are not invented.
-- `components/marketing/landing.tsx`: section components, nav, cards, marquees, seven-feature layout, review wall, FAQ and footer.
-- `components/marketing/ambient-hero.tsx`: low-opacity deforming gradient layers and one canvas; interpolated pointer velocity affects expiring curved glyph trails. Intersection/document visibility pause, capped DPR, coarse-pointer fallback and full disposal.
-- `components/marketing/video-player.tsx`: lazy media lifecycle, explicit controls, error poster and exclusive audio.
-- `components/marketing/pricing.tsx`: usage, cadence and plan state; safe disabled checkout until approved offers exist.
-- `app/marketing.css`: presentation styles. No editor design tokens were replaced.
+Suggested owner media paths (not current broken URLs):
 
-## Local verification
+- `public/marketing/workflow-import.webp`, `workflow-cut.webp`, `workflow-review.webp`, `workflow-export.webp`
+- `public/marketing/creator-01.mp4`, `creator-01.webp` (repeat 02 / 03)
+- `public/marketing/creator-01-avatar.webp`, plus approved review portraits
 
-Use a **fresh** production Worker after each rebuild; stale Worker processes can retain old asset manifests.
+Set the corresponding `/marketing/...` paths in the manifest. Use EditAI-owned assets and browser-compatible H.264/AAC portrait MP4s. Current branded video posters and labeled workflow illustrations avoid implying supplied footage or screenshots exist.
+
+The exact full-resolution owner artwork is `public/brand/editai-icon.png`. Header/poster variants are `editai-icon-192.png`, the 32px favicon is `editai-icon-32.png`, Apple touch icon is `editai-icon-180.png`, and `public/favicon.ico` contains the same scissors image. Only standard resizing/encoding was applied; artwork was not recreated or recolored.
+
+## Interaction and accessibility
+
+- Opposing seamless hero strips, hover/focus pause, hidden clones and reduced-motion static state.
+- Independent four-tile icon ribbon, offscreen/background suspension and reduced-motion fallback.
+- Workflow exploration buttons, live pricing selection and categorized keyboard-accessible FAQ.
+- Calculator slider and editable minute inputs, a labeled SVG and live result summaries. Negative estimates clamp to zero.
+- Gallery videos mount/load when in view, autoplay muted, pause offscreen/background, honor manual pause and reduced motion, and allow only one audible clip. A global gallery pause control appears when authentic video sources exist.
+- Native sized/lazy image and video elements support the shared web/Electron frontend. The framework image linter emits advisory warnings; no optimization service is assumed.
+- No legacy hero canvas, floating pill header, metric/award/profile panel or vertical review wall renders in this design.
+
+## Verification
+
+Use a freshly started production Worker after every rebuild.
 
 ```sh
 npm run typecheck
 npm test
 npm run build
 npm run start -- --port 5190
-TEST_BASE_URL=http://127.0.0.1:5190 node scripts/make-fixture.mjs
-ffmpeg -y -i outputs/fixture.webm -c:v libx264 -pix_fmt yuv420p -c:a aac outputs/fixture.mp4
 TEST_BASE_URL=http://127.0.0.1:5190 npm run test:e2e
 TEST_BROWSER=webkit TEST_BASE_URL=http://127.0.0.1:5190 npm run test:e2e
+TEST_BASE_URL=http://127.0.0.1:5190 node scripts/capture-marketing.mjs
 ```
 
-The existing regression suite also needs `outputs/overlay.png` and `outputs/music.wav`, as documented in `VERIFICATION.md`. Marketing media tests compile an isolated component harness and serve generated fixture media through Playwright request interception. The harness/review fixtures are **never** production routes or assets. Fixture authentication and replies do not prove real Publik connectivity. No new paid AI calls are needed for this marketing change.
+Existing real-media regression tests require the generated fixture MP4, overlay PNG and WAV described in `VERIFICATION.md`. Tests use fixture authentication/replies; they do not prove new real Publik connectivity and do not make paid AI calls.
 
-`tests/browser/marketing.spec.ts` captures the page at 1536, 1440, 1280, 1024, 768, 390 and 375 pixels. Images live under ignored `outputs/marketing/`, including sign-in desktop/mobile views. `tests/browser/marketing-media.spec.ts` exercises configured video playback, exclusive sound, focus pause, review loops, reduced motion, visibility, DPR bounds and teardown. `REFERENCE_AUDIT.md` maps every supplied image and the sampled video frames to the implementation.
+`tests/browser/marketing.spec.ts` checks removal/sequence, logo/favicon, workflow, pricing, user-input calculator, FAQ, header, icon/strip motion, responsive widths and sign-in. `marketing-media.spec.ts` uses an isolated browser harness, never a production route, to verify actual generated media playback, audio exclusivity, pause/reduced motion, rapid resize and observer teardown. Existing editor regression tests remain active.
 
-Full-repository lint currently includes substantial existing errors in editor/native/vendor code. Report that baseline honestly; don't weaken checks or rewrite unrelated logic to hide it. New marketing files use explicit image sizing/lazy loading; the framework image-plugin rule emits advisory native-image warnings.
+Captures: ignored `outputs/new-design/` contains full-page Chromium/WebKit images at 1536, 1440, 1280, 1024, 768, 390 and 375 pixels, plus sign-in, individual section and desktop/mobile overview captures. New reference contact sheets are in `outputs/new-design-reference/`. These local reference files are not bundled into production.

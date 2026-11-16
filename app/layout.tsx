@@ -10,7 +10,13 @@ export const metadata: Metadata = {
   },
   description:
     "A complete AI video editing studio. Edit, caption, transcribe and export your videos in your browser.",
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/brand/editai-icon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/brand/editai-icon-180.png",
+  },
 };
 export default function RootLayout({
   children,

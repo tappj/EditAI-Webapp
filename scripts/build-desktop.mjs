@@ -92,11 +92,11 @@ for (const name of ["ffmpeg", "ffprobe"])
   );
 await mkdir(join(out, "notices"), { recursive: true });
 await copyFile(
-  "node_modules/ffmpeg-static/ffmpeg.LICENSE",
+  ffmpeg + ".LICENSE",
   join(out, "notices/FFmpeg-LICENSE.txt"),
 );
 await copyFile(
-  "node_modules/ffmpeg-static/ffmpeg.README",
+  ffmpeg + ".README",
   join(out, "notices/FFmpeg-README.txt"),
 );
 await copyFile("desktop/THIRD-PARTY.md", join(out, "notices/THIRD-PARTY.md"));

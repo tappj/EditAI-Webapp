@@ -4,7 +4,7 @@ import { _electron as electron, expect } from "@playwright/test";
 import { resolve } from "node:path";
 import { writeFile } from "node:fs/promises";
 const app = await electron.launch({
-  args: ["desktop/dist"],
+  ...(process.env.EDITAI_EXECUTABLE ? {executablePath:process.env.EDITAI_EXECUTABLE,args:[]} : {args:["desktop/dist"]}),
   env: {
     ...process.env,
     PUBLIK_SELF_TEST: "",
@@ -75,6 +75,8 @@ try {
     page.getByRole("button", { name: "Split clip at playhead" }),
   ).toBeVisible();
   const sources = await app.evaluate(({ app }) => ({
+    packaged: app.isPackaged,
+    version: app.getVersion(),
     node: process.versions.node,
     electron: process.versions.electron,
     gpu: app.getGPUFeatureStatus(),

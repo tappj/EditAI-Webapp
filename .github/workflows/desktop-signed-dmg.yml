@@ -15,7 +15,7 @@ on:
         required: true
         type: string
 permissions:
-  contents: read
+  contents: write
 jobs:
   dmg:
     runs-on: macos-15

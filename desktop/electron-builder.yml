@@ -29,6 +29,21 @@ mac:
     NSCameraUsageDescription: EditAI records video when you enable its camera.
     NSMicrophoneUsageDescription: EditAI records audio when you enable its microphone.
 dmg:
+  background: desktop/build/dmg-background.png
+  iconSize: 104
+  iconTextSize: 13
+  window:
+    size:
+      width: 720
+      height: 440
+  contents:
+    - x: 200
+      y: 260
+      type: file
+    - x: 520
+      y: 260
+      type: link
+      path: /Applications
   writeUpdateInfo: false
 win:
   target: nsis

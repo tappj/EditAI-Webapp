@@ -22,6 +22,11 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
       - name: Download exact signed app from draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -31,7 +36,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(gh api "repos/tappj/EditAI-Webapp/releases/$RELEASE_ID" --jq .draft)" = true
+          gh api "repos/tappj/EditAI-Webapp/releases/$RELEASE_ID" --jq .tag_name | grep -Fx 'v0.2.0'
           gh api "repos/tappj/EditAI-Webapp/releases/assets/$ASSET_ID" -H 'Accept: application/octet-stream' > "$RUNNER_TEMP/EditAI-0.2.0-mac-arm64.zip"
           printf '%s  %s\n' "$EXPECTED_SHA256" "$RUNNER_TEMP/EditAI-0.2.0-mac-arm64.zip" | shasum -a 256 -c -
       - name: Assemble and inspect disk image
@@ -44,20 +49,21 @@ jobs:
           codesign --verify --deep --strict "$stage/EditAI.app"
           xcrun stapler validate "$stage/EditAI.app"
           spctl --assess --type execute --verbose=2 "$stage/EditAI.app"
-          ln -s /Applications "$stage/Applications"
-          hdiutil create -srcfolder "$stage" -volname 'EditAI 0.2.0' -fs HFS+ -format UDZO -ov 'EditAI-0.2.0-mac-arm64.dmg'
-          hdiutil verify 'EditAI-0.2.0-mac-arm64.dmg'
+          node node_modules/electron-builder/cli.js --prepackaged "$stage/EditAI.app" --config desktop/electron-builder.yml --mac dmg --arm64 --publish never -c.mac.notarize=false -c.forceCodeSigning=false -c.directories.output="$RUNNER_TEMP/dmg-output"
+          image="$RUNNER_TEMP/dmg-output/EditAI-0.2.0-mac-arm64.dmg"
+          hdiutil verify "$image"
           mount="$RUNNER_TEMP/editai-dmg-mount"
           mkdir -p "$mount"
           trap 'hdiutil detach "$mount" -quiet || true' EXIT
-          hdiutil attach 'EditAI-0.2.0-mac-arm64.dmg' -readonly -nobrowse -mountpoint "$mount"
+          hdiutil attach "$image" -readonly -nobrowse -mountpoint "$mount"
           codesign --verify --deep --strict "$mount/EditAI.app"
           xcrun stapler validate "$mount/EditAI.app"
           spctl --assess --type execute --verbose=2 "$mount/EditAI.app"
           test "$(readlink "$mount/Applications")" = /Applications
+          test -f "$mount/.background/dmg-background.png"
       - uses: actions/upload-artifact@v4
         with:
-          name: editai-0.2.0-macos-arm64-dmg-for-local-notarization
-          path: EditAI-0.2.0-mac-arm64.dmg
+          name: editai-0.2.0-macos-arm64-branded-dmg-for-local-notarization
+          path: ${{ runner.temp }}/dmg-output/EditAI-0.2.0-mac-arm64.dmg
           if-no-files-found: error
           retention-days: 2

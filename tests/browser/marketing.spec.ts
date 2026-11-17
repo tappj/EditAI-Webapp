@@ -427,3 +427,135 @@ test("Codex glyph field reacts to pointer only in the hero and suspends when hid
   await expect(ambient).toHaveAttribute("data-running", "false");
   await expect.poll(pixels).toBe(0);
 });
+
+test("cursor streak stays narrow and clears completely while the pointer remains still", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const pending = new Set<number>();
+    const schedule = requestAnimationFrame.bind(window),
+      cancel = cancelAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) => {
+      const id = schedule((time) => {
+        pending.delete(id);
+        callback(time);
+      });
+      pending.add(id);
+      return id;
+    };
+    window.cancelAnimationFrame = (id) => {
+      pending.delete(id);
+      cancel(id);
+    };
+    Object.defineProperty(window, "__cursorFrames", {
+      get: () => pending.size,
+    });
+  });
+  await page.setViewportSize({ width: 1536, height: 1000 });
+  await page.goto("/");
+  const canvas = page.locator(".ambient-hero canvas");
+  await expect(page.locator(".ambient-hero")).toHaveAttribute(
+    "data-running",
+    "true",
+  );
+  const initial = await canvas.evaluate((el: HTMLCanvasElement) =>
+    el
+      .getContext("2d")!
+      .getImageData(0, 0, el.width, el.height)
+      .data.some((n, i) => i % 4 === 3 && n > 0),
+  );
+  expect(initial).toBe(false);
+  await page.mouse.move(150, 450);
+  await page.mouse.move(680, 450, { steps: 32 });
+  const bounds = await canvas.evaluate((el: HTMLCanvasElement) => {
+    const data = el
+      .getContext("2d")!
+      .getImageData(0, 0, el.width, el.height).data;
+    let minY = el.height,
+      maxY = 0,
+      minX = el.width,
+      maxX = 0;
+    for (let y = 0; y < el.height; y++)
+      for (let x = 0; x < el.width; x++) {
+        if (data[(y * el.width + x) * 4 + 3] <= 5) continue;
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+      }
+    const dpr = el.width / el.clientWidth;
+    return { width: (maxX - minX) / dpr, height: (maxY - minY) / dpr };
+  });
+  expect(bounds.width).toBeGreaterThan(100);
+  expect(bounds.height).toBeLessThan(40);
+  const samples = await canvas.evaluate(async (el: HTMLCanvasElement) => {
+    const hero = el.closest(".marketing-hero")!;
+    const mass = () => {
+      const data = el
+        .getContext("2d")!
+        .getImageData(0, 0, el.width, el.height).data;
+      let alpha = 0;
+      for (let i = 3; i < data.length; i += 4) alpha += data[i];
+      return alpha;
+    };
+    // Repeated move events at the SAME coordinates must not refresh emission.
+    const still = setInterval(
+      () =>
+        hero.dispatchEvent(
+          new PointerEvent("pointermove", {
+            clientX: 680,
+            clientY: 450,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        ),
+      30,
+    );
+    try {
+      const values = [mass()];
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      values.push(mass());
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      values.push(mass());
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      values.push(mass());
+      return values;
+    } finally {
+      clearInterval(still);
+    }
+  });
+  expect(samples[0]).toBeGreaterThan(0);
+  expect(samples[1]).toBeLessThan(samples[0]);
+  expect(samples[2]).toBe(0);
+  expect(samples[3]).toBe(0);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __cursorFrames: number }).__cursorFrames,
+    ),
+  ).toBe(0);
+  await page.mouse.move(720, 470);
+  await page.mouse.move(920, 470, { steps: 12 });
+  await expect
+    .poll(() =>
+      canvas.evaluate((el: HTMLCanvasElement) =>
+        el
+          .getContext("2d")!
+          .getImageData(0, 0, el.width, el.height)
+          .data.some((n, i) => i % 4 === 3 && n > 5),
+      ),
+    )
+    .toBe(true);
+  await page.mouse.move(1, 1);
+  await expect
+    .poll(
+      () =>
+        canvas.evaluate((el: HTMLCanvasElement) =>
+          el
+            .getContext("2d")!
+            .getImageData(0, 0, el.width, el.height)
+            .data.some((n, i) => i % 4 === 3 && n > 0),
+        ),
+      { timeout: 1600 },
+    )
+    .toBe(false);
+});

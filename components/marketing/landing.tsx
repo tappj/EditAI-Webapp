@@ -303,6 +303,7 @@ function Hero() {
         <p>{content.hero.subtitle}</p>
         <div className="hero-actions">
           <MainCta />
+          <DesktopDownloads placement="hero" />
           <a className="hero-watch" href="#how-it-works">
             <Play size={12} /> See it in action
           </a>

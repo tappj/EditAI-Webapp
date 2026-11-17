@@ -621,6 +621,18 @@ for (const device of [
           },
         }),
       );
+      await page.goto("/");
+      await expect(page.locator(".marketing-hero")).toBeVisible();
+      const install = page.getByRole("link", { name: /Install for Mac/ });
+      await expect(install).toHaveCount(device.downloads ? 1 : 0);
+      if (device.downloads) {
+        await expect(install).toBeVisible();
+        await expect(install).toHaveAttribute(
+          "href",
+          "https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.1/EditAI-0.2.1-mac-arm64.dmg",
+        );
+        await expect(install).toContainText("Apple silicon");
+      }
       await page.goto("/sign-in");
       await expect(
         page.getByRole("button", { name: "Sign in with publik", exact: true }),

@@ -58,3 +58,5 @@ The owner removed the previous metric/award/profile block and replaced the visua
 - Primary marketing accent updated to the existing EditAI editor blues (`#598fd9`, `#326ab4`, `#c4e0ff`) per owner request; smaller cropped footer retained. Typecheck, 15 model/security tests, build and marketing browser checks in Chromium/WebKit pass. See `docs/VERIFICATION.md`.
 
 - Superseding owner screenshot: match its bright cyan palette exactly, including solid primary buttons and glow, highlighted headline and cool pale background. Browser-rendered reference and implementation both sample `#11e9fb`; editor/auth and cropped footer retained. Typecheck, 15 model/security tests, build and seven marketing checks in both engines pass; evidence in `docs/VERIFICATION.md`.
+
+- Added the verified Mac installer directly to the marketing hero, including architecture/version and existing mobile/iPad gating. Wordmark AI text uses the same bright cyan as the headline. Typecheck, 15 model/security tests, production build and 11 targeted cases per browser engine pass; actual DMG HEAD resolves to HTTP 200. See `docs/VERIFICATION.md`.

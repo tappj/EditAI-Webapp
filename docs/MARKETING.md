@@ -8,6 +8,8 @@ The current main accent matches the owner's supplied bright cyan screenshot: bro
 
 The page uses a continuous pale gray canvas, dark Inter headings, solid bright cyan CTAs, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → workflow comparison + editable estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
 
+The hero offers both Open EditAI Web and Install for Mac. The installer CTA reuses the existing signed/notarized/tested release allowlist and mobile/iPad gate in `components/desktop-downloads.tsx`, with Apple silicon/Intel and version labels derived from `lib/desktop-releases.json`. The header/footer/sign-in wordmark AI text now uses the same bright cyan token as the hero headline.
+
 `/` still opens the studio for an already authenticated visitor, preserving existing behavior. An anonymous visitor sees the marketing page. `/sign-in` presents the existing official Publik gate with the new styling; provider calls, popup isolation, recovery links, consent and sessions are unchanged. Use a private browser window to inspect the public page when already signed in.
 
 The earlier owner instruction authorizes pushing changes to `main` and publishing to `https://editai.it.com`; current review/capture evidence is recorded in `VERIFICATION.md`. The original iOS project, private marketing repository, signed desktop releases and native editing contracts are separate and unchanged.

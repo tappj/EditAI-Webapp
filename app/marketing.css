@@ -205,7 +205,7 @@
   flex: none;
 }
 .m-brand > span > span {
-  color: var(--m-accent);
+  color: var(--m-accent-bright);
 }
 .m-nav {
   display: flex;
@@ -371,6 +371,28 @@
   gap: 24px;
   justify-content: center;
   align-items: center;
+}
+/* The verified installer shares the existing device/release gate. */
+.hero-actions .hero-mac-install {
+  min-height: 44px;
+  padding: 7px 18px;
+  gap: 10px;
+  border-color: #91d7e0;
+  background: #f4fbfd;
+  color: var(--m-ink);
+  line-height: 1.25;
+  text-align: left;
+}
+.hero-mac-install small {
+  display: block;
+  margin-top: 3px;
+  font-size: 8px;
+  color: var(--m-muted);
+  font-weight: 400;
+}
+.hero-actions .hero-mac-install:hover {
+  background: var(--m-accent-soft);
+  border-color: var(--m-accent);
 }
 .hero-watch {
   display: inline-flex;

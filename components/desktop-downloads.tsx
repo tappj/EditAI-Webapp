@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
 import releases from "../lib/desktop-releases.json";
 type Release = {
   platform: "macos" | "windows";
@@ -20,7 +21,13 @@ const available = (releases as Release[]).filter(
       r.url,
     ),
 );
-export function DesktopDownloads({ openWeb = false }: { openWeb?: boolean }) {
+export function DesktopDownloads({
+  openWeb = false,
+  placement = "default",
+}: {
+  openWeb?: boolean;
+  placement?: "default" | "hero";
+}) {
   // Wait for device detection before rendering installers, including during SSR.
   const [preferred, setPreferred] = useState<string | null>(null);
   useEffect(() => {
@@ -30,10 +37,34 @@ export function DesktopDownloads({ openWeb = false }: { openWeb?: boolean }) {
     if (mobile) return;
     setPreferred(/Windows/i.test(navigator.userAgent) ? "windows" : "macos");
   }, []);
-  const sorted = [...available].sort(
-    (a, b) =>
-      Number(b.platform === preferred) - Number(a.platform === preferred),
-  );
+  const sorted = available
+    .filter((r) => placement !== "hero" || r.platform === "macos")
+    .sort(
+      (a, b) =>
+        Number(b.platform === preferred) - Number(a.platform === preferred),
+    );
+  if (placement === "hero") {
+    if (!preferred) return null;
+    return (
+      <>
+        {sorted.map((r) => (
+          <a
+            className="m-secondary-button hero-mac-install"
+            key={r.platform + r.arch}
+            href={r.url}
+          >
+            <Download size={15} aria-hidden="true" />
+            <span>
+              Install for Mac
+              <small>
+                {r.arch === "arm64" ? "Apple silicon" : "Intel"} · v{r.version}
+              </small>
+            </span>
+          </a>
+        ))}
+      </>
+    );
+  }
   return (
     <div className="desktop-options">
       {openWeb && (

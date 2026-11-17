@@ -1,14 +1,14 @@
 # EditAI marketing handoff — current design
 
-The owner's `Website resources/cutai new` screenshots supersede the previous rounded blue/glass page. The old metric cards, award cards and mini-profile block are removed. The seven-feature grid and four-icon ribbon are the only retained old section, rebuilt with ink/cyan tiles and the new flat card treatment. See `REFERENCE_AUDIT.md` for every supplied reference.
+The owner's `Website resources/cutai new` screenshots supersede the previous rounded blue/glass page. The old metric cards, award cards and mini-profile block are removed. The seven-feature grid and four-icon ribbon are the only retained old section, rebuilt with the native EditAI pastel tiles and the new flat card treatment. See `REFERENCE_AUDIT.md` for every supplied reference.
 
-The current main accent matches the owner's supplied bright cyan screenshot: browser-rendered sRGB `#11e9fb`, with a solid cyan CTA, dark ink `#0a1520`, pale gray `#eef2f6` and cyan glow. Small accent text/focus uses readable deeper cyan `#087f91`; primary headings, buttons, icon glyphs, charts and selected borders use the bright reference color. The source screenshot carries a Color LCD profile; sampling follows its browser-rendered sRGB appearance. The quieter footer wordmark remains intentionally cropped at the bottom and is reduced to a 220px desktop cap and 20vw on mobile. Marketing tokens are scoped in `app/marketing.css`; the editor theme is unchanged.
+The current palette is copied from the owner's native source, read-only: `EditAI/EditAI/AppTheme.swift` and `ProfileUploadTheme.swift`. The mixed wordmark/title gradient is `#90DCE8 → #C9BDF2 → #F8E894` at 135°. The premium action gradient is `#D1F2F7 → #E6E0FF → #FFE3D9` at 135°, and the supporting action gradient is `#A8F0F0 → #C4E0FF` at 90°. Individual feature/ribbon fills use `#DDF1F6`, `#EAE6F8`, `#F7EACB`, `#DFF2E4`. Ink/muted/surface/control colors also follow native AppTheme. The prior neon cyan palette is superseded. The scissors artwork and intentionally cropped footer (220px desktop cap, 20vw mobile) are preserved. Tokens are scoped in `app/marketing.css`; the editor and sibling iOS project are unchanged.
 
 ## Design and routes
 
-The page uses a continuous pale gray canvas, dark Inter headings, solid bright cyan CTAs, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → workflow comparison + editable estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
+The page uses a white canvas, dark Inter headings, native gradient CTAs and pastel surfaces, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → workflow comparison + editable estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
 
-The hero offers both Open EditAI Web and Install for Mac. The installer CTA reuses the existing signed/notarized/tested release allowlist and mobile/iPad gate in `components/desktop-downloads.tsx`, with Apple silicon/Intel and version labels derived from `lib/desktop-releases.json`. The header/footer/sign-in wordmark AI text now uses the same bright cyan token as the hero headline.
+The hero offers both Open EditAI Web and Install for Mac. The installer CTA reuses the existing signed/notarized/tested release allowlist and mobile/iPad gate in `components/desktop-downloads.tsx`, with Apple silicon/Intel and version labels derived from `lib/desktop-releases.json`. The complete header/footer/sign-in wordmark uses the same native mixed gradient as the highlighted hero/comparison titles.
 
 `/` still opens the studio for an already authenticated visitor, preserving existing behavior. An anonymous visitor sees the marketing page. `/sign-in` presents the existing official Publik gate with the new styling; provider calls, popup isolation, recovery links, consent and sessions are unchanged. Use a private browser window to inspect the public page when already signed in.
 
@@ -43,6 +43,12 @@ Suggested owner media paths (not current broken URLs):
 Set the corresponding `/marketing/...` paths in the manifest. Use EditAI-owned assets and browser-compatible H.264/AAC portrait MP4s. Current branded video posters and labeled workflow illustrations avoid implying supplied footage or screenshots exist.
 
 The exact full-resolution owner artwork is `public/brand/editai-icon.png`. Header/poster variants are `editai-icon-192.png`, the 32px favicon is `editai-icon-32.png`, Apple touch icon is `editai-icon-180.png`, and `public/favicon.ico` contains the same scissors image. Only standard resizing/encoding was applied; artwork was not recreated or recolored.
+
+## Hero and calculator motion
+
+`ambient-hero.tsx` recreates the supplied Codex movie's circular/directional glyph trails, with native EditAI atmosphere colors. It exists only in the hero. Pointer velocity drives the formations; there is no prerecorded cursor path. Canvas DPR is capped at 1.5, trace history is bounded, and offscreen/hidden/reduced-motion/coarse-pointer states suspend rendering. All event listeners, observers and animation frames are released on unmount.
+
+The calculator retains a native 1–50 range input for pointer, touch and keyboard interaction, with a custom 101-tick ruler, traveling Gaussian tick wave, floating video count and focus ring. One exponential interpolation updates the ruler position, count, chart, axis and result numbers together, interrupting rather than stacking animations. Reduced motion/offscreen/hidden pages settle immediately. Editable current/target minutes are under Adjust editing time; they remain explicit hypothetical inputs. Compact viewBox geometry keeps mobile chart labels readable. No measured product savings are claimed.
 
 ## Interaction and accessibility
 

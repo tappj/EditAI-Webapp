@@ -40,6 +40,7 @@ import {
 import { MarketingVideo } from "./video-player";
 import { PricingSelector } from "./pricing";
 import { TimeCalculator } from "./time-calculator";
+import { AmbientHeroBackground } from "./ambient-hero";
 
 const iconMap = {
   cut: Scissors,
@@ -275,7 +276,7 @@ function Hero() {
       data-nav-section=""
       aria-labelledby="hero-title"
     >
-      <div className="hero-mist" aria-hidden="true" />
+      <AmbientHeroBackground />
       <div className="hero-echo" aria-hidden="true">
         {[...content.capabilities, ...content.capabilities.slice(0, 2)].map(
           (item, i) => (

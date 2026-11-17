@@ -142,6 +142,7 @@ test("calculator responds to user assumptions and never promises measured saving
     "7.5 hrs",
   );
   await page.getByRole("slider", { name: "Videos a week" }).fill("20");
+  await calculator.getByText("Adjust editing time", { exact: false }).click();
   await page
     .getByRole("spinbutton", { name: "Current minutes per video" })
     .fill("30");
@@ -320,4 +321,109 @@ test("responsive references, reduced motion, mobile menu, real logo and sign-in 
     fullPage: true,
   });
   expect(errors).toEqual([]);
+});
+
+test("ruler drag, keyboard bounds and interruptible numbers stay in sync", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const calculator = page.locator(".time-calculator");
+  await calculator.scrollIntoViewIfNeeded();
+  const slider = page.getByRole("slider", { name: "Videos a week" });
+  await slider.press("Home");
+  await expect(slider).toHaveValue("1");
+  await expect(calculator.locator(".range-value")).toHaveText("1 videos");
+  // Begin sampling at the input event, before a slow browser automation round-trip
+  // can allow the animation to settle. This observes the actual user interaction.
+  await calculator.locator(".range-value").evaluate((el) => {
+    const input = el.closest(".calculator-range")!.querySelector("input")!;
+    input.addEventListener(
+      "input",
+      () => {
+        const values: number[] = [];
+        const sample = () => {
+          values.push(Number.parseFloat(el.textContent || "0"));
+          if (values.length < 16) requestAnimationFrame(sample);
+          else el.setAttribute("data-samples", JSON.stringify(values));
+        };
+        requestAnimationFrame(sample);
+      },
+      { once: true },
+    );
+  });
+  await slider.press("End");
+  await expect(slider).toHaveValue("50");
+  await expect(calculator.locator(".range-value")).toHaveAttribute(
+    "data-samples",
+    /^\[/,
+  );
+  const frames: number[] = JSON.parse(
+    (await calculator.locator(".range-value").getAttribute("data-samples"))!,
+  );
+  expect(new Set(frames).size).toBeGreaterThan(3);
+  expect(frames.some((value) => value > 1 && value < 50)).toBe(true);
+  await expect(calculator.locator(".range-value")).toHaveText("50 videos");
+  const box = (await slider.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 13, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.32, box.y + box.height / 2, {
+    steps: 20,
+  });
+  await page.mouse.up();
+  const value = Number(await slider.inputValue());
+  expect(value).toBeGreaterThan(12);
+  expect(value).toBeLessThan(20);
+  await expect(calculator.locator(".range-value")).toHaveText(
+    `${value} videos`,
+  );
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    `${value} videos per week`,
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await slider.press("Home");
+  await expect(calculator.locator(".range-value")).toHaveText("1 videos");
+  await expect(calculator.locator(".calculator-results")).toContainText(
+    "0.8 hrs",
+  );
+});
+
+test("Codex glyph field reacts to pointer only in the hero and suspends when hidden", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 1000 });
+  await page.goto("/");
+  const ambient = page.locator(".ambient-hero");
+  await expect(page.locator(".ambient-hero")).toHaveCount(1);
+  await expect(page.locator(".marketing-hero .ambient-hero")).toHaveCount(1);
+  await expect(ambient).toHaveAttribute("data-running", "true");
+  const canvas = ambient.locator("canvas");
+  const pixels = () =>
+    canvas.evaluate((el: HTMLCanvasElement) => {
+      const data = el
+        .getContext("2d")!
+        .getImageData(0, 0, el.width, el.height).data;
+      let count = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 5) count++;
+      return count;
+    });
+  const before = await pixels();
+  await page.mouse.move(100, 450);
+  await page.mouse.move(600, 490, { steps: 28 });
+  await page.mouse.move(280, 600, { steps: 20 });
+  await expect.poll(pixels).toBeGreaterThan(before * 2 + 100);
+  const bounds = await canvas.evaluate((el: HTMLCanvasElement) => ({
+    width: el.width,
+    css: el.clientWidth,
+    height: el.height,
+    cssHeight: el.clientHeight,
+  }));
+  expect(bounds.width).toBeLessThanOrEqual(bounds.css * 1.5 + 1);
+  expect(bounds.height).toBeLessThanOrEqual(bounds.cssHeight * 1.5 + 1);
+  await page.locator(".comparison-section").scrollIntoViewIfNeeded();
+  await expect(ambient).toHaveAttribute("data-running", "false");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => scrollTo(0, 0));
+  await expect(ambient).toHaveAttribute("data-running", "false");
+  await expect.poll(pixels).toBe(0);
 });

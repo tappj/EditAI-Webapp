@@ -63,7 +63,31 @@ export function FeatureTile({
   const Icon = iconMap[icon];
   return (
     <span className={`feature-tile ${small ? "small" : ""}`} aria-hidden="true">
-      <Icon size={small ? 21 : 29} strokeWidth={1.7} />
+      <Icon
+        className={`feature-icon feature-icon-${icon}`}
+        size={small ? 21 : 29}
+        strokeWidth={1.7}
+      >
+        {icon === "captions" && (
+          <>
+            <defs>
+              <clipPath id="feature-caption-window">
+                <rect x="5" y="8" width="14" height="8" />
+              </clipPath>
+            </defs>
+            <g
+              className="feature-caption-marquee"
+              clipPath="url(#feature-caption-window)"
+            >
+              <path d="M7 15h4M15 15h2M7 11h2m4 0h4" />
+              <path
+                d="M7 15h4M15 15h2M7 11h2m4 0h4"
+                transform="translate(12 0)"
+              />
+            </g>
+          </>
+        )}
+      </Icon>
     </span>
   );
 }

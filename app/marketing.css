@@ -1117,12 +1117,9 @@
     transform: scale(1.14) rotate(8deg);
   }
 }
-@keyframes feature-caption-scroll {
-  0% {
-    transform: translateX(2px);
-  }
+@keyframes feature-caption-marquee {
   100% {
-    transform: translateX(-2px);
+    transform: translateX(-12px);
   }
 }
 @keyframes feature-bounce {
@@ -1136,6 +1133,9 @@
   72% {
     transform: translateY(1px);
   }
+}
+.feature-icon-captions > path:first-of-type {
+  opacity: 0;
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .feature-card[data-feature="batch"]:hover .feature-tile path {
@@ -1191,9 +1191,8 @@
   .feature-card[data-feature="sparkles"]:hover .feature-tile path:nth-of-type(2) {
     animation-delay: 90ms;
   }
-  .feature-card[data-feature="captions"]:hover .feature-tile path {
-    transform-box: fill-box;
-    animation: feature-caption-scroll 850ms linear infinite alternate;
+  .feature-card[data-feature="captions"]:hover .feature-caption-marquee {
+    animation: feature-caption-marquee 900ms linear infinite;
   }
 }
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */

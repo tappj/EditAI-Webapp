@@ -1122,6 +1122,14 @@
     transform: translateX(-12px);
   }
 }
+@keyframes feature-caption-pop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes feature-bounce {
   0%,
   100% {
@@ -1135,6 +1143,9 @@
   }
 }
 .feature-icon-captions > path:first-of-type {
+  opacity: 0;
+}
+.feature-caption-marquee {
   opacity: 0;
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
@@ -1192,7 +1203,9 @@
     animation-delay: 90ms;
   }
   .feature-card[data-feature="captions"]:hover .feature-caption-marquee {
-    animation: feature-caption-marquee 900ms linear infinite;
+    animation:
+      feature-caption-marquee 900ms linear infinite,
+      feature-caption-pop 160ms ease-out both;
   }
 }
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */

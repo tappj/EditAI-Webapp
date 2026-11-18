@@ -39,7 +39,7 @@ export type Plan = {
 export const marketingContent = {
   hero: {
     firstLine: "Turn your raw footage into",
-    secondLine: "something worth sharing.",
+    secondLine: "edited videos in minutes.",
     subtitle:
       "We find your best takes, add captions, and make every frame yours.",
     cta: "Open EditAI Web",

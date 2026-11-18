@@ -299,7 +299,7 @@ export function ReviewMarquee({
                           <h3>{item.title}</h3>
                           <p>{item.text}</p>
                           <span className="capability-footer">
-                            YOUR FOOTAGE. YOUR FINAL SAY.
+                            Reviews coming soon
                           </span>
                         </article>
                       )}

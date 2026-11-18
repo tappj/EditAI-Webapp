@@ -48,7 +48,7 @@ export const marketingContent = {
     firstLine: "Turn your raw footage into",
     secondLine: "edited videos in minutes.",
     subtitle:
-      "We cut out the empty space, find the best takes, and add captions.",
+      "EditAI cuts out the empty space, finds the best takes, and adds captions.",
     cta: "Open EditAI Web",
     // Owner-provided cumulative savings and portraits; no synthetic counter.
     socialProof: {

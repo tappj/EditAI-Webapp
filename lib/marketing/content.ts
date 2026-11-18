@@ -151,7 +151,7 @@ export const marketingContent = {
     {
       icon: "audio",
       title: "Transcribe",
-      text: "Turn speech in any video into text.",
+      text: "Turn speech from any video into text.",
     },
     {
       icon: "sparkles",

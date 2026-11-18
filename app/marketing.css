@@ -3767,10 +3767,9 @@
   box-shadow: 0 5px 18px #17253814;
 }
 .workflow-step[data-featured="true"] > .m-eyebrow {
-  background: var(--m-brand-gradient);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  background: none;
+  color: var(--m-ink);
+  -webkit-text-fill-color: var(--m-ink);
 }
 
 /* One uninterrupted raised EditAI column behind the complete comparison table. */

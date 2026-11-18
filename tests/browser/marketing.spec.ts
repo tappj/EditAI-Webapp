@@ -572,6 +572,40 @@ test("hero badges, matching install actions, ombre stars and the raised EditAI c
   await page.setViewportSize({ width: 1536, height: 1000 });
   await page.goto("/");
   await expect(page.locator(".hero-proof-badge")).toBeVisible();
+  await expect(page.locator(".hero-proof-badge")).toHaveText(
+    "saved 250+ hours of editing",
+  );
+  await expect(page.locator(".hero-proof-badge strong")).toHaveText(
+    "250+ hours",
+  );
+  const portraits = page.locator(".hero-avatar img");
+  await expect(portraits).toHaveCount(4);
+  await expect
+    .poll(() =>
+      portraits.evaluateAll((nodes) =>
+        nodes.every(
+          (node) =>
+            (node as HTMLImageElement).complete &&
+            (node as HTMLImageElement).naturalWidth === 1080,
+        ),
+      ),
+    )
+    .toBe(true);
+  const circles = await page.locator(".hero-avatar").evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const r = node.getBoundingClientRect();
+      return { x: r.x, width: r.width, height: r.height };
+    }),
+  );
+  for (let i = 0; i < circles.length; i++) {
+    expect(circles[i].width).toBe(circles[i].height);
+    if (i > 0) {
+      expect(circles[i].x).toBeGreaterThan(circles[i - 1].x);
+      expect(circles[i].x).toBeLessThan(
+        circles[i - 1].x + circles[i - 1].width,
+      );
+    }
+  }
   await expect(page.locator(".platform-badge")).toHaveText("Web + macOS");
   await expect(page.locator(".platform-badge svg")).toBeVisible();
   const web = page.locator(".hero-primary-actions .m-button");

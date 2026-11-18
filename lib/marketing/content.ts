@@ -43,6 +43,40 @@ export const marketingContent = {
     subtitle:
       "We find your best takes, add captions, and make every frame yours.",
     cta: "Open EditAI Web",
+    // Owner-provided cumulative savings and portraits; no synthetic counter.
+    socialProof: {
+      savings: "250+ hours",
+      portraits: [
+        {
+          id: "jadon",
+          src: "/marketing/avatars/jadon.jpg",
+          x: 53,
+          y: 29,
+          zoom: 2.7,
+        },
+        {
+          id: "james",
+          src: "/marketing/avatars/james.jpg",
+          x: 51,
+          y: 41,
+          zoom: 2.6,
+        },
+        {
+          id: "max",
+          src: "/marketing/avatars/max.jpg",
+          x: 47,
+          y: 40,
+          zoom: 2.3,
+        },
+        {
+          id: "tyler",
+          src: "/marketing/avatars/tyler.jpg",
+          x: 62,
+          y: 29,
+          zoom: 2.65,
+        },
+      ],
+    },
   },
   ios: { label: "iOS coming soon", href: "#ios-coming-soon" },
   links: {

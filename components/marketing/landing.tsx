@@ -336,19 +336,29 @@ function Hero() {
       <div className="hero-heading m-container">
         <div className="hero-availability">
           <span className="hero-proof-badge">
-            <span className="hero-badge-icons" aria-hidden="true">
-              <span>
-                <Scissors size={14} />
-              </span>
-              <span>
-                <Subtitles size={14} />
-              </span>
-              <span>
-                <Sparkles size={14} />
-              </span>
+            <span className="hero-avatar-stack" aria-hidden="true">
+              {content.hero.socialProof.portraits.map((portrait) => (
+                <span className="hero-avatar" key={portrait.id}>
+                  <img
+                    src={portrait.src}
+                    alt=""
+                    width="1080"
+                    height="1080"
+                    decoding="async"
+                    style={
+                      {
+                        "--portrait-size": `${portrait.zoom * 100}%`,
+                        "--portrait-left": `${50 - portrait.x * portrait.zoom}%`,
+                        "--portrait-top": `${50 - portrait.y * portrait.zoom}%`,
+                      } as CSSProperties
+                    }
+                  />
+                </span>
+              ))}
             </span>
-            <span>
-              Your story. <strong>Your creative control.</strong>
+            <span className="hero-proof-text">
+              saved <strong>{content.hero.socialProof.savings}</strong> of
+              editing
             </span>
           </span>
           <span className="platform-badge">

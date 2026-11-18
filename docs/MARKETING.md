@@ -8,11 +8,11 @@ The current palette is copied from the owner's native source, read-only: `EditAI
 
 The page uses a white canvas, dark Inter headings, native gradient CTAs and pastel surfaces, a full-width fixed header, thin borders and restrained radii. The order is hero + opposing flat card strips → four-step workflow → retained features → framed creator gallery → editing-options comparison + volume estimate → three pricing cards → categorized FAQ → graphic closing CTA + footer. All brand images and favicons derive from the owner's exact scissors artwork, not the reference competitor identity.
 
-The hero uses two rounded badge pills: an overlapping native-color tool-icon group with the creative-control message, and a larger laptop icon with Web + macOS. Open EditAI Web and Install for Mac share a 190×48px button footprint; See it in action is on its own row beneath them. The top header is transparent until scrolling past 20px or opening the mobile menu, when its frosted surface returns. AI Edit is the featured step, using the native brand gradient on its text with no pill, border or box shadow. The old hero metadata line and creator-showcase pending line are removed. The installer CTA reuses the existing signed/notarized/tested release allowlist and mobile/iPad gate in `components/desktop-downloads.tsx`, with Apple silicon/Intel and version labels derived from `lib/desktop-releases.json`. The complete header/footer/sign-in wordmark uses the same native mixed gradient as the highlighted hero/comparison titles.
+The hero uses two rounded badge pills: four overlapping owner-provided circular portraits with “saved 250+ hours of editing”, and a larger laptop icon with Web + macOS. Open EditAI Web and Install for Mac share a 190×48px button footprint; See it in action is on its own row beneath them. The top header is transparent until scrolling past 20px or opening the mobile menu, when its frosted surface returns. AI Edit is the featured step, using the native brand gradient on its text with no pill, border or box shadow. The old hero metadata line and creator-showcase pending line are removed. The installer CTA reuses the existing signed/notarized/tested release allowlist and mobile/iPad gate in `components/desktop-downloads.tsx`, with Apple silicon/Intel and version labels derived from `lib/desktop-releases.json`. The complete header/footer/sign-in wordmark uses the same native mixed gradient as the highlighted hero/comparison titles.
 
 `/` still opens the studio for an already authenticated visitor, preserving existing behavior. An anonymous visitor sees the marketing page. `/sign-in` presents the existing official Publik gate with the new styling; provider calls, popup isolation, recovery links, consent and sessions are unchanged. Use a private browser window to inspect the public page when already signed in.
 
-The earlier owner instruction authorizes pushing changes to `main` and publishing to `https://editai.it.com`; current review/capture evidence is recorded in `VERIFICATION.md`. The original iOS project, private marketing repository, signed desktop releases and native editing contracts are separate and unchanged.
+The latest owner-supplied `AGENTS.md` requires work on `codex/desktop-migration` and prohibits pushing or merging to main without a newer instruction; this supersedes the earlier main-push authorization. Current review/capture evidence is recorded in `VERIFICATION.md`. The original iOS project, private marketing repository, signed desktop releases and native editing contracts are separate and unchanged.
 
 ## Editable content and assets
 
@@ -43,6 +43,10 @@ Suggested owner media paths (not current broken URLs):
 Set the corresponding `/marketing/...` paths in the manifest. Use EditAI-owned assets and browser-compatible H.264/AAC portrait MP4s. Current branded video posters and labeled workflow illustrations avoid implying supplied footage or screenshots exist.
 
 The exact full-resolution owner artwork is `public/brand/editai-icon.png`. Header/poster variants are `editai-icon-192.png`, the 32px favicon is `editai-icon-32.png`, Apple touch icon is `editai-icon-180.png`, and `public/favicon.ico` contains the same scissors image. Only standard resizing/encoding was applied; artwork was not recreated or recolored.
+
+## Hero savings badge
+
+`hero.socialProof` defines the owner-supplied fixed “250+ hours” figure and the portrait order: Jadon, James, Max, Tyler. Exact input JPEGs are copied unchanged to `public/marketing/avatars/`. Their manifest `x`, `y` and `zoom` values frame each face within a circular CSS crop; the input artwork is unchanged. White portrait rings, negative margins, a pale pill and thin border follow the supplied reference. The adjacent Web + macOS badge stays intact. There is no synthetic counter or automatic increment.
 
 ## Authentic workflow screenshots and selection visibility
 

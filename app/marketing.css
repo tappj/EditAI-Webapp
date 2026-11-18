@@ -378,6 +378,13 @@
   -webkit-background-clip: text;
   color: transparent;
 }
+.brand-highlight {
+  background: var(--m-brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
 .hero-heading > p {
   font-size: 15px;
   line-height: 1.65;

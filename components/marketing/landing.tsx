@@ -651,7 +651,9 @@ function FeatureGrid() {
     >
       <div className="m-container">
         <div className="m-section-heading m-reveal">
-          <h2 id="features-title">EditAI Features &amp; Tools</h2>
+          <h2 id="features-title">
+            <span className="brand-highlight">EditAI</span> Features &amp; Tools
+          </h2>
         </div>
         <AnimatedFeatureIcons />
         <div className="feature-grid">
@@ -687,7 +689,7 @@ function CreatorVideoGallery() {
           <h2 id="creators-title">
             Your next great story.
             <br />
-            Made with EditAI.
+            <span className="brand-highlight">Made with EditAI.</span>
           </h2>
           <p>
             {realVideos

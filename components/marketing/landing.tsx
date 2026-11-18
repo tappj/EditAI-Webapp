@@ -76,14 +76,10 @@ export function FeatureTile({
               </clipPath>
             </defs>
             <g
-              className="feature-caption-marquee"
+              className="feature-caption-text"
               clipPath="url(#feature-caption-window)"
             >
               <path d="M7 15h4M15 15h2M7 11h2m4 0h4" />
-              <path
-                d="M7 15h4M15 15h2M7 11h2m4 0h4"
-                transform="translate(12 0)"
-              />
             </g>
           </>
         )}

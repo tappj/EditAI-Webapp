@@ -991,6 +991,7 @@
   padding: 4px 0;
 }
 .feature-tile {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1064,16 +1065,33 @@
     transform: translateY(0);
   }
 }
-@keyframes feature-snip {
+@keyframes feature-scissor-upper {
   0%,
   100% {
     transform: rotate(0);
   }
-  35% {
-    transform: rotate(-12deg);
+  50% {
+    transform: rotate(-14deg);
   }
-  70% {
-    transform: rotate(8deg);
+}
+@keyframes feature-scissor-lower {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+@keyframes feature-record-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(0.78);
   }
 }
 @keyframes feature-wave {
@@ -1099,18 +1117,12 @@
     transform: scale(1.14) rotate(8deg);
   }
 }
-@keyframes feature-caption-write {
+@keyframes feature-caption-scroll {
   0% {
-    stroke-dashoffset: 24;
-    transform: translateX(-2px);
-  }
-  75% {
-    stroke-dashoffset: 0;
-    transform: translateX(1px);
+    transform: translateX(2px);
   }
   100% {
-    stroke-dashoffset: 0;
-    transform: translateX(0);
+    transform: translateX(-2px);
   }
 }
 @keyframes feature-bounce {
@@ -1141,9 +1153,27 @@
   .feature-card[data-feature="export"]:hover .feature-tile svg {
     animation: feature-bounce 440ms cubic-bezier(0.2, 0.8, 0.3, 1);
   }
-  .feature-card[data-feature="cut"]:hover .feature-tile svg {
-    transform-origin: 48% 52%;
-    animation: feature-snip 400ms ease-in-out;
+  .feature-card[data-feature="record"]:hover .feature-tile::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ed4a55;
+    box-shadow: 0 0 5px #ed4a5570;
+    animation: feature-record-blink 700ms ease-in-out infinite;
+  }
+  .feature-card[data-feature="cut"]:hover .feature-tile path {
+    transform-box: view-box;
+    transform-origin: 12px 12px;
+  }
+  .feature-card[data-feature="cut"]:hover .feature-tile path:nth-of-type(odd) {
+    animation: feature-scissor-upper 480ms ease-in-out infinite;
+  }
+  .feature-card[data-feature="cut"]:hover .feature-tile path:nth-of-type(even) {
+    animation: feature-scissor-lower 480ms ease-in-out infinite;
   }
   .feature-card[data-feature="audio"]:hover .feature-tile path {
     transform-box: fill-box;
@@ -1162,8 +1192,8 @@
     animation-delay: 90ms;
   }
   .feature-card[data-feature="captions"]:hover .feature-tile path {
-    stroke-dasharray: 24;
-    animation: feature-caption-write 520ms ease-out both;
+    transform-box: fill-box;
+    animation: feature-caption-scroll 850ms linear infinite alternate;
   }
 }
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */

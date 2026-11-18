@@ -1181,10 +1181,10 @@
     transform-origin: 12px 12px;
   }
   .feature-card[data-feature="cut"]:hover .feature-tile path:nth-of-type(odd) {
-    animation: feature-scissor-upper 480ms ease-in-out infinite;
+    animation: feature-scissor-upper 480ms ease-in-out 3 forwards;
   }
   .feature-card[data-feature="cut"]:hover .feature-tile path:nth-of-type(even) {
-    animation: feature-scissor-lower 480ms ease-in-out infinite;
+    animation: feature-scissor-lower 480ms ease-in-out 3 forwards;
   }
   .feature-card[data-feature="audio"]:hover .feature-tile path {
     transform-box: fill-box;

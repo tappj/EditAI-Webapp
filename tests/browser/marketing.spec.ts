@@ -132,7 +132,7 @@ test("three plan cards retain real cadence/plan selection without invented check
   );
   await expect(pricing.locator("a[href*='checkout']")).toHaveCount(0);
 });
-test("calculator responds to user assumptions and never promises measured savings", async ({
+test("calculator follows volume with the requested labels and explicit configured assumptions", async ({
   page,
 }) => {
   await page.goto("/");
@@ -142,31 +142,36 @@ test("calculator responds to user assumptions and never promises measured saving
     "7.5 hrs",
   );
   await page.getByRole("slider", { name: "Videos a week" }).fill("20");
-  await calculator.getByText("Adjust editing time", { exact: false }).click();
-  await page
-    .getByRole("spinbutton", { name: "Current minutes per video" })
-    .fill("30");
-  await page
-    .getByRole("spinbutton", { name: "Target minutes per video" })
-    .fill("15");
   await expect(calculator.locator(".calculator-results")).toContainText(
-    "5 hrs",
+    "15 hrs",
   );
   await expect(calculator.locator(".calculator-results")).toContainText(
-    "20 hrs",
+    "60 hrs",
   );
   await expect(calculator.getByRole("img")).toHaveAttribute(
     "aria-label",
-    /40 current, 20 at your target/,
+    /80 without EditAI, 20 for EditAI Users/,
   );
-  await page
-    .getByRole("spinbutton", { name: "Target minutes per video" })
-    .fill("45");
-  await expect(calculator.locator(".calculator-results")).toHaveText(
-    /0 hrs.*0 hrs/,
+  await expect(calculator.locator(".chart-end-label")).toHaveText([
+    "Without EditAI",
+    "EditAI Users",
+  ]);
+  await expect(
+    calculator.locator(
+      ".chart-legend,.calculator-assumptions,input[type=number]",
+    ),
+  ).toHaveCount(0);
+  await expect(calculator.locator(".calculator-results")).toContainText(
+    "back every week",
+  );
+  await expect(calculator.locator(".calculator-results")).toContainText(
+    "back every month",
   );
   await expect(calculator.locator(".calculator-disclaimer")).toContainText(
-    "not a measured EditAI result",
+    "not a measured EditAI user result",
+  );
+  await expect(calculator.locator(".calculator-disclaimer")).toContainText(
+    "Monthly estimates use four weeks",
   );
 });
 test("categorized FAQ, keyboard answers and real privacy disclosure", async ({
@@ -558,4 +563,105 @@ test("cursor streak stays narrow and clears completely while the pointer remains
       { timeout: 1600 },
     )
     .toBe(false);
+});
+
+test("hero badges, matching install actions, ombre stars and the raised EditAI column", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 1000 });
+  await page.goto("/");
+  await expect(page.locator(".hero-proof-badge")).toBeVisible();
+  await expect(page.locator(".platform-badge")).toHaveText("Web + macOS");
+  await expect(page.locator(".platform-badge svg")).toBeVisible();
+  const web = page.locator(".hero-primary-actions .m-button");
+  const install = page.locator(".hero-primary-actions .hero-mac-install");
+  await expect(install).toBeVisible();
+  const wb = (await web.boundingBox())!,
+    ib = (await install.boundingBox())!;
+  expect(Math.abs(wb.width - ib.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(wb.height - ib.height)).toBeLessThanOrEqual(1);
+  const watch = (await page.locator(".hero-watch").boundingBox())!;
+  expect(watch.y).toBeGreaterThan(wb.y + wb.height);
+  await expect(
+    page.locator(".capability-card").first().locator(".ombre-stars path"),
+  ).toHaveCount(5);
+  await expect(
+    page.locator(".capability-card").first().locator(".ombre-stars"),
+  ).toHaveAttribute("aria-hidden", "true");
+  const starColors = await page
+    .locator(".capability-card .ombre-stars")
+    .first()
+    .evaluate(async (svg) => {
+      const img = new Image();
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = 108;
+      canvas.height = 20;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const pixels = ctx.getImageData(0, 0, 108, 20).data;
+      let gold = 0,
+        lavender = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] < 200) continue;
+        if (pixels[i] > pixels[i + 2] + 15) gold++;
+        if (pixels[i + 2] > pixels[i + 1] + 15 && pixels[i] > 160) lavender++;
+      }
+      return { gold, lavender };
+    });
+  expect(starColors.gold).toBeGreaterThan(5);
+  expect(starColors.lavender).toBeGreaterThan(5);
+  await expect(page.locator("body")).not.toContainText("EDITAI WORKFLOW");
+  await expect(page.locator("body")).not.toContainText(
+    "EDIT · CAPTION · TRANSCRIBE · EXPORT",
+  );
+  await expect(page.locator("body")).not.toContainText(
+    "CREATOR SHOWCASE COMING SOON",
+  );
+  await expect(page.locator("body")).not.toContainText("Adjust editing time");
+  await page.locator("#how-it-works").scrollIntoViewIfNeeded();
+  await expect(
+    page.locator(".workflow-switcher button[data-featured=true]"),
+  ).toHaveText("AI first cut");
+  await expect(
+    page.locator(".workflow-switcher button[data-featured=true]"),
+  ).toHaveCSS("background-image", /linear-gradient/);
+  await page.locator(".workflow-table-wrap").scrollIntoViewIfNeeded();
+  await expect(page.locator(".workflow-table thead th")).toHaveText([
+    "Workflow",
+    "EDIT IT YOURSELF",
+    "HIRE AN EDITOR",
+    "EDITAI",
+  ]);
+  const highlight = (await page
+    .locator(".comparison-highlight")
+    .boundingBox())!;
+  const cell = (await page
+    .locator(".workflow-table tbody tr")
+    .first()
+    .locator("td")
+    .last()
+    .boundingBox())!;
+  expect(Math.abs(highlight.x - cell.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(highlight.width - cell.width)).toBeLessThanOrEqual(2);
+  await expect(page.locator(".comparison-highlight")).not.toHaveCSS(
+    "box-shadow",
+    "none",
+  );
+});
+
+test("header blends into the hero at the top and gains a surface while scrolling", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const header = page.locator(".m-header");
+  await expect(header).toHaveAttribute("data-scrolled", "false");
+  await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await page.evaluate(() => scrollTo(0, 300));
+  await expect(header).toHaveAttribute("data-scrolled", "true");
+  await expect(header).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await page.evaluate(() => scrollTo(0, 0));
+  await expect(header).toHaveAttribute("data-scrolled", "false");
+  await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 });

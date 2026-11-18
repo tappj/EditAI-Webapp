@@ -118,8 +118,8 @@ export function TimeCalculator() {
     return () => observer.disconnect();
   }, []);
   const [videos, setVideos] = useState(content.calculator.videos);
-  const [current, setCurrent] = useState(content.calculator.currentMinutes);
-  const [target, setTarget] = useState(content.calculator.targetMinutes);
+  const current = content.calculator.currentMinutes;
+  const target = content.calculator.targetMinutes;
   const weekly = Math.max(0, ((current - target) * videos) / 60);
   const currentMonth = ((current * videos) / 60) * 4;
   const targetMonth = ((target * videos) / 60) * 4;
@@ -138,8 +138,6 @@ export function TimeCalculator() {
   const y = (hours: number) => 190 - (hours / shown.ceiling) * 160;
   const currentY = y(shown.currentMonth),
     targetY = y(shown.targetMonth);
-  const bounds = (value: string) =>
-    Math.max(0, Math.min(480, Number(value) || 0));
   return (
     <div
       ref={root}
@@ -202,7 +200,7 @@ export function TimeCalculator() {
         viewBox={`0 0 ${chartWidth} 240`}
         data-compact={compact}
         role="img"
-        aria-label={`Estimated hours over four weeks: ${format(currentMonth)} current, ${format(targetMonth)} at your target.`}
+        aria-label={`Estimated hours over four weeks: ${format(currentMonth)} without EditAI, ${format(targetMonth)} for EditAI Users (illustrative).`}
       >
         <defs>
           <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
@@ -268,7 +266,7 @@ export function TimeCalculator() {
         >
           <rect width="105" height="18" rx="9" fill="var(--m-surface)" />
           <text x="52.5" y="12" textAnchor="middle">
-            Current workflow
+            Without EditAI
           </text>
         </g>
         <g
@@ -277,7 +275,7 @@ export function TimeCalculator() {
         >
           <rect width="88" height="18" rx="9" fill="var(--m-ice)" />
           <text x="44" y="12" textAnchor="middle">
-            Your target
+            EditAI Users
           </text>
         </g>
         {targetY - currentY > 48 && (
@@ -291,69 +289,25 @@ export function TimeCalculator() {
           </text>
         )}
       </svg>
-      <div className="chart-legend">
-        <span>
-          <i />
-          Current workflow
-        </span>
-        <span>
-          <i />
-          Your target
-        </span>
-      </div>
       <div className="calculator-results" aria-live="off">
         <div>
           <strong>
             {format(shown.weekly)} <span>hrs</span>
           </strong>
-          <p>potentially freed up each week</p>
+          <p>back every week</p>
         </div>
         <div>
           <strong>
             {format(shown.weekly * 4)} <span>hrs</span>
           </strong>
-          <p>over four weeks at your target</p>
+          <p>back every month</p>
         </div>
       </div>
-      <details className="calculator-assumptions">
-        <summary>
-          Adjust editing time{" "}
-          <span>
-            {current} min current · {target} min target
-          </span>
-        </summary>
-        <div className="calculator-inputs">
-          <label>
-            Current minutes per video
-            <input
-              type="number"
-              min="0"
-              max="480"
-              value={current}
-              onChange={(e) => setCurrent(bounds(e.target.value))}
-            />
-          </label>
-          <label>
-            Target minutes per video
-            <input
-              type="number"
-              min="0"
-              max="480"
-              value={target}
-              onChange={(e) => setTarget(bounds(e.target.value))}
-            />
-          </label>
-          <span>
-            Your inputs.
-            <br />
-            Your planning estimate.
-          </span>
-        </div>
-      </details>
       <p className="calculator-disclaimer">
-        A planning estimate based only on your inputs: {videos} × {current} min
-        currently vs {videos} × {target} min at your target. Your target is
-        hypothetical, not a measured EditAI result. Actual editing time varies.
+        Illustrative estimate: {videos} × {current} min without EditAI vs{" "}
+        {videos} × {target} min with EditAI. Assumptions are configurable; this
+        is not a measured EditAI user result. Monthly estimates use four weeks.
+        Actual editing time varies.
       </p>
     </div>
   );

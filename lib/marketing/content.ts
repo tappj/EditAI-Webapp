@@ -173,38 +173,41 @@ export const marketingContent = {
   }[],
   comparisonRows: [
     {
-      label: "GETTING STARTED",
+      label: "COST PER MONTH",
       values: [
-        "Your original recording",
-        "A connected AI account",
-        "One creative workspace",
+        "Your tools — and your time",
+        "Based on your editor",
+        "Pricing coming soon",
       ],
     },
     {
-      label: "THE FIRST CUT",
+      label: "YOUR TIME PER VIDEO",
       values: [
-        "Your raw takes",
-        "Transcript-based suggestions",
-        "Review and refine",
+        "Hands-on editing",
+        "Briefs & revision notes",
+        "Review the AI first cut",
       ],
     },
     {
-      label: "CAPTIONS",
+      label: "TURNAROUND",
+      values: ["Tonight, maybe", "Depends on their queue", "Start right away"],
+    },
+    {
+      label: "SKILL NEEDED",
       values: [
-        "Your own words",
-        "Word-timed transcription",
-        "Your choice of style",
+        "Timeline editing",
+        "Managing an editor",
+        "Simple to start. Yours to refine.",
       ],
     },
     {
-      label: "FINISHING TOUCHES",
+      label: "SCALES WITH VOLUME",
       values: [
-        "Your point of view",
-        "Suggestions you can change",
-        "Color, text, music & overlays",
+        "Capped by your time",
+        "Capped by their queue",
+        "Batch-ready projects",
       ],
     },
-    { label: "THE FINAL SAY", values: ["Yours", "Yours", "Always yours"] },
   ],
   calculator: { videos: 10, currentMinutes: 60, targetMinutes: 15 },
   // TODO: supply approved portrait videos/posters, e.g. /marketing/creator-01.mp4.
@@ -212,17 +215,17 @@ export const marketingContent = {
     {
       id: "creator-01",
       title: "Your next story",
-      description: "Creator showcase · coming soon",
+      description: "Your footage. Your final say.",
     },
     {
       id: "creator-02",
       title: "Your point of view",
-      description: "Creator showcase · coming soon",
+      description: "Your footage. Your final say.",
     },
     {
       id: "creator-03",
       title: "Your kind of creative",
-      description: "Creator showcase · coming soon",
+      description: "Your footage. Your final say.",
     },
   ] as VideoAsset[],
   // Presentation-ready slots, NOT purchasable subscriptions. No price/quota claims.

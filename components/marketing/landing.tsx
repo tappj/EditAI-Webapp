@@ -1,6 +1,7 @@
 "use client";
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -19,13 +20,12 @@ import {
   Layers,
   Menu,
   Minus,
-  Monitor,
+  LaptopMinimal,
   Pause,
   Play,
   Plus,
   Scissors,
   Sparkles,
-  Star,
   Subtitles,
   Upload,
   X,
@@ -107,6 +107,15 @@ function FloatingNav() {
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
+    const update = () => {
+      if (header.current)
+        header.current.dataset.scrolled = String(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+  useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -125,7 +134,12 @@ function FloatingNav() {
     };
   }, [open]);
   return (
-    <header className="m-header" ref={header}>
+    <header
+      className="m-header"
+      ref={header}
+      data-scrolled="false"
+      data-menu-open={open}
+    >
       <div className="m-header-inner m-container">
         <MarketingBrand />
         <nav
@@ -170,22 +184,55 @@ function FloatingNav() {
     </header>
   );
 }
+function OmbreStars({
+  rating = 5,
+  decorative = false,
+}: {
+  rating?: number;
+  decorative?: boolean;
+}) {
+  const id = useId();
+  const count = Math.min(5, Math.max(0, Math.round(rating)));
+  return (
+    <svg
+      className={`ombre-stars${decorative ? "" : " review-stars"}`}
+      width="108"
+      height="20"
+      viewBox="0 0 108 20"
+      role={decorative ? undefined : "img"}
+      aria-hidden={decorative || undefined}
+      aria-label={decorative ? undefined : `${rating} out of 5 stars`}
+      focusable="false"
+    >
+      <defs>
+        <linearGradient
+          id={`${id}-stars`}
+          gradientUnits="objectBoundingBox"
+          x1="0"
+          y1="0"
+          x2="1"
+          y2="1"
+        >
+          <stop stopColor="#90dce8" />
+          <stop offset=".5" stopColor="#c9bdf2" />
+          <stop offset="1" stopColor="#f8e894" />
+        </linearGradient>
+      </defs>
+      {Array.from({ length: count }, (_, i) => (
+        <path
+          key={i}
+          transform={`translate(${i * 22} 1)`}
+          d="m9 1.4 2.4 4.9 5.4.8-3.9 3.8.9 5.4L9 13.7l-4.8 2.6.9-5.4L1.2 7.1l5.4-.8Z"
+          fill={`url(#${id}-stars)`}
+        />
+      ))}
+    </svg>
+  );
+}
 function ReviewCard({ review }: { review: Review }) {
   return (
     <article className="review-card">
-      {review.rating && (
-        <span
-          className="review-stars"
-          aria-label={`${review.rating} out of 5 stars`}
-        >
-          {Array.from(
-            { length: Math.min(5, Math.round(review.rating)) },
-            (_, i) => (
-              <Star key={i} size={11} fill="currentColor" />
-            ),
-          )}
-        </span>
-      )}
+      {review.rating && <OmbreStars rating={review.rating} />}
       <h3>{review.title}</h3>
       <p>{review.text}</p>
       <div className="review-credit">
@@ -248,9 +295,7 @@ export function ReviewMarquee({
                         <ReviewCard review={item as Review} />
                       ) : (
                         <article className="capability-card">
-                          <span className="capability-label">
-                            EDITAI WORKFLOW
-                          </span>
+                          <OmbreStars decorative />
                           <h3>{item.title}</h3>
                           <p>{item.text}</p>
                           <span className="capability-footer">
@@ -281,7 +326,7 @@ function Hero() {
         {[...content.capabilities, ...content.capabilities.slice(0, 2)].map(
           (item, i) => (
             <div key={i}>
-              <span>EDITAI WORKFLOW</span>
+              <OmbreStars decorative />
               <strong>{item.title}</strong>
               <p>{item.text}</p>
             </div>
@@ -290,10 +335,24 @@ function Hero() {
       </div>
       <div className="hero-heading m-container">
         <div className="hero-availability">
-          <img src="/brand/editai-icon-32.png" width="20" height="20" alt="" />
-          <span>Your story. Your creative control.</span>
+          <span className="hero-proof-badge">
+            <span className="hero-badge-icons" aria-hidden="true">
+              <span>
+                <Scissors size={14} />
+              </span>
+              <span>
+                <Subtitles size={14} />
+              </span>
+              <span>
+                <Sparkles size={14} />
+              </span>
+            </span>
+            <span>
+              Your story. <strong>Your creative control.</strong>
+            </span>
+          </span>
           <span className="platform-badge">
-            <Monitor size={11} /> Web + macOS
+            <LaptopMinimal size={19} aria-hidden="true" /> Web + macOS
           </span>
         </div>
         <h1 id="hero-title">
@@ -303,13 +362,14 @@ function Hero() {
         </h1>
         <p>{content.hero.subtitle}</p>
         <div className="hero-actions">
-          <MainCta />
-          <DesktopDownloads placement="hero" />
+          <div className="hero-primary-actions">
+            <MainCta />
+            <DesktopDownloads placement="hero" />
+          </div>
           <a className="hero-watch" href="#how-it-works">
-            <Play size={12} /> See it in action
+            <Play size={14} /> See it in action
           </a>
         </div>
-        <div className="hero-meta">EDIT · CAPTION · TRANSCRIBE · EXPORT</div>
       </div>
       <ReviewMarquee />
     </section>
@@ -474,9 +534,11 @@ function WorkflowSection() {
           {content.workflow.map((step, i) => (
             <div key={step.id}>
               <button
+                data-featured={step.id === "cut" || undefined}
                 aria-pressed={active === step.id}
                 onClick={() => setActive(step.id)}
               >
+                {step.id === "cut" && <Sparkles size={16} aria-hidden="true" />}
                 {step.title}
               </button>
               {i < 3 && <ArrowRight size={14} />}
@@ -488,6 +550,7 @@ function WorkflowSection() {
             <article
               className={`workflow-step m-reveal ${active === step.id ? "active" : ""}`}
               style={{ "--stagger": `${i * 65}ms` } as CSSProperties}
+              data-featured={step.id === "cut" || undefined}
               key={step.id}
             >
               {step.image ? (
@@ -598,7 +661,7 @@ function CreatorVideoGallery() {
           <p>
             {realVideos
               ? "Finished videos, from the people behind the camera. Tap for sound."
-              : "A space for your stories. Authentic creator videos coming soon."}
+              : "From the first take to the final frame. Your story, made yours."}
           </p>
         </div>
         <div className="creator-video-grid">
@@ -623,7 +686,7 @@ function CreatorVideoGallery() {
           ))}
         </div>
         <p className="gallery-caption">
-          REAL STORIES · A LITTLE MORE YOU · MADE WITH EDITAI
+          YOUR STORIES · A LITTLE MORE YOU · MADE WITH EDITAI
         </p>
         {realVideos ? (
           <button
@@ -634,9 +697,7 @@ function CreatorVideoGallery() {
             {paused ? <Play size={12} /> : <Pause size={12} />}
             {paused ? "Resume the videos" : "Pause the videos"}
           </button>
-        ) : (
-          <p className="gallery-pending">CREATOR SHOWCASE COMING SOON</p>
-        )}
+        ) : null}
       </div>
     </section>
   );
@@ -656,9 +717,9 @@ function WorkflowComparison() {
             <span>more of your time.</span>
           </h2>
           <p>
-            Bring the point of view. Keep the creative decisions.
+            What would you do with more time in your week?
             <br />
-            Let the tools help with the steps in between.
+            Spend it creating. Let EditAI help with the edit.
           </p>
         </div>
         <p className="table-scroll-hint">
@@ -670,32 +731,43 @@ function WorkflowComparison() {
           role="region"
           aria-label="Compare the EditAI workflow"
         >
-          <table className="workflow-table">
-            <caption className="m-sr-only">
-              From original footage through AI assistance to your final EditAI
-              cut
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">
-                  <span className="m-sr-only">Workflow</span>
-                </th>
-                <th scope="col">YOUR FOOTAGE</th>
-                <th scope="col">AI ASSISTANCE</th>
-                <th scope="col">EDITAI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {content.comparisonRows.map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  {row.values.map((value, i) => (
-                    <td key={i}>{value}</td>
-                  ))}
+          <div className="workflow-table-stage">
+            <div className="comparison-highlight" aria-hidden="true" />
+            <table className="workflow-table">
+              <colgroup>
+                <col style={{ width: "22%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "30%" }} />
+              </colgroup>
+              <caption className="m-sr-only">
+                Compare editing it yourself, hiring an editor and editing with
+                EditAI
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <span className="m-sr-only">Workflow</span>
+                  </th>
+                  <th scope="col">EDIT IT YOURSELF</th>
+                  <th scope="col">HIRE AN EDITOR</th>
+                  <th scope="col">
+                    <span className="comparison-brand">EDITAI</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {content.comparisonRows.map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    {row.values.map((value, i) => (
+                      <td key={i}>{value}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
         <p className="estimate-eyebrow m-eyebrow">
           MAKE ROOM FOR CREATING <span>· EXPLORE YOUR OWN ESTIMATE</span>

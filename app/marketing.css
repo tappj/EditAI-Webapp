@@ -189,9 +189,21 @@
   inset: 0 0 auto;
   z-index: 40;
   height: 66px;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  backdrop-filter: none;
+  transition:
+    background 0.22s,
+    border-color 0.22s,
+    box-shadow 0.22s,
+    backdrop-filter 0.22s;
+}
+.m-header[data-scrolled="true"],
+.m-header[data-menu-open="true"] {
   background: #fffffff0;
-  border-bottom: 1px solid #d2dfeb;
+  border-bottom-color: #d9e1ea;
   backdrop-filter: blur(16px);
+  box-shadow: 0 5px 20px #17253808;
 }
 .m-header-inner {
   display: grid;
@@ -374,14 +386,29 @@
 }
 .hero-actions {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 14px;
   justify-content: center;
   align-items: center;
 }
+.hero-primary-actions {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.hero-primary-actions > .m-button,
+.hero-primary-actions > .hero-mac-install {
+  min-width: 190px;
+  min-height: 48px;
+  font-size: 12px;
+  font-weight: 650;
+}
 /* The verified installer shares the existing device/release gate. */
 .hero-actions .hero-mac-install {
-  min-height: 44px;
-  padding: 7px 18px;
+  min-height: 48px;
+  padding: 8px 22px;
   gap: 10px;
   border-color: var(--m-accent-bright);
   background: #f4fbfd;
@@ -3469,4 +3496,265 @@
 }
 .circle-word:after {
   border-color: #c9bdf2;
+}
+
+/* Hero badges use the reference's rounded, bordered badge proportions. */
+.hero-availability {
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 29px;
+}
+.hero-proof-badge,
+.hero-availability .platform-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 6px 13px;
+  gap: 10px;
+  background: #f9fcfff0;
+  border: 1px solid #cbd8e6;
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #44546a;
+}
+.hero-proof-badge strong {
+  font-weight: 650;
+  color: var(--m-ink);
+}
+.hero-availability .platform-badge {
+  gap: 8px;
+  margin-left: 0;
+  padding-inline: 14px;
+  color: var(--m-ink);
+  font-weight: 600;
+}
+.hero-badge-icons {
+  display: flex;
+  align-items: center;
+  padding-left: 0;
+  flex: none;
+}
+.hero-badge-icons > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: -6px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: var(--m-ice);
+  color: var(--m-ink);
+}
+.hero-badge-icons > span:first-child {
+  margin-left: 0;
+}
+.hero-badge-icons > span:nth-child(2) {
+  background: var(--m-lavender);
+}
+.hero-badge-icons > span:nth-child(3) {
+  background: var(--m-gold);
+}
+.ombre-stars {
+  display: block;
+  width: 80px;
+  height: 16px;
+  overflow: visible;
+}
+.hero-echo .ombre-stars {
+  width: 80px;
+  height: 16px;
+}
+.capability-card .ombre-stars,
+.review-card .ombre-stars {
+  margin-bottom: 11px;
+}
+.workflow-switcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.workflow-switcher button[data-featured="true"] {
+  padding: 9px 14px;
+  background: var(--m-premium-gradient);
+  border: 1px solid #d9d3ed;
+  border-radius: 12px;
+  box-shadow: 0 5px 16px #c9bdf224;
+}
+.workflow-switcher button[data-featured="true"] svg {
+  color: #8a78bb;
+  flex: none;
+}
+.workflow-step[data-featured="true"] .workflow-screen,
+.workflow-step[data-featured="true"] .workflow-authentic-image {
+  border-color: #c9bdf2;
+  box-shadow:
+    0 0 0 3px #c9bdf226,
+    0 9px 20px #8a78bb15;
+}
+.workflow-step[data-featured="true"] > .m-eyebrow {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--m-premium-gradient);
+  color: var(--m-ink);
+  border: 1px solid #d9d3ed;
+}
+
+/* One uninterrupted raised EditAI column behind the complete comparison table. */
+.workflow-table-wrap {
+  padding: 26px 16px 28px;
+  margin-inline: -16px;
+}
+.workflow-table-stage {
+  position: relative;
+  isolation: isolate;
+  min-width: 760px;
+}
+.workflow-table {
+  position: relative;
+  z-index: 1;
+  min-width: 760px;
+}
+.comparison-highlight {
+  position: absolute;
+  z-index: 0;
+  top: -15px;
+  right: 0;
+  bottom: -15px;
+  width: 30%;
+  background: linear-gradient(165deg, #f5f7ff, #ffffff 58%);
+  border: 1px solid #c8c5dc;
+  box-shadow:
+    0 15px 32px #162a421a,
+    0 2px 6px #162a4214;
+  pointer-events: none;
+}
+.comparison-highlight:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--m-premium-gradient);
+}
+.workflow-table th,
+.workflow-table td {
+  padding: 26px 20px;
+  font-size: 13px;
+}
+.workflow-table tbody th {
+  width: auto;
+  font-size: 9px;
+}
+.workflow-table thead th {
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+.workflow-table td:last-child,
+.workflow-table th:last-child {
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+}
+.workflow-table th:last-child {
+  border-top: 0;
+}
+.workflow-table td:last-child {
+  color: var(--m-ink);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: -0.4px;
+}
+.workflow-table tr:last-child td:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+.comparison-brand {
+  display: inline-block;
+  font-family: Inter, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  background: var(--m-brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.calculator-results {
+  margin-top: 18px;
+}
+@media (max-width: 850px) {
+  .table-scroll-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 25px;
+    font-size: 9px;
+    color: var(--m-muted);
+  }
+  .workflow-table-wrap {
+    margin-top: 10px;
+  }
+}
+@media (max-width: 560px) {
+  .hero-availability {
+    gap: 8px;
+    margin-bottom: 25px;
+  }
+  .hero-proof-badge,
+  .hero-availability .platform-badge {
+    min-height: 37px;
+    font-size: 10px;
+    padding: 6px 11px;
+    gap: 8px;
+  }
+  .hero-badge-icons > span {
+    width: 24px;
+    height: 24px;
+  }
+  .hero-actions {
+    gap: 10px;
+  }
+  .hero-primary-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .hero-primary-actions > .m-button,
+  .hero-primary-actions > .hero-mac-install {
+    min-width: 190px;
+    min-height: 48px;
+  }
+  .workflow-switcher {
+    gap: 11px;
+  }
+  .workflow-switcher > div {
+    gap: 9px;
+  }
+  .workflow-switcher button[data-featured="true"] {
+    padding: 7px 9px;
+    border-radius: 9px;
+  }
+  .workflow-switcher button[data-featured="true"] svg {
+    width: 13px;
+  }
+  .workflow-table th,
+  .workflow-table td {
+    padding: 23px 16px;
+  }
+  .workflow-table td:last-child {
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .m-header {
+    transition: none;
+  }
 }

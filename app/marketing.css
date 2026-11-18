@@ -1119,11 +1119,9 @@
 }
 @keyframes feature-caption-pop {
   from {
-    opacity: 0;
     transform: scale(0.55);
   }
   to {
-    opacity: 1;
     transform: scale(1);
   }
 }
@@ -1203,9 +1201,6 @@
     transform-box: view-box;
     transform-origin: center;
     animation: feature-caption-pop 180ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
-  }
-  .feature-caption-text {
-    opacity: 0;
   }
 }
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */

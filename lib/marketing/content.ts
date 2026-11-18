@@ -141,17 +141,17 @@ export const marketingContent = {
     {
       icon: "record",
       title: "Record",
-      text: "Record video with your camera and teleprompter, then import your takes.",
+      text: "Record videos directly in-app, with a teleprompter for your script.",
     },
     {
       icon: "cut",
       title: "EditAI",
-      text: "Get an AI suggested cut from your transcript and review it before applying.",
+      text: "EditAI automatically trims empty space and mistakes from your video.",
     },
     {
       icon: "audio",
       title: "Transcribe",
-      text: "Turn speech into a word-timed transcript you can review and use for captions.",
+      text: "Turn speech in any video into text.",
     },
     {
       icon: "sparkles",
@@ -161,7 +161,7 @@ export const marketingContent = {
     {
       icon: "captions",
       title: "Auto Caption",
-      text: "Generate timed captions from speech, then adjust their text and style.",
+      text: "Generate captions from your video, then adjust their styling and punctuation.",
     },
     {
       icon: "export",

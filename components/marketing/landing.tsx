@@ -692,7 +692,7 @@ function CreatorVideoGallery() {
           <p>
             {realVideos
               ? "Finished videos, from the people behind the camera. Tap for sound."
-              : "From the first take to the final frame. Your story, made yours."}
+              : "Finished videos from creators with real audiences, edited with EditAI"}
           </p>
         </div>
         <div className="creator-video-grid">

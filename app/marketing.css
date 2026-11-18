@@ -1987,7 +1987,7 @@
       translate 0.6s ease;
     transition-delay: var(--stagger, 0ms);
   }
-  .marketing[data-enhanced="true"] .m-reveal.revealed {
+  .marketing[data-enhanced="true"] .m-reveal[data-revealed="true"] {
     opacity: 1;
     translate: 0 0;
   }
@@ -3173,10 +3173,14 @@
 .workflow-authentic-image {
   display: block;
   width: 100%;
-  aspect-ratio: 9/17;
-  object-fit: cover;
-  border: 1px solid #203641;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid var(--m-border);
   border-radius: 16px;
+  box-shadow: 0 5px 16px #1725380b;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .table-scroll-hint {
@@ -3576,30 +3580,24 @@
   gap: 7px;
 }
 .workflow-switcher button[data-featured="true"] {
-  padding: 9px 14px;
-  background: var(--m-premium-gradient);
-  border: 1px solid #d9d3ed;
-  border-radius: 12px;
-  box-shadow: 0 5px 16px #c9bdf224;
+  padding: 0 2px;
+  background: var(--m-brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
-.workflow-switcher button[data-featured="true"] svg {
-  color: #8a78bb;
-  flex: none;
-}
-.workflow-step[data-featured="true"] .workflow-screen,
-.workflow-step[data-featured="true"] .workflow-authentic-image {
-  border-color: #c9bdf2;
-  box-shadow:
-    0 0 0 3px #c9bdf226,
-    0 9px 20px #8a78bb15;
+.workflow-step.active .workflow-authentic-image {
+  border-color: #bac5d2;
+  box-shadow: 0 5px 18px #17253814;
 }
 .workflow-step[data-featured="true"] > .m-eyebrow {
-  display: inline-flex;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: var(--m-premium-gradient);
-  color: var(--m-ink);
-  border: 1px solid #d9d3ed;
+  background: var(--m-brand-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 /* One uninterrupted raised EditAI column behind the complete comparison table. */
@@ -3737,13 +3735,6 @@
   }
   .workflow-switcher > div {
     gap: 9px;
-  }
-  .workflow-switcher button[data-featured="true"] {
-    padding: 7px 9px;
-    border-radius: 9px;
-  }
-  .workflow-switcher button[data-featured="true"] svg {
-    width: 13px;
   }
   .workflow-table th,
   .workflow-table td {

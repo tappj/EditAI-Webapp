@@ -47,7 +47,8 @@ test("new reference layout, removed old sections, real logo and genuine app entr
       ".metric-card,.award-card,.creator-profile,.proof-section,.demo-cards,.review-wall,.product-section",
     ),
   ).toHaveCount(0);
-  await expect(page.locator(".workflow-screen")).toHaveCount(4);
+  await expect(page.locator(".workflow-authentic-image")).toHaveCount(4);
+  await expect(page.locator(".workflow-screen")).toHaveCount(0);
   await expect(page.locator(".feature-card")).toHaveCount(7);
   await expect(page.locator(".ribbon-item")).toHaveCount(8);
   await expect(page.locator(".marketing-video")).toHaveCount(3);
@@ -81,13 +82,13 @@ test("workflow exploration and full-width active navigation", async ({
   await page.getByRole("link", { name: "See it in action" }).click();
   await expect(
     page.locator(".workflow-switcher button[aria-pressed=true]"),
-  ).toHaveText("AI first cut");
+  ).toHaveText("AI Edit");
   await page
     .locator(".workflow-switcher")
-    .getByRole("button", { name: "Review", exact: true })
+    .getByRole("button", { name: "Send", exact: true })
     .click();
   await expect(page.locator(".workflow-step.active")).toContainText(
-    "03 · REVIEW",
+    "02 · SEND",
   );
   await page
     .locator(".m-nav")
@@ -623,7 +624,7 @@ test("hero badges, matching install actions, ombre stars and the raised EditAI c
   await page.locator("#how-it-works").scrollIntoViewIfNeeded();
   await expect(
     page.locator(".workflow-switcher button[data-featured=true]"),
-  ).toHaveText("AI first cut");
+  ).toHaveText("AI Edit");
   await expect(
     page.locator(".workflow-switcher button[data-featured=true]"),
   ).toHaveCSS("background-image", /linear-gradient/);
@@ -664,4 +665,142 @@ test("header blends into the hero at the top and gains a surface while scrolling
   await page.evaluate(() => scrollTo(0, 0));
   await expect(header).toHaveAttribute("data-scrolled", "false");
   await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+});
+
+test("authentic Upload, Send, AI Edit and Export screenshots remain visible through repeated selection", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 1000 });
+  await page.goto("/");
+  await page.getByRole("link", { name: "See it in action" }).click();
+  const cards = page.locator(".workflow-step");
+  const images = page.locator(".workflow-authentic-image");
+  await expect(page.locator(".workflow-switcher button")).toHaveText([
+    "Upload",
+    "Send",
+    "AI Edit",
+    "Export",
+  ]);
+  await expect
+    .poll(() =>
+      cards.evaluateAll((nodes) =>
+        nodes.every((node) => getComputedStyle(node).opacity === "1"),
+      ),
+    )
+    .toBe(true);
+  await expect
+    .poll(() =>
+      images.evaluateAll((nodes) =>
+        nodes.every(
+          (node) =>
+            (node as HTMLImageElement).complete &&
+            (node as HTMLImageElement).naturalWidth === 1170 &&
+            (node as HTMLImageElement).naturalHeight === 2532,
+        ),
+      ),
+    )
+    .toBe(true);
+  expect(
+    await images.evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("src")),
+    ),
+  ).toEqual([
+    "/marketing/workflow/upload.png",
+    "/marketing/workflow/send.png",
+    "/marketing/workflow/ai-edit.png",
+    "/marketing/workflow/export.png",
+  ]);
+  const featured = page.locator(
+    ".workflow-switcher button[data-featured=true]",
+  );
+  await expect(featured).toHaveText("AI Edit");
+  await expect(featured).toHaveCSS("background-clip", "text");
+  await expect(featured).toHaveCSS("box-shadow", "none");
+  await expect(featured).toHaveCSS("border-top-width", "0px");
+  for (const title of [
+    "Send",
+    "Export",
+    "Upload",
+    "AI Edit",
+    "Send",
+    "AI Edit",
+  ]) {
+    await page
+      .locator(".workflow-switcher")
+      .getByRole("button", { name: title, exact: true })
+      .click();
+    await expect(
+      page.locator(".workflow-switcher button[aria-pressed=true]"),
+    ).toHaveText(title);
+    const minOpacity = await cards.evaluateAll(async (nodes) => {
+      let minimum = 1;
+      // Include the longest reveal stagger: a clobbered class used to fade after 195ms.
+      for (let i = 0; i < 18; i++) {
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        );
+        for (const node of nodes)
+          minimum = Math.min(minimum, Number(getComputedStyle(node).opacity));
+      }
+      return minimum;
+    });
+    expect(minOpacity, `images faded after selecting ${title}`).toBe(1);
+    await expect(images).toHaveCount(4);
+  }
+  await page.locator("#pricing").scrollIntoViewIfNeeded();
+  await page.locator("#how-it-works").scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      cards.evaluateAll((nodes) =>
+        nodes.every((node) => getComputedStyle(node).opacity === "1"),
+      ),
+    )
+    .toBe(true);
+  const geometry = await images.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      displayed: node.clientWidth / node.clientHeight,
+      natural:
+        (node as HTMLImageElement).naturalWidth /
+        (node as HTMLImageElement).naturalHeight,
+      fit: getComputedStyle(node).objectFit,
+    })),
+  );
+  for (const image of geometry) {
+    expect(Math.abs(image.displayed - image.natural)).toBeLessThan(0.005);
+    expect(image.fit).toBe("contain");
+  }
+});
+
+test("pricing selection keeps previously revealed cards visible", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const pricing = page.locator("#pricing");
+  await pricing.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      pricing
+        .locator(".pricing-card")
+        .evaluateAll((nodes) =>
+          nodes.every((node) => getComputedStyle(node).opacity === "1"),
+        ),
+    )
+    .toBe(true);
+  for (const plan of ["Studio", "Starter", "Creator"]) {
+    await pricing.getByRole("radio", { name: new RegExp(plan) }).check();
+    const opacity = await pricing
+      .locator(".pricing-card")
+      .evaluateAll(async (nodes) => {
+        let minimum = 1;
+        for (let i = 0; i < 18; i++) {
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => resolve()),
+          );
+          for (const node of nodes)
+            minimum = Math.min(minimum, Number(getComputedStyle(node).opacity));
+        }
+        return minimum;
+      });
+    expect(opacity).toBe(1);
+  }
 });

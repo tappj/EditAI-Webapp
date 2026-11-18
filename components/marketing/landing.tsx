@@ -515,7 +515,7 @@ function WorkflowScreen({
   );
 }
 function WorkflowSection() {
-  const [active, setActive] = useState("cut");
+  const [active, setActive] = useState("review");
   return (
     <section
       className="workflow-section"
@@ -534,11 +534,10 @@ function WorkflowSection() {
           {content.workflow.map((step, i) => (
             <div key={step.id}>
               <button
-                data-featured={step.id === "cut" || undefined}
+                data-featured={step.id === "review" || undefined}
                 aria-pressed={active === step.id}
                 onClick={() => setActive(step.id)}
               >
-                {step.id === "cut" && <Sparkles size={16} aria-hidden="true" />}
                 {step.title}
               </button>
               {i < 3 && <ArrowRight size={14} />}
@@ -550,7 +549,7 @@ function WorkflowSection() {
             <article
               className={`workflow-step m-reveal ${active === step.id ? "active" : ""}`}
               style={{ "--stagger": `${i * 65}ms` } as CSSProperties}
-              data-featured={step.id === "cut" || undefined}
+              data-featured={step.id === "review" || undefined}
               key={step.id}
             >
               {step.image ? (
@@ -558,8 +557,8 @@ function WorkflowSection() {
                   className="workflow-authentic-image"
                   src={step.image}
                   alt={step.alt || step.title}
-                  width="360"
-                  height="680"
+                  width={step.imageWidth || 1170}
+                  height={step.imageHeight || 2532}
                   loading="lazy"
                 />
               ) : (
@@ -950,7 +949,8 @@ function usePageMotion() {
       (entries) =>
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("revealed");
+            // Selection changes may replace className; retain reveal state independently.
+            (entry.target as HTMLElement).dataset.revealed = "true";
             reveal.unobserve(entry.target);
           }
         }),

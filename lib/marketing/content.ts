@@ -131,35 +131,51 @@ export const marketingContent = {
   workflow: [
     {
       id: "import",
-      title: "Import",
-      label: "01 · IMPORT",
-      text: "Bring a recording into your workspace. Keep your original footage intact.",
+      title: "Upload",
+      label: "01 · UPLOAD",
+      text: "Tap + to add your footage, or start with a recording.",
       screenTitle: "Your story starts here.",
-      screenNote: "Import your footage",
+      screenNote: "Upload your footage",
+      image: "/marketing/workflow/upload.png",
+      imageWidth: 1170,
+      imageHeight: 2532,
+      alt: "EditAI iOS app preview: upload screen with Record, Batch, Analyze and Transcribe tools.",
     },
     {
       id: "cut",
-      title: "AI first cut",
-      label: "02 · AI FIRST CUT",
-      text: "Connect your AI account for a transcript and editorial suggestions.",
-      screenTitle: "Find the story inside.",
-      screenNote: "AI suggests. You decide.",
+      title: "Send",
+      label: "02 · SEND",
+      text: "Tap Send when you’re ready. EditAI finds the cuts and keeps your story.",
+      screenTitle: "Send does the editing.",
+      screenNote: "Send your recording",
+      image: "/marketing/workflow/send.png",
+      imageWidth: 1170,
+      imageHeight: 2532,
+      alt: "EditAI iOS app preview: recording preview with the Send action highlighted by the guided tour.",
     },
     {
       id: "review",
-      title: "Review",
-      label: "03 · REVIEW",
-      text: "Refine timing, style your captions and add your finishing touches.",
-      screenTitle: "Make the frame yours.",
-      screenNote: "Your creative control",
+      title: "AI Edit",
+      label: "03 · AI EDIT",
+      text: "Trim, add text or captions, and adjust your cut. Make it yours.",
+      screenTitle: "Make it yours.",
+      screenNote: "AI Edit",
+      image: "/marketing/workflow/ai-edit.png",
+      imageWidth: 1170,
+      imageHeight: 2532,
+      alt: "EditAI iOS app preview: guided editor tour highlighting editing tools and the Export action.",
     },
     {
       id: "export",
       title: "Export",
       label: "04 · EXPORT",
-      text: "Export your finished MP4. Ready for wherever your story goes next.",
+      text: "Preview your cut, then tap Export to render your finished video.",
       screenTitle: "A story worth sharing.",
-      screenNote: "MP4 · H.264 + AAC",
+      screenNote: "Export your video",
+      image: "/marketing/workflow/export.png",
+      imageWidth: 1170,
+      imageHeight: 2532,
+      alt: "EditAI iOS app preview: video editor with preview, timeline, editing tools and Export button.",
     },
   ] as {
     id: "import" | "cut" | "review" | "export";
@@ -169,6 +185,8 @@ export const marketingContent = {
     screenTitle: string;
     screenNote: string;
     image?: string;
+    imageWidth?: number;
+    imageHeight?: number;
     alt?: string;
   }[],
   comparisonRows: [

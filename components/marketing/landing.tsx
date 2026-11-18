@@ -28,6 +28,7 @@ import {
   Sparkles,
   Subtitles,
   Upload,
+  Video,
   X,
 } from "lucide-react";
 import { DesktopDownloads } from "@/components/desktop-downloads";
@@ -49,6 +50,7 @@ const iconMap = {
   captions: Subtitles,
   timeline: Film,
   batch: Layers,
+  record: Video,
   export: Download,
 };
 export function FeatureTile({
@@ -629,8 +631,7 @@ function FeatureGrid() {
     >
       <div className="m-container">
         <div className="m-section-heading m-reveal">
-          <span className="m-eyebrow">FEATURES</span>
-          <h2 id="features-title">Tools that do the editing for you</h2>
+          <h2 id="features-title">EditAI Features and Tools</h2>
         </div>
         <AnimatedFeatureIcons />
         <div className="feature-grid">

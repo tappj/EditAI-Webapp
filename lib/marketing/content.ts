@@ -1,6 +1,13 @@
 /** Owner handoff: insert only approved EditAI assets/claims here. See docs/MARKETING.md. */
 export type FeatureIcon =
-  "cut" | "audio" | "sparkles" | "captions" | "timeline" | "batch" | "export";
+  | "cut"
+  | "audio"
+  | "sparkles"
+  | "captions"
+  | "timeline"
+  | "batch"
+  | "record"
+  | "export";
 export type Review = {
   id: string;
   approved: boolean;
@@ -41,7 +48,7 @@ export const marketingContent = {
     firstLine: "Turn your raw footage into",
     secondLine: "edited videos in minutes.",
     subtitle:
-      "We find your best takes, add captions, and make every frame yours.",
+      "We cut out the empty space, find the best takes, and add captions.",
     cta: "Open EditAI Web",
     // Owner-provided cumulative savings and portraits; no synthetic counter.
     socialProof: {
@@ -127,39 +134,39 @@ export const marketingContent = {
   ] as { title: string; text: string; icon: FeatureIcon }[],
   features: [
     {
+      icon: "batch",
+      title: "Batch",
+      text: "Import several clips and create a separate project for each.",
+    },
+    {
+      icon: "record",
+      title: "Record",
+      text: "Record video with your camera and teleprompter, then import your takes.",
+    },
+    {
       icon: "cut",
-      title: "An AI first cut",
-      text: "Turn your transcript into a suggested edit. Review it before applying.",
+      title: "EditAI",
+      text: "Get an AI suggested cut from your transcript and review it before applying.",
     },
     {
       icon: "audio",
-      title: "Trim the pauses",
-      text: "Find quiet gaps with audio evidence and refine your pacing.",
+      title: "Transcribe",
+      text: "Turn speech into a word-timed transcript you can review and use for captions.",
     },
     {
       icon: "sparkles",
-      title: "Find your best takes",
-      text: "Get AI-assisted take selection with source-anchored edits.",
+      title: "Analyze",
+      text: "Get a concise summary and highlights from your footage.",
     },
     {
       icon: "captions",
-      title: "Make captions yours",
-      text: "Timed words, expressive styles and full control over your text.",
-    },
-    {
-      icon: "timeline",
-      title: "A real editor",
-      text: "Trim, split and reorder. Add text, overlays, music and color.",
-    },
-    {
-      icon: "batch",
-      title: "A home for every clip",
-      text: "Batch-import recordings into separate, saved projects.",
+      title: "Auto Caption",
+      text: "Generate timed captions from speech, then adjust their text and style.",
     },
     {
       icon: "export",
-      title: "Take your story out",
-      text: "Export an MP4 with your timeline, captions and effects.",
+      title: "Export",
+      text: "Render your edits and captions into an MP4.",
     },
   ] as { icon: FeatureIcon; title: string; text: string }[],
   workflow: [

@@ -631,13 +631,14 @@ function FeatureGrid() {
     >
       <div className="m-container">
         <div className="m-section-heading m-reveal">
-          <h2 id="features-title">EditAI Features and Tools</h2>
+          <h2 id="features-title">EditAI Features &amp; Tools</h2>
         </div>
         <AnimatedFeatureIcons />
         <div className="feature-grid">
           {content.features.map((feature, i) => (
             <article
               className="feature-card m-reveal"
+              data-feature={feature.icon}
               style={{ "--stagger": `${(i % 4) * 55}ms` } as CSSProperties}
               key={feature.icon}
             >

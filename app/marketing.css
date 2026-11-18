@@ -1050,6 +1050,122 @@
   transform: translateY(-3px);
   box-shadow: 0 9px 20px #4a647714;
 }
+@keyframes feature-batch-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes feature-snip {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  35% {
+    transform: rotate(-12deg);
+  }
+  70% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes feature-wave {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  45% {
+    transform: scaleY(0.55);
+  }
+  72% {
+    transform: scaleY(1.25);
+  }
+}
+@keyframes feature-sparkle {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.78) rotate(-12deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.14) rotate(8deg);
+  }
+}
+@keyframes feature-caption-write {
+  0% {
+    stroke-dashoffset: 24;
+    transform: translateX(-2px);
+  }
+  75% {
+    stroke-dashoffset: 0;
+    transform: translateX(1px);
+  }
+  100% {
+    stroke-dashoffset: 0;
+    transform: translateX(0);
+  }
+}
+@keyframes feature-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  42% {
+    transform: translateY(-4px);
+  }
+  72% {
+    transform: translateY(1px);
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .feature-card[data-feature="batch"]:hover .feature-tile path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: feature-batch-drop 420ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  .feature-card[data-feature="batch"]:hover .feature-tile path:nth-of-type(1) {
+    animation-delay: 150ms;
+  }
+  .feature-card[data-feature="batch"]:hover .feature-tile path:nth-of-type(2) {
+    animation-delay: 75ms;
+  }
+  .feature-card[data-feature="record"]:hover .feature-tile svg,
+  .feature-card[data-feature="export"]:hover .feature-tile svg {
+    animation: feature-bounce 440ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .feature-card[data-feature="cut"]:hover .feature-tile svg {
+    transform-origin: 48% 52%;
+    animation: feature-snip 400ms ease-in-out;
+  }
+  .feature-card[data-feature="audio"]:hover .feature-tile path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: feature-wave 440ms ease-in-out;
+  }
+  .feature-card[data-feature="audio"]:hover .feature-tile path:nth-of-type(2n) {
+    animation-delay: 55ms;
+  }
+  .feature-card[data-feature="sparkles"]:hover .feature-tile path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: feature-sparkle 520ms ease-out;
+  }
+  .feature-card[data-feature="sparkles"]:hover .feature-tile path:nth-of-type(2) {
+    animation-delay: 90ms;
+  }
+  .feature-card[data-feature="captions"]:hover .feature-tile path {
+    stroke-dasharray: 24;
+    animation: feature-caption-write 520ms ease-out both;
+  }
+}
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */
 .gallery-section {
   padding: 95px 0 85px;

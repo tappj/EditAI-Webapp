@@ -136,7 +136,7 @@ export const marketingContent = {
     {
       icon: "batch",
       title: "Batch",
-      text: "Import several clips and create a separate project for each.",
+      text: "Import clips into up to 10 separate projects in one batch.",
     },
     {
       icon: "record",

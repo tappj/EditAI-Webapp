@@ -1052,17 +1052,15 @@ export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
 }
 export function MarketingSignIn({
   children,
-  dark,
   onPrivacy,
 }: {
   children: ReactNode;
-  dark: boolean;
   onPrivacy: () => void;
 }) {
   return (
     <div
       className="onboarding-theme marketing-sign-in"
-      data-onboarding-theme={dark ? "dark" : "light"}
+      data-onboarding-theme="light"
     >
       <header className="sign-in-header m-container">
         <a href={content.links.home} aria-label="EditAI home">

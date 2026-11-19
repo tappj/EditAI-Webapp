@@ -21,16 +21,6 @@ declare global {
 function DesktopGate() {
   const [screen, setScreen] = useState<GateScreen | null>(null);
   const [error, setError] = useState("");
-  const [dark] = useState(() => {
-    try {
-      return (
-        JSON.parse(localStorage.getItem("editai-preferences") || "{}").theme ===
-        "dark"
-      );
-    } catch {
-      return false;
-    }
-  });
   useEffect(() => {
     let disposed = false;
     let received = false;
@@ -84,7 +74,7 @@ function DesktopGate() {
   return (
     <main
       className="onboarding-theme desktop-onboarding"
-      data-onboarding-theme={dark ? "dark" : "light"}
+      data-onboarding-theme="light"
     >
       {!screen || screen.id === "choose" ? (
         account

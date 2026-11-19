@@ -952,7 +952,7 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
   await expect(theme).toHaveCSS("color-scheme", "light");
   const welcome = funnel.getByRole("heading", { name: "Film it messy." });
   await expect(welcome).toBeVisible();
-  await expect(welcome).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(welcome).toHaveCSS("color", "rgb(17, 17, 17)");
   await expect(funnel.getByRole("button", { name: "See it happen" })).toHaveCSS(
     "color",
     "rgb(17, 35, 45)",
@@ -1012,10 +1012,10 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
     ),
   );
   await page.reload();
-  await expect(theme).toHaveAttribute("data-onboarding-theme", "dark");
+  await expect(theme).toHaveAttribute("data-onboarding-theme", "light");
   await expect(funnel.getByRole("heading")).toHaveCSS(
     "color",
-    "rgb(243, 245, 247)",
+    "rgb(17, 17, 17)",
   );
   await expect(page.getByRole("button", { name: "Fashion" })).toHaveAttribute(
     "aria-pressed",

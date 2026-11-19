@@ -1402,7 +1402,6 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       {pending || session?.screen.id !== "ready" ? (
         signIn || desktop() ? (
           <MarketingSignIn
-            dark={theme === "dark"}
             onPrivacy={() => setPrivacy(true)}
           >
             {gateScreen?.id === "choose" || (pending && !session) ? (

@@ -95,7 +95,13 @@ const placeholderReviewCopy: Array<[string, string, string]> = [
     "Saves me so much time",
     "I was about to hire an editor, but I figured I’d try this out and it has saved me so much time especially with the new update where I can edit my videos in under or around a minute. Seriously so impressed with this the only thing I’d want to see is the ability to boost the audio levels and add color grading features like saturation or temperature changes",
     "Chefryan1"
-  ]
+  ],
+  ["I came back", "Once I realized it was so much easier for me and my workflow to film in clips and then put them all in and do the overlays I ended up loving it!", "TheTXHouseWife"],
+  ["For non techy people", "I’d say it’s about 80 to 90% spot on the only issue is sometimes it edits out the demo because I’m not talking I’m just showing but that’s OK that’s how it works and it’s a good product.", "Larrytreeton"],
+  ["This has made my life so much easier", "When I first got it, this was magic. I wasn’t having to edit. It would make the cuts. Everything was working beautifully.", "Evam1717"],
+  ["LIFE CHANGING!!", "I don’t mind editing, but it takes me forever and I’ve literally had this for two days and it has saved me hours!", "Tiff926"],
+  ["Amazing App", "This app is amazing! It has saved me so much time editing my videos. If you have not got it yet you are missing out!", "The Sacred Spiral"],
+  ["Time Saver!", "I’m a hairstylist of 30 years and never have had to use a computer for much of anything and now I’m having to learn editing and so many different things.", "Mesa Leon"]
 ];
 export const marketingContent = {
   hero: {

@@ -285,15 +285,18 @@ export function ReviewMarquee({
   const placeholders = reviews.filter((review) => review.placeholder);
   const displayReviews = approved.length ? approved : placeholders;
   const cards = displayReviews.length ? displayReviews : content.capabilities;
-  const items = Array.from(
-    { length: Math.max(cards.length, 6) },
-    (_, i) => cards[i % cards.length],
+  const uniqueCards = cards.filter(
+    (card, index) => cards.findIndex((other) =>
+      other.title === card.title && other.text === card.text
+    ) === index,
+  );
+  const rows = [0, 1].map((row) =>
+    uniqueCards.filter((_, index) => index % 2 === row),
   );
   return (
     <>
     <div
       className="hero-marquees"
-      style={{ "--marquee-factor": items.length / 6 } as CSSProperties}
       aria-label={
         approved.length
           ? "Creator reviews"
@@ -302,8 +305,9 @@ export function ReviewMarquee({
             : "Explore the EditAI workflow"
       }
     >
-      {[0, 1].map((row) => (
+      {rows.map((items, row) => (
         <div
+          style={{ "--marquee-factor": items.length / 6 } as CSSProperties}
           className={`marquee-viewport motion-region row-${row}`}
           key={row}
           tabIndex={0}
@@ -317,13 +321,11 @@ export function ReviewMarquee({
                 key={copy}
                 aria-hidden={copy === 1 || undefined}
               >
-                {items.map((_, i) => {
-                  const item = items[(i + row * 3) % items.length];
+                {items.map((item, i) => {
                   return (
                     <div
                       className="marquee-cell"
                       key={i}
-                      aria-hidden={i >= cards.length || undefined}
                     >
                       {displayReviews.length ? (
                         <ReviewCard review={item as Review} />

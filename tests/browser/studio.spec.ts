@@ -629,7 +629,7 @@ for (const device of [
         await expect(install).toBeVisible();
         await expect(install).toHaveAttribute(
           "href",
-          "https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.1/EditAI-0.2.1-mac-arm64.dmg",
+          "https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.2/EditAI-0.2.2-mac-arm64.dmg",
         );
         await expect(install).toContainText("Apple silicon");
       }

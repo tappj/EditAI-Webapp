@@ -11,15 +11,10 @@
   --accent: #c4e0ff;
   --ice: #e8f5f7;
   --lavender: #ededf9;
-  --peach: #f5f0eb;
-  --mint: #e6f2f2;
   --shadow: 0 8px 30px #182f4810;
   --brand-gradient: linear-gradient(135deg, #90dce8, #c9bdf2, #f8e894);
   --action-gradient: linear-gradient(110deg, #a8f0f0, #c4e0ff);
   --premium-gradient: linear-gradient(135deg, #d1f2f7, #e6e0ff, #ffe3d9);
-  --tile-icon: #394f5f;
-  --tile-icon-bg: #ffffff70;
-  --tile-icon-border: #ffffff80;
   --danger: #a33535;
   color-scheme: light;
 }
@@ -33,11 +28,6 @@
   --control: #91bfff;
   --ice: #20353c;
   --lavender: #2d2b40;
-  --peach: #39302b;
-  --mint: #243a34;
-  --tile-icon: #d5e7f9;
-  --tile-icon-bg: #10121670;
-  --tile-icon-border: #f3f5f733;
   --danger: #ffa4a4;
   color-scheme: dark;
 }
@@ -669,13 +659,32 @@ input[type="radio"] {
   font-size: 15px;
 }
 .quick-tools {
+  /* The EditAI preset from iOS ProfileUploadTheme.swift. */
+  --tile-record: #ddf1f6;
+  --tile-batch: #eae6f8;
+  --tile-analyze: #f7eacb;
+  --tile-transcribe: #dff2e4;
+  --tile-label: #111;
+  --tile-description: #606770;
+  --tile-icon-bg: rgb(255 255 255 / 78%);
+  --tile-icon-border: #ffffff80;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-auto-rows: 1fr;
   gap: 16px;
 }
+:root[data-theme="dark"] .quick-tools {
+  --tile-record: #85c8d8;
+  --tile-batch: #b4a4e3;
+  --tile-analyze: #e4b95d;
+  --tile-transcribe: #8bcfa9;
+  --tile-description: var(--tile-label);
+  --tile-icon-bg: rgb(16 18 22 / 78%);
+  --tile-icon-border: #f3f5f733;
+}
 .tool-card {
   position: relative;
+  color: var(--tile-label);
   text-align: left;
   border-radius: 19px;
   padding: 24px;
@@ -688,17 +697,17 @@ input[type="radio"] {
 .tool-card:hover {
   transform: translateY(-3px);
 }
-.ice {
-  background: var(--ice);
+.tool-card.ice {
+  background: var(--tile-record);
 }
-.lavender {
-  background: var(--lavender);
+.tool-card.lavender {
+  background: var(--tile-batch);
 }
-.peach {
-  background: var(--peach);
+.tool-card.peach {
+  background: var(--tile-analyze);
 }
-.mint {
-  background: var(--mint);
+.tool-card.mint {
+  background: var(--tile-transcribe);
 }
 .tool-card-icon {
   width: 40px;
@@ -714,7 +723,7 @@ input[type="radio"] {
 .tool-card-icon svg {
   width: 20px;
   stroke-width: 1.5;
-  color: var(--tile-icon);
+  color: var(--ink);
 }
 .tool-card h3 {
   font-size: 19px;
@@ -723,6 +732,7 @@ input[type="radio"] {
   margin-bottom: 6px;
 }
 .tool-card p {
+  color: var(--tile-description);
   font-size: 11px;
   line-height: 1.65;
 }

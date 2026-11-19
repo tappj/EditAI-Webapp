@@ -4113,3 +4113,17 @@
     font-size: 14px;
   }
 }
+.marketing:not(.marketing-sign-in) .gallery-section .m-container {
+  width: min(1280px, calc(100% - 32px));
+}
+.marketing:not(.marketing-sign-in) .gallery-section h2,
+.marketing:not(.marketing-sign-in) .gallery-section .m-section-heading > p {
+  width: 100%;
+  max-width: none;
+}
+@media (min-width: 561px) {
+  .marketing:not(.marketing-sign-in) .gallery-section h2,
+  .marketing:not(.marketing-sign-in) .gallery-section .m-section-heading > p {
+    white-space: nowrap;
+  }
+}

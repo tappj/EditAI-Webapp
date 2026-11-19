@@ -107,18 +107,20 @@ try {
         .digest("hex")
     : null;
   report.runtime = sources;
-  if (!process.env.EDITAI_RESUME_TEST)
+  if (!process.env.EDITAI_RESUME_TEST && !process.env.EDITAI_EXPORT_ONLY)
     await page
       .getByRole("button", { name: "Generate captions", exact: true })
       .click();
   else await page.getByRole("button", { name: "Text", exact: true }).click();
-  await page
-    .locator(".text-layer-list>button")
-    .first()
-    .waitFor({ timeout: 240000 });
-  report.captions = await page.locator(".text-layer-list>button").count();
-  console.log("Desktop real native-audio/Publik captions:", report.captions);
-  if (!process.env.EDITAI_RESUME_TEST) {
+  if (!process.env.EDITAI_EXPORT_ONLY) {
+    await page
+      .locator(".text-layer-list>button")
+      .first()
+      .waitFor({ timeout: 240000 });
+    report.captions = await page.locator(".text-layer-list>button").count();
+    console.log("Desktop real native-audio/Publik captions:", report.captions);
+  } else report.captions = "Not exercised; export-only acceptance";
+  if (!process.env.EDITAI_RESUME_TEST && !process.env.EDITAI_EXPORT_ONLY) {
     await page.getByRole("button", { name: "EditAI", exact: true }).click();
     await page
       .getByLabel("Message EditAI")
@@ -136,7 +138,10 @@ try {
     if (!response.ok()) throw Error((await response.json()).error);
     await expect(page.locator(".message.assistant")).toBeVisible();
     report.chat = true;
-  } else report.chat = "Previously verified; no repeated inference";
+  } else
+    report.chat = process.env.EDITAI_EXPORT_ONLY
+      ? "Not exercised; export-only acceptance"
+      : "Previously verified; no repeated inference";
   const destination = resolve("outputs/desktop-real-export.mp4");
   await app.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });

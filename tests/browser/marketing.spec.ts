@@ -24,7 +24,7 @@ test("new reference layout, removed old sections, real logo and genuine app entr
   );
   await expect(
     page.getByText(
-      "We find your best takes, add captions, and make every frame yours.",
+      "EditAI cuts out the empty space, finds the best takes, and adds captions.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -211,13 +211,13 @@ test("categorized FAQ, keyboard answers and real privacy disclosure", async ({
     .getByRole("button", { name: "Getting started", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Are EditAI subscription prices available?" })
+    .getByRole("button", { name: "Do I need an EditAI subscription?" })
     .click();
   await expect(
     page.getByRole("region", {
-      name: "Are EditAI subscription prices available?",
+      name: "Do I need an EditAI subscription?",
     }),
-  ).toContainText("have not been announced");
+  ).toContainText("No EditAI subscription is required for Web or Desktop");
   await page
     .getByRole("button", { name: "Privacy & data", exact: true })
     .click();

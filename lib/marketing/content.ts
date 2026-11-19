@@ -44,16 +44,16 @@ export type Plan = {
   annual: { price: string; checkoutUrl: string } | null;
   recommended?: boolean;
 };
-// Owner-supplied CutAI review excerpts for attributed layout placeholders.
+// Owner-supplied reviews; brand mentions updated to EditAI with owner permission.
 const placeholderReviewCopy: Array<[string, string, string]> = [
   [
     "Time saver to the max",
-    "Cut AI has been a huge time saver for me as a new UGC creator. Editing used to be one of the biggest bottlenecks in my workflow, but now I can get through content much faster without sacrificing quality...",
+    "EditAI has been a huge time saver for me as a new UGC creator. Editing used to be one of the biggest bottlenecks in my workflow, but now I can get through content much faster without sacrificing quality...",
     "WesADT"
   ],
   [
     "Best Auto Editing App",
-    "I’ve used a few others and this one is by far the best, 99% of my videos only need one try and CutAI gets it perfect while still allowing me to quickly make the final touches to the video with their amazing UI design. 10/10",
+    "I’ve used a few others and this one is by far the best, 99% of my videos only need one try and EditAI gets it perfect while still allowing me to quickly make the final touches to the video with their amazing UI design. 10/10",
     "Collin_t90"
   ],
   [
@@ -62,7 +62,7 @@ const placeholderReviewCopy: Array<[string, string, string]> = [
     "keonifish123"
   ],
   [
-    "I Love Cut AI!",
+    "I Love EditAI!",
     "This app has completely changed the way I create UGC. I can spend more time actually being creative instead of spending hours editing. I love everything about this app, and it has helped me so much. It does an amazing job...",
     "Dre9898"
   ],
@@ -72,7 +72,7 @@ const placeholderReviewCopy: Array<[string, string, string]> = [
     "skyfindsthings"
   ],
   [
-    "Choose CutAi",
+    "Choose EditAI",
     "I have been using this app before it was on the App Store and I have to say that it is amazing. Just create one video of whatever you choose and it perfectly cuts it for you without any hassle.",
     "LaytoB05"
   ],
@@ -83,7 +83,7 @@ const placeholderReviewCopy: Array<[string, string, string]> = [
   ],
   [
     "Fired my editor",
-    "Big thanks to the guys at CutAI. This editing app has saved me so much time, and so much money. They also listen to our feedback and implement them as soon as they can. I’ve tried other ai editing apps and they are just not as...",
+    "Big thanks to the guys at EditAI. This editing app has saved me so much time, and so much money. They also listen to our feedback and implement them as soon as they can. I’ve tried other ai editing apps and they are just not as...",
     "SteveH05"
   ],
   [
@@ -166,7 +166,7 @@ export const marketingContent = {
     title,
     text,
     author: "",
-    source: "CUTAI REVIEW · DESIGN REFERENCE",
+    source: "EditAI REVIEW · DESIGN REFERENCE",
     rating: 5,
   })) as Review[],
   capabilities: [

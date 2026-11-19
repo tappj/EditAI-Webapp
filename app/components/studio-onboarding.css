@@ -576,10 +576,6 @@
   margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
-.studio-onboarding .monthly-time-assumptions {
-  font-size: 0.75rem;
-  color: #606770;
-}
 .monthly-time > .button {
   justify-self: start;
 }

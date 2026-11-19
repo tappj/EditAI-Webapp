@@ -266,12 +266,6 @@ function MonthlyTime({ hours, replay }: { hours: number; replay: () => void }) {
           ))}
         </ul>
       </div>
-      <p className="monthly-time-assumptions">
-        Illustration assumes 8 hours of sleep and 2 hours for meals daily, 160
-        work hours monthly, 1 hour of personal care and 2 hours for home and
-        travel daily. These routines are examples. Your editing estimate uses a
-        4.345-week month.
-      </p>
       <Button secondary onClick={replay}>
         Replay animation
       </Button>

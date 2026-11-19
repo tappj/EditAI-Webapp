@@ -1209,7 +1209,7 @@
   .feature-card[data-feature="captions"]:hover .feature-caption-text {
     transform-box: view-box;
     transform-origin: center;
-    animation: feature-caption-pop 500ms cubic-bezier(0.2, 0.8, 0.3, 1) 450ms both;
+    animation: feature-caption-pop 400ms cubic-bezier(0.2, 0.8, 0.3, 1) 250ms both;
   }
 }
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */

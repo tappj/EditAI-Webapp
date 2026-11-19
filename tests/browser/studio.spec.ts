@@ -49,8 +49,8 @@ test("public first page requires Publik sign-in; responsive and no secret exposu
     }),
   ).toBeVisible();
   await page
-    .getByRole("link", { name: "Open EditAI Web", exact: true })
-    .first()
+    .locator(".m-header")
+    .getByRole("link", { name: "Sign in", exact: true })
     .click();
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
@@ -260,10 +260,7 @@ test("MediaRecorder takes with generated camera source, teleprompter and playabl
     };
   });
   await openStudio(page);
-  await page
-    .getByRole("button", { name: "Record", exact: true })
-    .first()
-    .click();
+  await page.getByRole("button", { name: /^Record a take/ }).click();
   await page
     .getByRole("button", { name: "Enable camera & microphone" })
     .click();
@@ -804,8 +801,12 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
     ),
   ).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
+  const topbar = page.locator(".topbar");
   await expect(
-    page.locator(".topbar").getByRole("button", { name: "Record" }),
+    topbar.getByRole("button", { name: "Record", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Record a take/ }),
   ).toBeVisible();
   await expect(
     page.locator(".sidebar nav").getByRole("button", { name: "Record" }),
@@ -816,7 +817,13 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
       .getByRole("button", { name: "Customize profile" }),
   ).toHaveCount(0);
   await page.reload();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await topbar.getByRole("button", { name: "Account", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Settings", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Your Publik sign-in identifies your saved edits/),
+  ).toBeVisible();
   await expect(
     page.getByRole("checkbox", { name: /Allow AI processing/ }),
   ).toBeChecked();

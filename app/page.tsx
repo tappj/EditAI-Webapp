@@ -1511,8 +1511,8 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                   {desktop() ? "DESKTOP STUDIO" : "WEB STUDIO"}
                 </span>
                 {screen === "home" && (
-                  <Button secondary onClick={() => nav("record")}>
-                    <Video size={16} /> Record
+                  <Button secondary onClick={() => nav("settings")}>
+                    <UserRound size={16} /> Account
                   </Button>
                 )}
                 {screen === "editor" && (
@@ -2800,7 +2800,8 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       {desktop()
                         ? "Your key is encrypted locally with an encryption key protected by macOS Keychain or your OS credential vault."
                         : "Your key is encrypted on the server and never returned to the browser."}{" "}
-                      OpenAI bills your API account directly. No Publik
+                      Your Publik sign-in identifies your saved edits. OpenAI
+                      bills your API account directly for AI requests. No Publik
                       subscription is needed for this option; a ChatGPT
                       subscription is separate.
                     </p>

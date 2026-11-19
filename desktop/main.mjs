@@ -125,6 +125,11 @@ async function unlockEditor() {
     const owner = await hash(
       "publik:" + webPublik.walletIdentity(connected.wallet).reference,
     );
+    const remembered = store.database
+      .prepare(
+        "SELECT own_key,telemetry FROM sessions WHERE owner=? ORDER BY created_at DESC LIMIT 1",
+      )
+      .get(owner);
     store.database
       .prepare(
         "INSERT INTO sessions (id,install_id,credential,choice,owner,created_at,expires_at,last_event,consent,telemetry) VALUES (?,?,?,?,?,?,?,0,0,1) ON CONFLICT(id) DO UPDATE SET credential=excluded.credential,choice=excluded.choice,expires_at=excluded.expires_at,own_key=CASE WHEN sessions.owner=excluded.owner THEN sessions.own_key ELSE NULL END,consent=CASE WHEN sessions.owner=excluded.owner THEN sessions.consent ELSE 0 END,install_id=excluded.install_id,owner=excluded.owner",
@@ -138,6 +143,12 @@ async function unlockEditor() {
         Date.now(),
         Date.now() + 365 * 86400000,
       );
+    if (remembered)
+      store.database
+        .prepare(
+          "UPDATE sessions SET own_key=COALESCE(own_key,?),telemetry=? WHERE id=? AND owner=?",
+        )
+        .run(remembered.own_key, remembered.telemetry, id, owner);
     const preference = store.database
       .prepare("SELECT telemetry FROM sessions WHERE id=?")
       .get(id);
@@ -387,10 +398,11 @@ async function startDesktop() {
         return result.canceled ? null : result.filePath;
       },
     });
-    expose("account:sign-out", async () => {
+    expose("account:sign-out", async (forget = false) => {
       ready = false;
       for (const id of video.jobs.keys()) await video.cancel(id);
-      sdk.forgetCredential();
+      if (forget) sdk.forgetCredential();
+      else sdk.pauseTelemetry();
       await sdk.flushCredentialStore();
       apiCookie = "";
       handler = null;

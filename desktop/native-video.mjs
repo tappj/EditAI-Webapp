@@ -158,7 +158,8 @@ export class NativeVideo {
       !document.texts.length &&
       !document.overlays.length &&
       document.segments.every(
-        ({ appearance: a }) =>
+        ({ appearance: a, sourceIndex }) =>
+          document.sources[sourceIndex].kind !== "image" &&
           a.filter === "Clear" &&
           a.brightness === 0 &&
           a.contrast === 1 &&
@@ -370,6 +371,9 @@ export class NativeVideo {
         ...new Set([
           ...job.document.segments.map((s) => s.sourceIndex),
           ...job.document.audio.map((a) => a.sourceIndex),
+          ...job.document.overlays
+            .filter((o) => (o.volume ?? 0) > 0)
+            .map((o) => o.sourceIndex),
         ]),
       ],
       inputs = [],
@@ -443,13 +447,16 @@ export class NativeVideo {
       );
       cursor += (segment.end - segment.start) / segment.speed;
     }
-    for (const audio of job.document.audio)
+    for (const audio of [
+      ...job.document.audio,
+      ...job.document.overlays.filter((o) => (o.volume ?? 0) > 0),
+    ])
       add(
         audio.sourceIndex,
         audio.sourceStart,
-        audio.end - audio.start,
-        1,
-        audio.volume,
+        (audio.end - audio.start) * (audio.speed ?? 1),
+        audio.speed ?? 1,
+        audio.muted ? 0 : audio.volume,
         audio.start,
         audio.fadeIn,
         audio.fadeOut,

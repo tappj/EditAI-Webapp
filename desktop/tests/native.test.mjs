@@ -184,11 +184,58 @@ await test("native media and real FFmpeg pipeline", async (t) => {
         );
       const composite = structuredClone(doc);
       composite.segments[0].appearance.filter = "Warm";
+      composite.segments[0].volume = 0;
+      composite.overlays = [
+        {
+          id: randomUUID(),
+          sourceIndex: 0,
+          sourceStart: 0,
+          start: 0,
+          end: 1,
+          speed: 2,
+          volume: 0.8,
+          x: 0.5,
+          y: 0.5,
+          width: 0.5,
+          opacity: 1,
+        },
+      ];
+      composite.audio = [
+        {
+          id: randomUUID(),
+          sourceIndex: 0,
+          sourceStart: 1,
+          start: 0,
+          end: 1,
+          speed: 0.5,
+          volume: 0.4,
+          lane: 0,
+          fadeIn: 0.05,
+          fadeOut: 0.05,
+        },
+      ];
       const job = await native.begin(composite, 320, 180, 30);
       assert.equal(job.mode, "frames");
       for (let i = 0; i < 30; i++) await native.frame(job.id, frame);
       const result = await native.finish(job.id);
       assert.equal(result.frames, 30);
+      const audio = await runBinary(ffmpeg, [
+        "-v",
+        "info",
+        "-i",
+        destination,
+        "-vn",
+        "-af",
+        "volumedetect",
+        "-f",
+        "null",
+        "-",
+      ]);
+      const mean = /mean_volume: (-?[\d.]+) dB/.exec(audio.error);
+      assert.ok(
+        mean && Number(mean[1]) > -50,
+        "retimed overlay and imported audio must be audible with primary muted",
+      );
       assert.equal(native.jobs.size, 0);
     });
     await t.test(

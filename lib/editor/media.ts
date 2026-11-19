@@ -328,11 +328,11 @@ export class Player {
   canvas: HTMLCanvasElement;
   doc: Document;
   urls: Record<string, string>;
-  videos = new Map<number, HTMLVideoElement | HTMLAudioElement>();
-  images = new Map<number, HTMLImageElement>();
+  videos = new Map<number | string, HTMLVideoElement | HTMLAudioElement>();
+  images = new Map<number | string, HTMLImageElement>();
   ctx: AudioContext | null = null;
   dest: MediaStreamAudioDestinationNode | null = null;
-  nodes = new Map<number, GainNode>();
+  nodes = new Map<number | string, GainNode>();
   playing = false;
   time = 0;
   frame = 0;
@@ -343,6 +343,7 @@ export class Player {
   onFailure?: (e: Error) => void;
   exporting = false;
   color: ColorRenderer | null = null;
+  fontReady: Promise<unknown> | null = null;
   constructor(
     canvas: HTMLCanvasElement,
     doc: Document,
@@ -355,9 +356,18 @@ export class Player {
     this.onTime = onTime;
   }
   async init() {
-    for (let i = 0; i < this.doc.sources.length; i++) {
-      const s = this.doc.sources[i],
-        url = this.urls[s.id];
+    const media = [
+      ...this.doc.sources.map((s, i) => ({
+        key: i as number | string,
+        source: s,
+      })),
+      ...[...this.doc.overlays, ...this.doc.audio].map((l) => ({
+        key: l.id,
+        source: this.doc.sources[l.sourceIndex],
+      })),
+    ];
+    for (const { key: i, source: s } of media) {
+      const url = this.urls[s.id];
       if (!url) continue;
       if (s.kind === "image") {
         if (!this.images.has(i)) {
@@ -389,11 +399,10 @@ export class Player {
         });
       }
     }
-    await Promise.all(
-      ["TikTok Sans", "Inter", "Montserrat", "Poppins"].map((f) =>
-        document.fonts.load(`600 30px "${f}"`).catch(() => {}),
-      ),
-    );
+    this.fontReady ??= document.fonts
+      .load('600 30px "TikTok Sans"')
+      .catch(() => {});
+    await this.fontReady;
     this.draw();
   }
   audio() {
@@ -416,7 +425,7 @@ export class Player {
   sync() {
     const at = atTime(this.doc, this.time);
     const active = new Map<
-      number,
+      number | string,
       { t: number; speed: number; volume: number }
     >();
     if (at)
@@ -432,23 +441,19 @@ export class Player {
           a.fadeIn ? (this.time - a.start) / a.fadeIn : 1,
           a.fadeOut ? (a.end - this.time) / a.fadeOut : 1,
         );
-        active.set(a.sourceIndex, {
-          t: a.sourceStart + this.time - a.start,
-          speed: 1,
-          volume: a.volume * Math.max(0, fade),
+        active.set(a.id, {
+          t: a.sourceStart + (this.time - a.start) * (a.speed ?? 1),
+          speed: a.speed ?? 1,
+          volume: a.muted ? 0 : a.volume * Math.max(0, fade),
         });
       }
     }
     for (const o of this.doc.overlays) {
-      if (
-        this.time >= o.start &&
-        this.time < o.end &&
-        !active.has(o.sourceIndex)
-      )
-        active.set(o.sourceIndex, {
-          t: o.sourceStart + this.time - o.start,
-          speed: 1,
-          volume: 0,
+      if (this.time >= o.start && this.time < o.end)
+        active.set(o.id, {
+          t: o.sourceStart + (this.time - o.start) * (o.speed ?? 1),
+          speed: o.speed ?? 1,
+          volume: o.volume ?? 0,
         });
     }
     for (const [i, v] of this.videos) {
@@ -481,8 +486,11 @@ export class Player {
     if (at) {
       const s = at.segment,
         src = this.doc.sources[s.sourceIndex],
-        v = this.videos.get(s.sourceIndex);
-      if (v instanceof HTMLVideoElement && v.readyState >= 2) {
+        v = this.images.get(s.sourceIndex) || this.videos.get(s.sourceIndex);
+      if (
+        v instanceof HTMLImageElement ||
+        (v instanceof HTMLVideoElement && v.readyState >= 2)
+      ) {
         const a = s.appearance,
           c = a.crop;
         ctx.save();
@@ -516,8 +524,7 @@ export class Player {
     }
     for (const o of this.doc.overlays) {
       if (this.time < o.start || this.time >= o.end) continue;
-      const media =
-          this.images.get(o.sourceIndex) || this.videos.get(o.sourceIndex),
+      const media = this.images.get(o.id) || this.videos.get(o.id),
         s = this.doc.sources[o.sourceIndex];
       if (
         media &&
@@ -617,18 +624,14 @@ export class Player {
   async renderFrame(time: number) {
     this.pause();
     this.time = time;
-    const targets = new Map<number, number>(),
+    const targets = new Map<number | string, number>(),
       at = atTime(this.doc, time);
     if (at) targets.set(at.segment.sourceIndex, at.sourceTime);
     for (const overlay of this.doc.overlays)
-      if (
-        time >= overlay.start &&
-        time < overlay.end &&
-        !targets.has(overlay.sourceIndex)
-      )
+      if (time >= overlay.start && time < overlay.end)
         targets.set(
-          overlay.sourceIndex,
-          overlay.sourceStart + time - overlay.start,
+          overlay.id,
+          overlay.sourceStart + (time - overlay.start) * (overlay.speed ?? 1),
         );
     await Promise.all(
       [...targets].map(async ([index, position]) => {

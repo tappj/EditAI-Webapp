@@ -1,0 +1,160 @@
+import {
+  duration,
+  segmentDuration,
+  textTiming,
+  validate,
+  type Document,
+} from "./model.ts";
+export type Track = "segments" | "texts" | "overlays" | "audio";
+const clamp = (v: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, v));
+// Main-track edits preserve absolute layer placement, cropping only at the new end.
+export function fitLayers(d: Document) {
+  const end = duration(d);
+  d.texts = d.texts.filter(
+    (t) => !t.anchor || d.segments.some((s) => s.id === t.anchor!.segmentId),
+  );
+  d.overlays = d.overlays.filter((x) => x.start < end - 0.01);
+  d.audio = d.audio.filter((x) => x.start < end - 0.01);
+  for (const x of [...d.overlays, ...d.audio]) x.end = Math.min(x.end, end);
+  return validate(d);
+}
+export function gestureEdit(
+  base: Document,
+  track: Track,
+  id: string,
+  mode: "start" | "end" | "move",
+  delta: number,
+) {
+  const d = structuredClone(base);
+  if (!Number.isFinite(delta)) throw Error("Invalid timeline movement.");
+  if (track === "segments") {
+    const s = d.segments.find((s) => s.id === id);
+    if (!s) throw Error("Select a clip.");
+    if (mode === "start")
+      s.start = clamp(s.start + delta * s.speed, 0, s.end - 0.1);
+    else if (mode === "end")
+      s.end = clamp(
+        s.end + delta * s.speed,
+        s.start + 0.1,
+        d.sources[s.sourceIndex].duration,
+      );
+    else {
+      const i = d.segments.indexOf(s);
+      const center =
+        d.segments.slice(0, i).reduce((n, x) => n + segmentDuration(x), 0) +
+        segmentDuration(s) / 2 +
+        delta;
+      d.segments.splice(i, 1);
+      let offset = 0,
+        target = 0;
+      for (const other of d.segments) {
+        if (center < offset + segmentDuration(other) / 2) break;
+        offset += segmentDuration(other);
+        target++;
+      }
+      d.segments.splice(target, 0, s);
+    }
+    return fitLayers(d);
+  }
+  const layer = d[track].find((x) => x.id === id);
+  if (!layer) throw Error("Select a layer.");
+  if (track === "texts") {
+    const t = d.texts.find((x) => x.id === id)!;
+    Object.assign(t, textTiming(base, t));
+    delete t.anchor;
+  }
+  const len = layer.end - layer.start;
+  const source =
+    "sourceIndex" in layer ? d.sources[layer.sourceIndex] : undefined;
+  const sourceStart = "sourceStart" in layer ? layer.sourceStart : 0;
+  const sourceAvailable =
+    source && source.kind !== "image"
+      ? (source.duration - sourceStart) /
+        ("speed" in layer ? layer.speed || 1 : 1)
+      : Infinity;
+  // Audio is constrained to its neighboring clips in its own lane.
+  let left = 0,
+    right = duration(d);
+  if (track === "audio") {
+    const audio = d.audio.find((x) => x.id === id)!;
+    for (const x of d.audio.filter(
+      (x) => x.id !== id && x.lane === audio.lane,
+    )) {
+      if (x.end <= audio.start) left = Math.max(left, x.end);
+      if (x.start >= audio.end) right = Math.min(right, x.start);
+    }
+  }
+  if (mode === "move") {
+    layer.start = clamp(layer.start + delta, left, right - len);
+    layer.end = layer.start + len;
+  } else if (mode === "start") {
+    const start = clamp(
+      layer.start + delta,
+      Math.max(
+        left,
+        layer.start - sourceStart / ("speed" in layer ? layer.speed || 1 : 1),
+      ),
+      layer.end - 0.05,
+    );
+    if ("sourceStart" in layer)
+      layer.sourceStart +=
+        (start - layer.start) * ("speed" in layer ? layer.speed || 1 : 1);
+    layer.start = start;
+  } else
+    layer.end = clamp(
+      layer.end + delta,
+      layer.start + 0.05,
+      Math.min(right, layer.start + sourceAvailable),
+    );
+  return validate(d);
+}
+
+export function layerAction(
+  base: Document,
+  track: Exclude<Track, "segments">,
+  id: string,
+  action: "split" | "duplicate" | "delete",
+  playhead: number,
+) {
+  const d = structuredClone(base);
+  const items = d[track];
+  const layer = items.find((x) => x.id === id);
+  if (!layer) throw Error("Select a layer.");
+  if (action === "delete") {
+    items.splice(
+      items.findIndex((x) => x.id === id),
+      1,
+    );
+    return validate(d);
+  }
+  if (track === "texts") {
+    const t = d.texts.find((x) => x.id === id)!;
+    Object.assign(t, textTiming(base, t));
+    delete t.anchor;
+  }
+  const copy = { ...structuredClone(layer), id: crypto.randomUUID() };
+  if (action === "split") {
+    if (playhead <= layer.start + 0.05 || playhead >= layer.end - 0.05)
+      throw Error("Place the playhead inside the selected layer.");
+    copy.start = playhead;
+    if ("sourceStart" in copy)
+      copy.sourceStart +=
+        (playhead - layer.start) * ("speed" in layer ? layer.speed || 1 : 1);
+    layer.end = playhead;
+  } else {
+    const length = layer.end - layer.start;
+    copy.start = layer.end;
+    copy.end = Math.min(duration(d), copy.start + length);
+    if (copy.end - copy.start < 0.05)
+      throw Error(
+        "There is no room after this layer. Shorten or move it first.",
+      );
+  }
+  // Each union member keeps its original track shape.
+  if (track === "texts") d.texts.push(copy as Document["texts"][number]);
+  else if (track === "overlays")
+    d.overlays.push(copy as Document["overlays"][number]);
+  else d.audio.push(copy as Document["audio"][number]);
+  return validate(d);
+}

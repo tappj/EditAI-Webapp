@@ -14,6 +14,14 @@ const session = {
   },
 };
 test.beforeEach(async ({ page }) => {
+  // Upload now starts AI automatically. Keep every provider boundary explicit in
+  // fixture tests; targeted cases register their more specific responses later.
+  await page.route("**/api/ai/**", (r) =>
+    r.fulfill({
+      status: 503,
+      json: { error: "AI is unavailable in this isolated browser fixture." },
+    }),
+  );
   await page.route("**/api/assets/*", (route) =>
     route.request().method() === "PUT"
       ? route.fulfill({ json: { ok: true } })
@@ -103,6 +111,9 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("button", { name: "Add text", exact: true }).click();
   await page.getByLabel("Caption text").fill("Browser export test");
+  await expect
+    .poll(() => page.evaluate(() => document.fonts.status))
+    .toBe("loaded");
   await page.screenshot({ path: "outputs/editor-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await page
@@ -121,10 +132,7 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   ]);
   await file.saveAs("outputs/verified-export.mp4");
   await expect(page.getByRole("status")).toContainText("MP4 exported");
-  await page
-    .getByRole("button", { name: "Edits", exact: true })
-    .first()
-    .click();
+  await page.getByRole("button", { name: "My creations", exact: true }).click();
   await expect(page.locator(".project-card")).toHaveCount(1);
   await page.locator(".project-card-title").click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
@@ -154,7 +162,9 @@ test("AI failure preserves timeline and explains recovery", async ({
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await page.getByRole("button", { name: "Find my best takes" }).click();
+  await expect(
+    page.getByRole("button", { name: "Split clip at playhead" }),
+  ).toBeVisible();
   await expect(page.getByRole("alert")).toContainText(
     "Not enough publik API balance.",
     { timeout: 120000 },
@@ -184,10 +194,7 @@ test("large local media survives a browser reload and deletion removes its stora
   await expect(
     page.getByRole("button", { name: "Split clip at playhead" }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Edits", exact: true })
-    .first()
-    .click();
+  await page.getByRole("button", { name: "My creations", exact: true }).click();
   await page.reload();
   await page
     .getByRole("button", { name: /^Edits/ })
@@ -204,10 +211,7 @@ test("large local media survives a browser reload and deletion removes its stora
     )
     .toBeGreaterThan(0.2);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Edits", exact: true })
-    .first()
-    .click();
+  await page.getByRole("button", { name: "My creations", exact: true }).click();
   page.once("dialog", (d) => d.accept());
   await page
     .getByRole("button", { name: "Delete storage-recovery", exact: true })
@@ -321,6 +325,23 @@ test("overlay and imported audio appear in actual exported media", async ({
     .nth(1)
     .setInputFiles(join(process.cwd(), "outputs/music.wav"));
   await expect(page.locator(".layer-settings")).toHaveCount(2);
+  await page
+    .getByRole("button", { name: "Replace audio", exact: true })
+    .click({ noWaitAfter: true });
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles({
+      name: "replacement.wav",
+      mimeType: "audio/wav",
+      buffer: await readFile(join(process.cwd(), "outputs/music.wav")),
+    });
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await expect(page.locator(".audio-row")).toContainText("replacement.wav");
+  await page.getByRole("checkbox", { name: "Mute audio", exact: true }).check();
+  await page
+    .getByRole("checkbox", { name: "Mute audio", exact: true })
+    .uncheck();
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await page
     .getByRole("combobox", { name: /Resolution|Export resolution/i })
@@ -890,7 +911,7 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
     buffer: fixture,
   });
   await expect.poll(() => backedUp).toBe(true);
-  await page.getByRole("button", { name: "Edits", exact: true }).click();
+  await page.getByRole("button", { name: "My creations", exact: true }).click();
   const card = page.locator(".project-card");
   await expect(card.locator("video.frame-ready")).toBeVisible();
   await expect(card.locator("small")).toContainText(/\d.+KB · /);
@@ -1146,4 +1167,270 @@ test("signing out from the web studio returns to the public homepage", async ({
     page.getByRole("region", { name: "EditAI onboarding" }),
   ).toHaveCount(0);
   await expect(page.locator(".app-shell")).toHaveCount(0);
+});
+
+test("upload creates an automatic first cut before editor entry, preserves originals, and EditAI receives real layers", async ({
+  page,
+}) => {
+  await authenticated(page);
+  let edits = 0,
+    speech = 0;
+  await page.route("**/api/ai/transcribe", (r) => {
+    speech++;
+    return r.fulfill({
+      json: {
+        words: [
+          { word: "Keep", start: 0.2, end: 0.5 },
+          { word: "restart", start: 1, end: 1.3 },
+          { word: "this.", start: 2, end: 2.4 },
+        ],
+      },
+    });
+  });
+  await page.route("**/api/ai/edit", (r) => {
+    edits++;
+    const words = r.request().postDataJSON().words;
+    return r.fulfill({
+      json: { cuts: [{ firstWord: words[1].id, lastWord: words[1].id }] },
+    });
+  });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  expect(edits).toBe(1);
+  expect(speech).toBe(1);
+  await expect(page.getByRole("status")).toContainText("first cut is ready");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await page.getByRole("button", { name: "Overlay", exact: true }).click();
+  await expect(page.locator(".overlay-row .sequence-item")).toHaveCount(1);
+  await page.route("**/api/ai/chat", async (r) => {
+    const body = r.request().postDataJSON();
+    expect(body.document.overlays).toHaveLength(1);
+    expect(body.supportedOperations).toContain("overlayLayout");
+    await r.fulfill({
+      json: {
+        message: "Moved the overlay.",
+        operations: [
+          {
+            kind: "overlayLayout",
+            target: body.document.overlays[0].segment.id,
+            media: { centerX: 0.25 },
+          },
+        ],
+      },
+    });
+  });
+  await page
+    .locator(".suite-tools")
+    .getByRole("button", { name: "EditAI", exact: true })
+    .click();
+  await page.getByLabel("Message EditAI").fill("Move the overlay to the left");
+  await page.getByRole("button", { name: "Send message" }).click();
+  await expect(page.locator(".message.assistant")).toContainText(
+    "Moved the overlay",
+  );
+  await page.screenshot({
+    path: "outputs/editor-first-cut.png",
+    fullPage: true,
+  });
+});
+
+test("visible playhead, grouped edge trim, selection without seeking, layer drag, and image append", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await page.route("**/api/ai/**", (r) =>
+    r.fulfill({
+      status: 503,
+      json: { error: "Fixture: automatic AI unavailable." },
+    }),
+  );
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await page.getByLabel("Timeline playhead").fill("1.5");
+  const cursor = await page.locator(".sequence-playhead").boundingBox();
+  expect(cursor!.width).toBeGreaterThanOrEqual(2);
+  const clip = page.locator(".timeline-clip");
+  await clip.click({ position: { x: 50, y: 30 } });
+  await expect(page.getByLabel("Timeline playhead")).toHaveValue("1.5");
+  const original = (await clip.boundingBox())!.width;
+  const grip = clip.locator(".trim-grip.end");
+  const b = (await grip.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + 15);
+  await page.mouse.down();
+  await page.mouse.move(b.x - 65, b.y + 15, { steps: 8 });
+  await page.mouse.up();
+  expect((await clip.boundingBox())!.width).toBeLessThan(original - 30);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  expect((await clip.boundingBox())!.width).toBeCloseTo(original, 0);
+  await clip.scrollIntoViewIfNeeded();
+  const beforeLeft = (await clip.boundingBox())!;
+  const leftGrip = (await clip.locator(".trim-grip.start").boundingBox())!;
+  await page.mouse.move(leftGrip.x + 6, leftGrip.y + 18);
+  await page.mouse.down();
+  await page.mouse.move(leftGrip.x + 30, leftGrip.y + 18, { steps: 5 });
+  const duringLeft = (await clip.boundingBox())!;
+  expect(duringLeft.x + duringLeft.width).toBeCloseTo(
+    beforeLeft.x + beforeLeft.width,
+    0,
+  );
+  expect(duringLeft.x).toBeGreaterThan(beforeLeft.x + 10);
+  await page.mouse.up();
+  expect((await clip.boundingBox())!.x).toBeCloseTo(beforeLeft.x, 0);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await page.getByRole("button", { name: "Split clip at playhead" }).click();
+  await page.locator(".timeline-clip").first().click();
+  await page.getByRole("button", { name: "Overlay", exact: true }).click();
+  const overlay = page.locator(".overlay-row .sequence-item");
+  await overlay.click();
+  await page.getByLabel("Timeline playhead").fill("1.3");
+  await expect(
+    page.getByRole("button", { name: "Move selected layer" }),
+  ).toBeVisible();
+  const box = (await page
+    .getByRole("button", { name: "Move selected layer" })
+    .boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2, {
+    steps: 5,
+  });
+  await page.mouse.up();
+  await page
+    .getByRole("button", { name: "Append media" })
+    .click({ noWaitAfter: true });
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles(join(process.cwd(), "outputs/overlay.png"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await expect(page.locator(".sequence-playhead")).toBeVisible();
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await page
+    .getByLabel("Project font", { exact: true })
+    .selectOption("Montserrat");
+  await expect(page.getByLabel("Font", { exact: true })).toHaveValue(
+    "Montserrat",
+  );
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await expect(page.getByLabel("Font", { exact: true })).toHaveValue(
+    "Montserrat",
+  );
+  await page.screenshot({
+    path: "outputs/editor-drag-layers.png",
+    fullPage: true,
+  });
+});
+
+test("same account resumes consent and playable local footage after repeated sign-out; another account stays isolated", async ({
+  page,
+}) => {
+  let signedIn = true,
+    otherAccount = false;
+  await authenticated(page);
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
+      json: signedIn
+        ? {
+            ...session,
+            profile: {
+              ...session.profile,
+              ownerId: otherAccount
+                ? "different-account-fixture"
+                : "returning-account-fixture",
+              consentDecided: true,
+            },
+          }
+        : {
+            screen: {
+              id: "remembered",
+              title: "Welcome back",
+              body: "Resume your saved Publik connection.",
+              buttons: [
+                {
+                  action: "resume",
+                  label: "Continue with your Publik account",
+                },
+                {
+                  action: "switch_account",
+                  label: "Use another Publik account",
+                },
+              ],
+            },
+            profile: {},
+            claimURL: null,
+          },
+    }),
+  );
+  await page.route("**/api/logout", (r) => {
+    signedIn = false;
+    return r.fulfill({ json: { ok: true } });
+  });
+  await page.route("**/api/resume", (r) => {
+    signedIn = true;
+    otherAccount = r.request().postDataJSON().forget === true;
+    return r.fulfill({ json: { ok: true } });
+  });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await page.getByLabel("Timeline playhead").fill("0.9");
+  await page.getByRole("button", { name: "Split clip at playhead" }).click();
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  for (let i = 0; i < 2; i++) {
+    await page
+      .getByRole("button", { name: "My creations", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect(page.locator(".m-header")).toBeVisible();
+    await page.locator(".m-header .nav-sign-in").click();
+    await expect(
+      page.getByRole("heading", { name: "Welcome back", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Continue with your Publik account" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Upload your raw takes here" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Allow AI processing?" }),
+    ).toHaveCount(0);
+    await expect(page.locator(".project-card")).toHaveCount(1);
+    await page.locator(".project-card-title").click();
+    await expect(page.locator(".timeline-clip")).toHaveCount(2);
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect
+      .poll(async () =>
+        Number(await page.getByLabel("Timeline playhead").inputValue()),
+      )
+      .toBeGreaterThan(0.2);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+  }
+  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.locator(".m-header .nav-sign-in").click();
+  await page
+    .getByRole("button", { name: "Use another Publik account" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
+  ).toBeVisible();
+  await expect(page.locator(".project-card")).toHaveCount(0);
 });

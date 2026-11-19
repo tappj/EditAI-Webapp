@@ -178,3 +178,147 @@ test("quiet-pause evidence never cuts the protected union of overlapping words",
   assert.ok(cuts[0].end <= 5);
   assert.equal(silenceCuts(samples, rate, [], 0).length, 0);
 });
+
+test("timeline edge gestures restore original media at changed speed and preserve word IDs", async () => {
+  const { gestureEdit } = await import("../lib/editor/timeline.ts");
+  const d = fixture();
+  d.segments[0].start = 2;
+  d.segments[0].end = 8;
+  d.segments[0].speed = 2;
+  const shorter = gestureEdit(d, "segments", d.segments[0].id, "start", 1);
+  assert.equal(shorter.segments[0].start, 4);
+  const restored = gestureEdit(
+    shorter,
+    "segments",
+    d.segments[0].id,
+    "start",
+    -100,
+  );
+  assert.equal(restored.segments[0].start, 0);
+  assert.deepEqual(restored.words, d.words);
+  assert.equal(d.segments[0].start, 2);
+});
+test("layer gestures and splitting map source time at changed speed and prevent audio collisions", async () => {
+  const { gestureEdit, layerAction } =
+    await import("../lib/editor/timeline.ts");
+  const d = fixture();
+  d.audio = [
+    {
+      id: "a",
+      sourceIndex: 0,
+      sourceStart: 1,
+      start: 1,
+      end: 4,
+      speed: 2,
+      volume: 0.7,
+      fadeIn: 0,
+      fadeOut: 0,
+      lane: 0,
+    },
+    {
+      id: "b",
+      sourceIndex: 0,
+      sourceStart: 0,
+      start: 6,
+      end: 8,
+      volume: 1,
+      fadeIn: 0,
+      fadeOut: 0,
+      lane: 0,
+    },
+  ];
+  const moved = gestureEdit(d, "audio", "a", "move", 100);
+  assert.equal(moved.audio[0].end, 6);
+  const trimmed = gestureEdit(d, "audio", "a", "start", 0.5);
+  assert.equal(trimmed.audio[0].sourceStart, 2);
+  const splitLayer = layerAction(d, "audio", "a", "split", 2);
+  assert.equal(splitLayer.audio[2].sourceStart, 3);
+  assert.equal(splitLayer.audio[0].end, 2);
+  assert.throws(() => layerAction(d, "audio", "a", "duplicate", 0));
+  assert.deepEqual(d.words, moved.words);
+});
+test("shortening the main track crops layers without moving them and cleans deleted caption anchors", async () => {
+  const { gestureEdit, fitLayers } = await import("../lib/editor/timeline.ts");
+  const d = captions(fixture());
+  d.overlays = [
+    {
+      id: "overlay",
+      sourceIndex: 0,
+      start: 3,
+      end: 9,
+      sourceStart: 0,
+      x: 0.5,
+      y: 0.5,
+      width: 0.5,
+      opacity: 1,
+    },
+  ];
+  const out = gestureEdit(d, "segments", d.segments[0].id, "end", -5);
+  assert.equal(out.overlays[0].start, 3);
+  assert.equal(out.overlays[0].end, 5);
+  out.segments = [newSegment(0, 5)];
+  assert.equal(fitLayers(out).texts.length, 0);
+});
+
+test("EditAI can use imported media and edit layers atomically with native operation names", () => {
+  const original = fixture();
+  const d = split(original, original.segments[0].id, 5);
+  const overlay = applyOperations(d, [
+    { kind: "makeOverlay", target: d.segments[0].id, media: { time: 2 } },
+  ]);
+  const id = overlay.overlays[0].id;
+  const changed = applyOperations(overlay, [
+    { kind: "trim", target: id, start: 1, end: 4 },
+    { kind: "speed", target: id, value: 2 },
+    {
+      kind: "overlayLayout",
+      target: id,
+      media: { centerX: 0.25, centerY: 0.3, width: 0.4, time: 1 },
+    },
+    { kind: "filter", target: id, text: "Warm" },
+  ]);
+  assert.equal(changed.overlays[0].end, 2.5);
+  assert.equal(changed.overlays[0].sourceStart, 1);
+  assert.equal(changed.overlays[0].appearance?.filter, "Warm");
+  const audio = applyOperations(d, [
+    { kind: "addAudio", start: 1, end: 3, media: { source: 0, time: 2 } },
+  ]);
+  assert.equal(audio.audio[0].start, 2);
+  assert.throws(() =>
+    applyOperations(audio, [
+      { kind: "volume", target: audio.audio[0].id, value: 0.2 },
+      { kind: "audioSettings", target: audio.audio[0].id, media: { lane: 9 } },
+    ]),
+  );
+  assert.equal(audio.audio[0].volume, 1);
+  assert.equal(d.overlays.length, 0);
+});
+
+test("global caption defaults survive regeneration and audio mute retains volume", () => {
+  const d = fixture();
+  d.captionStyle = { font: "Montserrat", size: 0.08, color: "#fff176" };
+  const out = captions(d);
+  assert.ok(out.texts.every((t) => t.font === "Montserrat" && t.size === 0.08));
+  const audio = applyOperations(d, [
+    { kind: "addAudio", start: 0, end: 2, media: { source: 0, time: 0 } },
+  ]);
+  const muted = applyOperations(audio, [
+    { kind: "volume", target: audio.audio[0].id, value: 0.3 },
+    {
+      kind: "audioSettings",
+      target: audio.audio[0].id,
+      media: { isMuted: true },
+    },
+  ]);
+  assert.equal(muted.audio[0].muted, true);
+  assert.equal(muted.audio[0].volume, 0.3);
+  const restored = applyOperations(muted, [
+    {
+      kind: "audioSettings",
+      target: audio.audio[0].id,
+      media: { isMuted: false },
+    },
+  ]);
+  assert.equal(restored.audio[0].muted, false);
+  assert.equal(restored.audio[0].volume, 0.3);
+});

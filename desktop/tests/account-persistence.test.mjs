@@ -1,0 +1,230 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { LocalStore, LocalBucket } from "../local-store.mjs";
+import * as publik from "../../lib/server/publik.ts";
+import { hash, encrypt } from "../../lib/server/security.ts";
+import { newDocument, newSegment } from "../../lib/editor/model.ts";
+
+test("sign-out revokes active sessions; explicit verified resume retains consent, projects and original media without public handles", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "editai-account-"));
+  await build({
+    stdin: {
+      contents: 'export {createApi} from "./lib/server/api.ts";',
+      resolveDir: process.cwd(),
+    },
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    outfile: join(dir, "api.mjs"),
+  });
+  const { createApi } = await import(pathToFileURL(join(dir, "api.mjs")).href);
+  const migrations = await Promise.all(
+    [
+      "0000_furry_phil_sheldon.sql",
+      "0001_massive_expediter.sql",
+      "0002_optimal_the_anarchist.sql",
+      "0003_account_preferences.sql",
+    ].map((f) => readFile("drizzle/" + f, "utf8")),
+  );
+  const store = new LocalStore(join(dir, "data"), migrations);
+  const secret = Buffer.alloc(32, 19).toString("base64");
+  const active = crypto.randomUUID();
+  const credential = "fixture-private-install";
+  let account = null,
+    revoked = false,
+    provisions = 0;
+  const wallet = (key) => ({
+    claim_state: key === credential && !revoked ? "claimed" : "unclaimed",
+    key_id: key === credential ? "stable-install" : "anonymous",
+    account,
+    plan: { kind: "none" },
+    claim_url: "https://publikhq.com/claim/fixture",
+  });
+  const provider = {
+    ...publik,
+    provision: async () => {
+      provisions++;
+      return {
+        key: "fixture-anonymous",
+        browser_install_id: crypto.randomUUID(),
+      };
+    },
+    ensureSignedIn: async (key) => {
+      if (revoked && key === credential)
+        throw new publik.ApiError(401, "Connection revoked");
+      return { wallet: wallet(key) };
+    },
+    sendEvent: async () => false,
+  };
+  store.database
+    .prepare(
+      "INSERT INTO sessions (id,install_id,credential,choice,created_at,expires_at,telemetry) VALUES (?,?,?,?,?,?,0)",
+    )
+    .run(
+      await hash(active),
+      crypto.randomUUID(),
+      await encrypt(credential, secret),
+      "publik",
+      Date.now(),
+      Date.now() + 86400000,
+    );
+  const api = createApi(
+    {
+      DB: store,
+      BUCKET: new LocalBucket(join(dir, "backups")),
+      SESSION_ENCRYPTION_KEY: secret,
+    },
+    provider,
+  );
+  let jar = new Map([["editai_session", active]]);
+  async function request(path, body, method, cookies = jar) {
+    const raw = body instanceof Uint8Array;
+    const response = await api(
+      new Request("https://editai.test/api/" + path, {
+        method: method || (body === undefined ? "GET" : "POST"),
+        headers: {
+          origin: "https://editai.test",
+          cookie: [...cookies].map(([k, v]) => `${k}=${v}`).join("; "),
+          "content-type": raw ? "video/mp4" : "application/json",
+          ...(raw ? { "content-length": String(body.length) } : {}),
+        },
+        body:
+          body === undefined ? undefined : raw ? body : JSON.stringify(body),
+      }),
+    );
+    if (cookies === jar)
+      for (const cookie of response.headers.getSetCookie()) {
+        const pair = cookie.split(";")[0],
+          i = pair.indexOf("="),
+          name = pair.slice(0, i),
+          value = pair.slice(i + 1);
+        if (value) jar.set(name, value);
+        else jar.delete(name);
+      }
+    return response;
+  }
+  try {
+    const first = await (await request("session")).json();
+    assert.equal(first.screen.id, "ready");
+    const owner = first.profile.ownerId;
+    await request("consent", { allow: true });
+    const id = crypto.randomUUID(),
+      source = crypto.randomUUID(),
+      d = newDocument();
+    d.sources = [
+      {
+        id: source,
+        name: "original.mp4",
+        duration: 2,
+        width: 16,
+        height: 16,
+        kind: "video",
+        mime: "video/mp4",
+      },
+    ];
+    d.segments = [newSegment(0, 2)];
+    assert.equal(
+      (await request("projects", { id, title: "Retained edit", document: d }))
+        .status,
+      200,
+    );
+    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+    assert.equal((await request("assets/" + source, bytes, "PUT")).status, 200);
+    const signedOut = await request("logout", {});
+    assert.equal(signedOut.status, 200);
+    assert.ok(
+      signedOut.headers
+        .getSetCookie()
+        .every((x) => x.includes("HttpOnly") && x.includes("Secure")),
+    );
+    assert.ok(!jar.has("editai_session"));
+    assert.ok(jar.has("editai_connection"));
+    assert.equal(
+      store.database
+        .prepare("SELECT id FROM sessions WHERE id=?")
+        .get(await hash(active)),
+      undefined,
+    );
+    assert.equal(
+      (
+        await request(
+          "projects",
+          undefined,
+          "GET",
+          new Map([["editai_session", active]]),
+        )
+      ).status,
+      401,
+      "the old active bearer is invalid",
+    );
+    const gate = await (await request("session")).json();
+    assert.equal(gate.screen.id, "remembered");
+    assert.equal(gate.profile.ownerId, undefined);
+    assert.equal(
+      (await request("projects")).status,
+      401,
+      "remembering alone does not authorize data access",
+    );
+    const beforeResume = provisions;
+    assert.equal((await request("resume", {})).status, 200);
+    assert.equal(
+      provisions,
+      beforeResume,
+      "resume reuses the verified install",
+    );
+    const resumed = await (await request("session")).json();
+    assert.equal(resumed.screen.id, "ready");
+    assert.equal(resumed.profile.ownerId, owner);
+    assert.equal(resumed.profile.consent, true);
+    assert.equal(resumed.profile.consentDecided, true);
+    assert.equal((await (await request("projects")).json()).projects[0].id, id);
+    assert.deepEqual(
+      new Uint8Array(await (await request("assets/" + source)).arrayBuffer()),
+      bytes,
+    );
+    await request("consent", { allow: false });
+    await request("logout", {});
+    await request("session");
+    await request("resume", {});
+    const declined = await (await request("session")).json();
+    assert.equal(declined.profile.consent, false);
+    assert.equal(declined.profile.consentDecided, true);
+    await request("logout", {});
+    await request("session");
+    revoked = true;
+    assert.equal(
+      (await request("resume", {})).status,
+      401,
+      "revoked credentials cannot resume",
+    );
+    revoked = false;
+    account = { id: "a-different-verified-account", handle: null };
+    assert.equal((await request("resume", {})).status, 200);
+    const different = await (await request("session")).json();
+    assert.notEqual(different.profile.ownerId, owner);
+    assert.equal(different.profile.consentDecided, false);
+    assert.equal((await request("choice", { choice: "publik" })).status, 200);
+    assert.equal((await (await request("projects")).json()).projects.length, 0);
+    assert.equal(
+      store.database
+        .prepare("SELECT COUNT(*) AS n FROM projects WHERE owner=?")
+        .get(owner).n,
+      1,
+      "another account must not delete or adopt the prior library",
+    );
+    await request("logout", { forget: true });
+    assert.ok(!jar.has("editai_connection"));
+    assert.notEqual(
+      (await (await request("session")).json()).screen.id,
+      "ready",
+    );
+  } finally {
+    store.database.close();
+    await rm(dir, { recursive: true, force: true });
+  }
+});

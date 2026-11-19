@@ -49,3 +49,28 @@ The app installed in /Applications still contained an older icon with visible al
 The new signed ZIP was used unchanged by GitHub workflow 44466054032 to assemble the guided DMG. App and DMG notarization/stapling, Gatekeeper checks, matching app.asar, matching native source and updater digests pass. The installed 0.2.2 application passed genuine persisted Publik authentication and a 19-second synthetic-video MP4 export in 1.365 seconds. Export-only acceptance intentionally makes no AI request; captions and AI are not claimed newly verified. No API routes or provider responses were mocked for installed acceptance. GitHub Desktop QA run 44465746779 passes web, macOS and Windows jobs.
 
 The personal station uses own_key and has official usage sharing turned off. No OpenAI API key is saved yet. The owner confirmed ChatGPT Pro; activation of any eligible API credit benefit and creation/entry of the API key remain owner account actions. Own-key routing/encryption tests use isolated provider transport and do not prove real OpenAI connectivity. The separate Publik listing review state remains external; no unsupported listing mutation was attempted.
+
+## Shared editor parity source/build — November 19, 2026
+
+Shared editor now runs automatic first cuts on normal uploads, exposes a visible
+playhead and source-time drag trim/reorder timeline, adds editable text/overlay/
+three-lane audio rows, independent layer playback, preview placement/resize,
+image append, audio replacement/mute, project typography and native EditAI media
+operations. Home and Edits layouts are unchanged. `npm run desktop:build` and all
+11 desktop checks pass. The native compositor test includes primary-muted output
+with a 2× overlay and 0.5× audio, real FFmpeg export and audible-level verification.
+All 23 shared studio browser cases pass in Chromium and WebKit. These fixtures
+are distinct from installed-app real-auth acceptance: no new signed/notarized
+installer, updater publication, live account verification or installed-DMG test
+was performed for this revision. See ../VERIFICATION.md and ../WEB-PARITY.md.
+
+Account continuity fix: normal sign-out pauses official telemetry and retains the
+OS-encrypted Publik install; explicit account switching forgets it. The shared API
+invalidates its active bearer while retaining encrypted resume state and saved
+account preferences. Matching-owner personal-key settings are restored on local
+session recreation. Client sign-out flushes pending timeline edits before closing
+its session. Typecheck, all 12 desktop checks and desktop build pass; the additional
+real SQLite/bucket/cookie integration check covers original media persistence,
+allow/decline consent, revoked sessions/keys and other-account isolation using
+fixture provider transport. No new installed-DMG or live account acceptance is
+claimed; updated source is being published with the hosted build.

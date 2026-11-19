@@ -127,9 +127,12 @@ function writeCredential(c: PublikCredential | null): void {
   cachedCredential = c;
   pendingPersistence = pendingPersistence.then(() => persistCredential(c));
 }
-export function forgetCredential() {
+export function pauseTelemetry() {
   if (timer) clearInterval(timer);
   timer = null;
+}
+export function forgetCredential() {
+  pauseTelemetry();
   writeCredential(null);
 }
 let activeUsage = () => true;
@@ -288,11 +291,16 @@ export function gateScreen(
       : "You have publik use ready.";
   return {
     id,
-    title: w.plan.kind === "plan" ? "Connect your plan" : "Your account is ready",
+    title:
+      w.plan.kind === "plan" ? "Connect your plan" : "Your account is ready",
     note,
     body: `${who} ${what} Connect it to use AI in this app, or use your own key.`,
     buttons: [
-      { action: "connect", label: w.plan.kind === "plan" ? "Connect your plan" : "Use Publik balance" },
+      {
+        action: "connect",
+        label:
+          w.plan.kind === "plan" ? "Connect your plan" : "Use Publik balance",
+      },
       { action: "own_key", label: "Use my own key" },
     ],
   };

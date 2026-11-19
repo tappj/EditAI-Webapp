@@ -77,3 +77,35 @@ The owner removed the previous metric/award/profile block and replaced the visua
 
 - November 19: shortened shared web/desktop onboarding to eight steps, beginning with EditAI's existing questions. Adopted light raised choices, native palette accents, segmented progress, selection/press feedback and directional transitions from the supplied onboarding reference. Preserve choice sizes, saved answers, monthly estimate and official Publik gate; migrate old demo drafts. Required web/desktop checks, six targeted browser cases per engine and fixture desktop-gate acceptance pass. Hardware haptics depend on device support; public desktop installer remains 0.2.2. See docs/VERIFICATION.md.
 - Owner correction: restored the pre-CutAI EditAI icon tiles and onboarding styling while retaining the segmented progress bar and shortened eight-step flow. Required checks, both builds, two onboarding checks per browser and desktop fixture handoff pass.
+
+## Editor suite interaction parity — November 19, 2026
+
+Read-only audit of current native editor views/session/timeline/chat and caption
+contracts; implement the shared web/Electron automatic upload-to-first-cut flow,
+visible time-scaled playhead/thumbnail strip, grouped source-bound drag trims,
+reordering/zoom, real text/overlay/three-lane audio tracks, canvas manipulation,
+main-track images, native move-to-overlay behavior, audio replacement/mute,
+project typography scope and request-based EditAI media operations. Home and
+Edits layouts remain unchanged. Unsafe AI changes fail atomically and source word
+IDs/original media remain stable. Error/cancellation/declined-consent paths retain
+manual editing. Typecheck, 21 unit/security tests, 11 desktop checks, both builds
+and all 23 studio checks in each of Chromium/WebKit pass, including actual
+browser MP4 export and retimed native layer-audio mixing. See docs/WEB-PARITY.md
+and docs/VERIFICATION.md for mapping, evidence and limits. Local branch only;
+fixture AI/auth does not prove fresh provider connectivity, and no hosted or
+signed installer release was published.
+
+## Account continuity and publication — November 19, 2026
+
+Owner authorized committing/pushing all pending work and updating the live site.
+Fixed destructive install rotation on normal sign-out: retain an encrypted
+connection separately from the invalidated active session and explicitly verify
+Publik on resume. Preserve allow/decline consent, the verified library owner,
+source bytes and last edits; cancel stale account sync. Desktop retains its OS
+vault connection until explicit switching. Real SQLite/bucket/cookie tests pass
+with provider fixtures; all 12 desktop checks, 21 web tests and both builds pass.
+All 24 studio scenarios have passed in Chromium/WebKit, with the final two
+sign-out checks repeated after the final edit-flush change. Previously deleted
+handle-less install identities are not automatically merged or claimed recovered.
+Includes all prior uncommitted editor parity work. Publication evidence follows
+in docs/VERIFICATION.md.

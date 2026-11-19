@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer, webUtils } = require("electron");
 const call = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
 contextBridge.exposeInMainWorld("editaiDesktop", {
   platform: process.platform,
-  signOut: () => ipcRenderer.invoke("account:sign-out"),
+  signOut: (forget = false) => ipcRenderer.invoke("account:sign-out", forget),
   importFile: (id, file, mime) => {
     const path = webUtils.getPathForFile(file);
     return path ? call("media:retain", id, path, mime) : Promise.resolve(null);

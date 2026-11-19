@@ -2446,3 +2446,328 @@ progress {
     display: none;
   }
 }
+
+/* Shared web/desktop editor timeline. All geometry uses edited seconds. */
+.is-editor .timeline-toolbar {
+  flex-wrap: wrap;
+}
+.is-editor .suite-tools {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.is-editor .suite-tools .text-button {
+  font-size: 12px;
+  min-height: 36px;
+}
+.is-editor .editai-action {
+  background: linear-gradient(110deg, #c4e0ff, #ddcdfb, #f9d5e4);
+  color: #202b42;
+  border-radius: 20px;
+  padding: 8px 14px;
+}
+.sequence-options {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 5px 0 10px;
+}
+.sequence-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sequence-options input {
+  width: 100px;
+}
+.sequence-viewport {
+  overflow: auto;
+  max-height: 300px;
+  min-height: 140px;
+  padding: 0 12px 12px;
+  background: var(--panel);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overscroll-behavior: contain;
+}
+.sequence-content {
+  position: relative;
+  min-height: 125px;
+  padding-bottom: 10px;
+}
+.sequence-ruler {
+  height: 30px;
+  position: relative;
+  touch-action: none;
+  cursor: crosshair;
+}
+.sequence-ruler span {
+  position: absolute;
+  top: 5px;
+  font: 10px monospace;
+  color: var(--muted);
+  border-left: 1px solid var(--border);
+  padding: 0 0 5px 4px;
+  pointer-events: none;
+}
+.sequence-row {
+  position: relative;
+  height: 38px;
+  margin-bottom: 5px;
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  border-radius: 5px;
+}
+.sequence-row > svg {
+  position: sticky;
+  left: 4px;
+  top: 10px;
+  opacity: 0.35;
+}
+.sequence-row.main-row {
+  height: 74px;
+}
+.sequence-item {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 14px;
+  color: var(--ink);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.sequence-item.timeline-clip {
+  max-width: none;
+  min-height: 0;
+  background: var(--ice);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sequence-item strong {
+  display: block;
+  font-size: 11px;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.sequence-item small {
+  font: 10px monospace;
+  padding: 0;
+  color: var(--muted);
+}
+.sequence-item.selected {
+  border: 2px solid #326ab4;
+  box-shadow: inset 0 0 0 1px #ffffff60;
+}
+.sequence-item:focus-visible,
+.trim-grip:focus-visible {
+  outline: 2px solid #326ab4;
+  outline-offset: 2px;
+}
+.text-row .sequence-item {
+  background: var(--lavender);
+}
+.overlay-row .sequence-item {
+  background: #ebcbea;
+}
+.audio-row .sequence-item {
+  background: #b8e5d7;
+  color: #233d39;
+}
+.layer-clip small {
+  display: none;
+}
+.trim-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  padding: 0;
+  cursor: ew-resize;
+  touch-action: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.trim-grip.start {
+  left: 0;
+}
+.trim-grip.end {
+  right: 0;
+}
+.sequence-item.selected .trim-grip,
+.sequence-item:hover .trim-grip {
+  background: #326ab4;
+}
+.trim-grip span {
+  position: absolute;
+  top: 30%;
+  bottom: 30%;
+  left: 5px;
+  width: 2px;
+  background: white;
+  border-radius: 2px;
+}
+.sequence-add {
+  position: absolute;
+  top: 15px;
+  width: 38px;
+  height: 42px;
+  background: #c4e0ff;
+  color: #244e86;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+.sequence-playhead {
+  position: absolute;
+  top: 23px;
+  bottom: 0;
+  width: 2px;
+  background: #326ab4;
+  box-shadow: 0 0 0 1px #ffffffb0;
+  z-index: 6;
+  pointer-events: none;
+}
+.sequence-playhead > span {
+  position: absolute;
+  top: -8px;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  background: #326ab4;
+  clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%);
+}
+.sequence-seek {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% - 54px);
+  height: 25px;
+  opacity: 0;
+  pointer-events: none;
+}
+.sequence-seek:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (max-width: 700px) {
+  .sequence-options > span {
+    display: none;
+  }
+  .sequence-options {
+    justify-content: flex-end;
+  }
+  .is-editor .timeline-toolbar .suite-tools .text-button {
+    display: flex;
+  }
+}
+.sequence-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 0 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.sequence-options label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.sequence-options input {
+  width: 110px;
+}
+.is-editor .canvas-stage {
+  position: relative;
+}
+.preview-selection {
+  position: absolute;
+  border: 1px solid #fff;
+  outline: 1px solid #326ab4;
+  pointer-events: none;
+}
+.preview-move {
+  width: 100%;
+  height: 100%;
+  cursor: move;
+  touch-action: none;
+  pointer-events: auto;
+}
+.preview-resize {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #326ab4;
+  border-radius: 50%;
+  background: white;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+.canvas-stage:fullscreen {
+  background: #101216;
+  padding: 30px;
+}
+.canvas-stage:fullscreen canvas {
+  max-height: 95vh;
+  max-width: 95vw;
+}
+.clip-frames {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  opacity: 0.65;
+  pointer-events: none;
+}
+.clip-frames span {
+  flex: 1;
+  background-size: cover;
+  background-position: center;
+}
+.sequence-item.timeline-clip strong,
+.sequence-item.timeline-clip small {
+  position: relative;
+  background: #101b2ad9;
+  color: white;
+  border-radius: 3px;
+  padding: 2px 4px;
+  width: fit-content;
+  max-width: 100%;
+}
+.is-editor .inspector h3,
+.is-editor .media-panel h3 {
+  font-size: 14px;
+}
+.is-editor .inspector-tabs button,
+.is-editor .panel-tabs button {
+  font-size: 12px;
+}
+.is-editor .layer-settings > strong,
+.is-editor .clip-name {
+  font-size: 12px;
+}
+.sequence-viewport {
+  max-height: 300px;
+}
+.is-editor .sidebar {
+  display: none;
+}
+.is-editor .main-shell {
+  margin-left: 0;
+  width: 100%;
+}
+.is-editor .mobile-menu {
+  display: none;
+}

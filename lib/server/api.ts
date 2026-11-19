@@ -43,6 +43,26 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
     APP_SLUG,
   } = provider;
   const cookieName = "editai_session";
+  const connectionCookie = "editai_connection";
+  const cookieValue = (req: Request, name: string) =>
+    req.headers
+      .get("cookie")
+      ?.split(";")
+      .map((x) => x.trim())
+      .find((x) => x.startsWith(name + "="))
+      ?.slice(name.length + 1);
+  const connectionHeader = (req: Request, token = "") =>
+    `${connectionCookie}=${token}; HttpOnly; SameSite=Lax; Path=/api; Max-Age=${token ? 31536000 : 0}${new URL(req.url).protocol === "https:" ? "; Secure" : ""}`;
+  async function remembered(req: Request, db: D1Database) {
+    const token = cookieValue(req, connectionCookie);
+    if (!token || !/^[a-f0-9-]{36}$/.test(token)) return null;
+    return db
+      .prepare(
+        "SELECT * FROM sessions WHERE id=? AND expires_at>? AND owner IS NOT NULL",
+      )
+      .bind(await hash(token), Date.now())
+      .first<Session>();
+  }
   type Session = {
     id: string;
     install_id: string;
@@ -55,14 +75,11 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
     consent: number;
     telemetry: number;
   };
-  function result(body: unknown, status = 200, cookie?: string) {
-    return Response.json(body, {
-      status,
-      headers: {
-        "cache-control": "no-store",
-        ...(cookie ? { "set-cookie": cookie } : {}),
-      },
-    });
+  function result(body: unknown, status = 200, cookie?: string | string[]) {
+    const headers = new Headers({ "cache-control": "no-store" });
+    for (const value of Array.isArray(cookie) ? cookie : cookie ? [cookie] : [])
+      headers.append("set-cookie", value);
+    return Response.json(body, { status, headers });
   }
   const secret = () => env.SESSION_ENCRYPTION_KEY || "";
   async function current(req: Request) {
@@ -341,7 +358,91 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
       responseCookie = cookie;
       const ip = await hash(req.headers.get("cf-connecting-ip") || s.id);
       await limit(db, "http:" + ip, 150, 60);
+      if (path === "resume" && req.method === "POST") {
+        const b = await jsonBody(req);
+        const saved = await remembered(req, db);
+        if (b.forget === true) {
+          if (saved)
+            await db
+              .prepare("DELETE FROM sessions WHERE id=?")
+              .bind(saved.id)
+              .run();
+          return result({ ok: true }, 200, connectionHeader(req));
+        }
+        if (!saved?.credential)
+          throw new ApiError(
+            401,
+            "This device has no saved Publik connection. Sign in again.",
+          );
+        // A remembered connection never grants application access on its own.
+        // Explicit resume must re-run the genuine provider gate before binding.
+        const wallet = (
+          await ensureSignedIn(
+            await decrypt(saved.credential, secret()),
+            saved.choice,
+          )
+        ).wallet;
+        if (wallet.claim_state !== "claimed")
+          throw new ApiError(401, "Reconnect this device with Publik.");
+        const owner = await hash("publik:" + walletIdentity(wallet).reference);
+        const sameAccount = owner === saved.owner;
+        await db
+          .prepare(
+            "UPDATE sessions SET install_id=?,credential=?,choice=?,owner=?,own_key=?,consent=?,telemetry=? WHERE id=?",
+          )
+          .bind(
+            saved.install_id,
+            saved.credential,
+            sameAccount ? saved.choice : null,
+            owner,
+            sameAccount ? saved.own_key : null,
+            sameAccount ? saved.consent : 0,
+            saved.telemetry,
+            s.id,
+          )
+          .run();
+        await db
+          .prepare("DELETE FROM sessions WHERE id=?")
+          .bind(saved.id)
+          .run();
+        return result(
+          { ok: true },
+          200,
+          [cookie, connectionHeader(req)].filter((x): x is string => !!x),
+        );
+      }
       if (path === "session") {
+        const saved = !s.credential ? await remembered(req, db) : null;
+        if (saved?.credential) {
+          // This is an account picker, not an authenticated application session.
+          await ensureSignedIn(
+            await decrypt(saved.credential, secret()),
+            saved.choice,
+          );
+          return result(
+            {
+              screen: {
+                id: "remembered",
+                title: "Welcome back",
+                body: "Your saved Publik connection keeps this account’s consent and projects together on this device.",
+                buttons: [
+                  {
+                    action: "resume",
+                    label: "Continue with your Publik account",
+                  },
+                  {
+                    action: "switch_account",
+                    label: "Use another Publik account",
+                  },
+                ],
+              },
+              profile: { consent: false, consentDecided: false },
+              claimURL: null,
+            },
+            200,
+            cookie,
+          );
+        }
         if (Math.random() < 0.05)
           await db.batch([
             db
@@ -414,12 +515,27 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         );
       }
       if (path === "logout" && req.method === "POST") {
-        await db.prepare("DELETE FROM sessions WHERE id=?").bind(s.id).run();
-        return result(
-          { ok: true },
-          200,
-          `${cookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; Secure`,
-        );
+        const body = await jsonBody(req);
+        const prior = await remembered(req, db);
+        if (prior)
+          await db
+            .prepare("DELETE FROM sessions WHERE id=?")
+            .bind(prior.id)
+            .run();
+        let token = "";
+        if (s.credential && s.owner && body.forget !== true) {
+          token = crypto.randomUUID();
+          // Invalidate the active bearer while preserving its encrypted install.
+          await db
+            .prepare("UPDATE sessions SET id=?,last_event=0 WHERE id=?")
+            .bind(await hash(token), s.id)
+            .run();
+        } else
+          await db.prepare("DELETE FROM sessions WHERE id=?").bind(s.id).run();
+        return result({ ok: true }, 200, [
+          `${cookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${new URL(req.url).protocol === "https:" ? "; Secure" : ""}`,
+          connectionHeader(req, token),
+        ]);
       }
       const { key, w, owner } = await identified(db, s);
       if (path === "choice" && req.method === "POST") {
@@ -635,11 +751,10 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
             .bind(owner),
           db.prepare("DELETE FROM sessions WHERE owner=?").bind(owner),
         ]);
-        return result(
-          { ok: true },
-          200,
+        return result({ ok: true }, 200, [
           `${cookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; Secure`,
-        );
+          connectionHeader(req),
+        ]);
       }
       if (path.startsWith("assets/")) {
         if (!env.BUCKET)

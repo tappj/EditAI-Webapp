@@ -46,11 +46,13 @@ import {
   UserRound,
   Video,
   Volume2,
+  Maximize,
   X,
 } from "lucide-react";
 import {
   newDocument,
   newSegment,
+  makeOverlay,
   appearance,
   duplicate,
   duration,
@@ -117,6 +119,9 @@ import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
 import { TextStyleEditor } from "./components/TextStyleEditor";
 import { AppearanceEditor } from "./components/AppearanceEditor";
+import { PreviewHandles } from "./components/PreviewHandles";
+import { EditorTimeline } from "./components/EditorTimeline";
+import { fitLayers, layerAction, type Track } from "@/lib/editor/timeline";
 import { quietPauses } from "@/lib/editor/audio-evidence";
 type Screen =
   | "home"
@@ -188,7 +193,13 @@ export default function App({
     [playing, setPlaying] = useState(false),
     [selected, setSelected] = useState(""),
     [tool, setTool] = useState("clip"),
+    [editorPanel, setEditorPanel] = useState("media"),
+    [selectedLayer, setSelectedLayer] = useState<{
+      track: Track;
+      id: string;
+    } | null>(null),
     [selectedText, setSelectedText] = useState(""),
+    [onlySelectedText, setOnlySelectedText] = useState(false),
     [exportOpen, setExportOpen] = useState(false),
     [resolution, setResolution] = useState(1280),
     [fps, setFps] = useState(30),
@@ -238,6 +249,7 @@ export default function App({
     projectRef = useRef(project),
     urlsRef = useRef(urls),
     mediaKind = useRef("overlay");
+  const replacingAudio = useRef<string | null>(null);
   projectRef.current = project;
   urlsRef.current = urls;
   const [reference, setReference] = useState<Reference | null>(null);
@@ -389,11 +401,16 @@ export default function App({
   }, [authPurpose, gateAdvanced, refresh]);
   useEffect(() => {
     if (session?.screen.id !== "ready" || consentRequired) return;
-    setStorageScope(session.profile.ownerId || session.profile.handle);
-    void listProjects().then(setProjects);
+    let cancelled = false;
+    const owner = session.profile.ownerId || session.profile.handle;
+    setStorageScope(owner);
+    void listProjects().then((p) => {
+      if (!cancelled) setProjects(p);
+    });
     void api("projects")
       .then(async (b) => {
         for (const p of b.projects || []) {
+          if (cancelled) return;
           const remote = {
             id: p.id,
             title: p.title,
@@ -402,11 +419,14 @@ export default function App({
           };
           const local = (await listProjects()).find((x) => x.id === p.id);
           if (!local || local.updatedAt < remote.updatedAt)
-            await saveProject(remote);
+            await saveProject(remote, owner);
         }
-        setProjects(await listProjects());
+        const restored = await listProjects();
+        if (!cancelled) setProjects(restored);
       })
-      .catch(fail);
+      .catch((e) => {
+        if (!cancelled) fail(e);
+      });
     let active = false;
     const event = () => {
       active = true;
@@ -422,10 +442,17 @@ export default function App({
     }, 1800000);
     return () => {
       clearInterval(timer);
+      cancelled = true;
       document.removeEventListener("pointerdown", event);
       document.removeEventListener("keydown", event);
     };
-  }, [session?.screen.id, consentRequired, fail]);
+  }, [
+    session?.screen.id,
+    session?.profile.ownerId,
+    session?.profile.handle,
+    consentRequired,
+    fail,
+  ]);
   useEffect(() => {
     if (!project || project === persistedProject.current) return;
     const timer = setTimeout(async () => {
@@ -474,12 +501,26 @@ export default function App({
     const size = canvasSize(doc, resolution);
     player.current.canvas.width = size.width;
     player.current.canvas.height = size.height;
-    player.current.seek(Math.min(playhead, duration(doc)));
-    for (const font of new Set(doc.texts.map((t) => t.font)))
+    const current = player.current;
+    void current
+      .init()
+      .then(() => {
+        if (player.current === current)
+          current.seek(Math.min(current.time, duration(doc)));
+      })
+      .catch(fail);
+  }, [doc, resolution]);
+  const textFonts = [...new Set(doc?.texts.map((t) => t.font) || [])]
+    .sort()
+    .join("|");
+  useEffect(() => {
+    for (const font of textFonts.split("|").filter(Boolean)) {
       void document.fonts
         .load(`600 30px "${font}"`)
-        .then(() => player.current?.draw());
-  }, [doc, resolution]);
+        .then(() => player.current?.draw())
+        .catch(fail);
+    }
+  }, [textFonts, fail]);
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if (
@@ -497,14 +538,28 @@ export default function App({
         e.preventDefault();
         e.shiftKey ? redo() : undo();
       }
-      if (e.key.toLowerCase() === "s" && selected) {
+      if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey) {
         try {
+          if (selectedLayer && selectedLayer.track !== "segments") {
+            change(
+              layerAction(
+                projectRef.current!.document,
+                selectedLayer.track,
+                selectedLayer.id,
+                "split",
+                player.current?.time || 0,
+              ),
+            );
+            return;
+          }
           const a = atTime(
             projectRef.current!.document,
             player.current?.time || 0,
           );
           if (a)
-            change(split(projectRef.current!.document, selected, a.sourceTime));
+            change(
+              split(projectRef.current!.document, a.segment.id, a.sourceTime),
+            );
         } catch (e) {
           fail(e);
         }
@@ -522,7 +577,7 @@ export default function App({
   function change(d: Document, saved?: Project) {
     if (!projectRef.current) return;
     try {
-      validate(d);
+      fitLayers(d);
       setHistory((h) => [
         ...h.slice(-99),
         structuredClone(projectRef.current!.document),
@@ -538,6 +593,28 @@ export default function App({
     const copy = structuredClone(doc);
     fn(copy);
     change(copy);
+  }
+  function updateTextStyle(values: Partial<TextLayer>) {
+    patch((d) => {
+      const style = Object.fromEntries(
+        Object.entries(values).filter(
+          ([key]) => !["id", "anchor", "text", "start", "end"].includes(key),
+        ),
+      );
+      for (const t of d.texts.filter(
+        (t) => !onlySelectedText || t.id === selectedText,
+      ))
+        Object.assign(t, style);
+      if (!onlySelectedText) d.captionStyle = { ...d.captionStyle, ...style };
+      const selected = d.texts.find((t) => t.id === selectedText);
+      if (selected && (values.start != null || values.end != null)) {
+        Object.assign(selected, {
+          start: values.start ?? selected.start,
+          end: values.end ?? selected.end,
+        });
+        delete selected.anchor;
+      }
+    });
   }
   function updateClip(fn: (s: Segment) => void) {
     if (!segment) return;
@@ -568,6 +645,12 @@ export default function App({
   }
   async function choose(choice: string) {
     try {
+      if (choice === "resume" || choice === "switch_account") {
+        await api("resume", { forget: choice === "switch_account" });
+        await refresh();
+        setScreen("home");
+        return;
+      }
       if (choice === "sign_in" || choice === "get_plan") {
         const url = session?.claimURL;
         if (url) {
@@ -612,6 +695,31 @@ export default function App({
       setProgress(0);
     }
   }
+  async function signOut(forget = false) {
+    try {
+      player.current?.pause();
+      setPlaying(false);
+      const current = projectRef.current;
+      if (current) {
+        const saved = { ...current, updatedAt: Date.now() };
+        const owner = session.profile.ownerId || session.profile.handle;
+        await saveProject(saved, owner);
+        // Finish the last edit before invalidating its session. Local media is
+        // retained even if a cloud request is unavailable during sign-out.
+        await api("projects", {
+          id: saved.id,
+          title: saved.title,
+          document: saved.document,
+        }).catch(() => {});
+        persistedProject.current = current;
+      }
+      await api("logout", { forget });
+      if (desktop()) await desktop()!.signOut(forget);
+      else location.assign("/");
+    } catch (e) {
+      fail(e);
+    }
+  }
   async function openProject(p: Project) {
     await run("Opening your project", async () => {
       const next = { ...urlsRef.current };
@@ -632,6 +740,8 @@ export default function App({
       setUrls(next);
       persistedProject.current = p;
       setProject(p);
+      setSelectedLayer(null);
+      setSelectedText("");
       setSelected(p.document.segments[0]?.id || "");
       setPlayhead(0);
       setHistory([]);
@@ -682,12 +792,52 @@ export default function App({
       persistedProject.current = p;
       setProject(p);
       setProjects(await listProjects());
+      setSelectedLayer(null);
+      setSelectedText("");
       setSelected(d.segments[0].id);
       setPlayhead(0);
       setHistory([]);
       setFuture([]);
       setSummary(null);
       setMessages([]);
+      if (kind === "edit") {
+        if (session?.profile.consent) {
+          try {
+            const transcribed = await ensureWords(d, p);
+            setBusy("EditAI is creating your first cut");
+            activeSignal?.throwIfAborted();
+            const plan = await api("ai/edit", { words: transcribed.words });
+            activeSignal?.throwIfAborted();
+            const edited = applyCuts(transcribed, [
+              ...planCuts(transcribed, plan),
+              ...(transcribed.quietCuts || []),
+            ]);
+            p.document = edited;
+            setHistory([transcribed]);
+            setProject({ ...p });
+            setSelected(edited.segments[0].id);
+            await saveProject(p);
+            setNotice(
+              "Your first cut is ready. Ask EditAI for changes or refine the timeline. Undo restores the original.",
+            );
+          } catch (e: any) {
+            // Original media and any persisted transcription job remain recoverable.
+            if (e.name === "AbortError")
+              setNotice(
+                "Automatic editing cancelled. Your footage is ready for manual editing.",
+              );
+            else {
+              fail(e);
+              setNotice(
+                "Automatic editing could not finish. Your original footage is ready to edit; retry from EditAI.",
+              );
+            }
+          }
+        } else
+          setNotice(
+            "Your footage is ready for manual editing. Enable AI processing in Settings to create an automatic first cut.",
+          );
+      }
       setScreen(
         kind === "transcript"
           ? "transcript"
@@ -742,7 +892,14 @@ export default function App({
   }
   async function addMedia(files: File[]) {
     if (!doc) return;
+    const replacement = replacingAudio.current;
+    if (replacement && files.length !== 1) {
+      replacingAudio.current = null;
+      fail(Error("Choose one file to replace this sound."));
+      return;
+    }
     await run("Adding media", async () => {
+      const placement = Math.min(playhead, total - 0.1);
       const next = { ...urls },
         d = structuredClone(doc);
       const media: { id: string; file: File; mime: string }[] = [];
@@ -758,16 +915,31 @@ export default function App({
         const i = d.sources.length;
         d.sources.push(s);
         if (mediaKind.current === "clip") {
-          if (s.kind !== "video") throw Error("Main clips must be video.");
-          d.segments.push(newSegment(i, s.duration));
+          if (s.kind === "audio")
+            throw Error(
+              "Choose a video or image for the main track. Use Audio to add sound.",
+            );
+          d.segments.push(newSegment(i, s.kind === "image" ? 3 : s.duration));
         } else if (mediaKind.current === "audio") {
+          if (replacingAudio.current) {
+            const clip = d.audio.find((a) => a.id === replacingAudio.current);
+            if (!clip || s.kind === "image")
+              throw Error("Choose playable audio to replace this sound.");
+            clip.sourceIndex = i;
+            clip.sourceStart = 0;
+            clip.end = Math.min(
+              clip.end,
+              clip.start + s.duration / (clip.speed ?? 1),
+            );
+            continue;
+          }
           const lane = [0, 1, 2].find(
             (l) =>
               !d.audio.some(
                 (a) =>
                   a.lane === l &&
-                  a.start < playhead + s.duration &&
-                  a.end > playhead,
+                  a.start < placement + s.duration &&
+                  a.end > placement,
               ),
           );
           if (lane === undefined)
@@ -775,8 +947,8 @@ export default function App({
           d.audio.push({
             id: crypto.randomUUID(),
             sourceIndex: i,
-            start: playhead,
-            end: Math.min(total, playhead + s.duration),
+            start: placement,
+            end: Math.min(total, placement + s.duration),
             sourceStart: 0,
             volume: 0.7,
             fadeIn: 0,
@@ -787,10 +959,10 @@ export default function App({
           d.overlays.push({
             id: crypto.randomUUID(),
             sourceIndex: i,
-            start: playhead,
+            start: placement,
             end: Math.min(
               total,
-              playhead + (s.kind === "image" ? 5 : s.duration),
+              placement + (s.kind === "image" ? 5 : s.duration),
             ),
             sourceStart: 0,
             x: 0.75,
@@ -812,6 +984,7 @@ export default function App({
       setProjects(await listProjects());
       await syncProject(current, media);
     });
+    replacingAudio.current = null;
   }
   async function ensureWords(
     d: Document,
@@ -1069,15 +1242,46 @@ export default function App({
         document: {
           ...doc,
           segments: doc.segments.map((s) => ({ ...s, source: s.sourceIndex })),
-          overlays: [],
-          audioClips: [],
+          overlays: doc.overlays.map((o) => ({
+            start: o.start,
+            centerX: o.x,
+            centerY: o.y,
+            width: o.width,
+            segment: {
+              id: o.id,
+              source: o.sourceIndex,
+              start: o.sourceStart,
+              end: o.sourceStart + (o.end - o.start) * (o.speed ?? 1),
+              speed: o.speed ?? 1,
+              volume: o.volume ?? 0,
+              appearance: o.appearance,
+            },
+          })),
+          audioClips: doc.audio.map((a) => ({
+            start: a.start,
+            lane: a.lane,
+            fadeIn: a.fadeIn,
+            fadeOut: a.fadeOut,
+            isMuted: a.muted ?? false,
+            segment: {
+              id: a.id,
+              source: a.sourceIndex,
+              start: a.sourceStart,
+              end: a.sourceStart + (a.end - a.start) * (a.speed ?? 1),
+              speed: a.speed ?? 1,
+              volume: a.volume,
+            },
+          })),
         },
         sources: doc.sources.map((s) => ({
           name: s.name,
           isAudioOnly: s.kind === "audio",
         })),
         sourceDurations: doc.sources.map((s) => s.duration),
-        selectedClipID: selected,
+        selectedClipID:
+          selectedLayer?.track !== "texts"
+            ? selectedLayer?.id || selected
+            : selected,
         selectedCaptionID: selectedText || null,
         playhead,
         captionFormat: doc.captionFormat,
@@ -1271,7 +1475,9 @@ export default function App({
         </>
       ) : (
         <>
-          {gateScreen?.id === "choose" && <p>{gateScreen.body}</p>}
+          {["choose", "remembered"].includes(gateScreen?.id) && (
+            <p>{gateScreen.body}</p>
+          )}
           {gateScreen?.buttons?.map(
             (button: { action: string; label: string }, index: number) => (
               <Button
@@ -1402,7 +1608,8 @@ export default function App({
       {pending || session?.screen.id !== "ready" ? (
         !signedOut && (signIn || desktop()) ? (
           <MarketingSignIn onPrivacy={() => setPrivacy(true)}>
-            {gateScreen?.id === "choose" || (pending && !session) ? (
+            {["choose", "remembered"].includes(gateScreen?.id) ||
+            (pending && !session) ? (
               accountGate
             ) : (
               <StudioOnboarding>{accountGate}</StudioOnboarding>
@@ -1750,23 +1957,27 @@ export default function App({
                   <div className="editor-left">
                     <div className="panel-tabs">
                       <button
-                        className={tool === "media" ? "selected" : ""}
-                        onClick={() => setTool("media")}
+                        className={editorPanel === "media" ? "selected" : ""}
+                        onClick={() => setEditorPanel("media")}
                       >
                         <Film size={15} />
                         Media
                       </button>
                       <button
-                        className={tool === "chat" ? "selected" : ""}
-                        onClick={() => setTool("chat")}
+                        className={editorPanel === "chat" ? "selected" : ""}
+                        aria-label="Open EditAI chat"
+                        onClick={() => setEditorPanel("chat")}
                       >
                         <Sparkles size={15} />
                         EditAI
                       </button>
                     </div>
-                    {tool === "chat" ? (
+                    {editorPanel === "chat" ? (
                       <div className="chat-panel">
-                        <h3>A second pair of editing eyes.</h3>
+                        <h3>Edit with EditAI</h3>
+                        <Button secondary onClick={() => void aiEdit()}>
+                          Rebuild automatic cut
+                        </Button>
                         <p>Tell EditAI what you’d like to change.</p>
                         <div className="chat-messages">
                           {messages.map((m, i) => (
@@ -1857,9 +2068,14 @@ export default function App({
                               className="text-button"
                               aria-label={"Append " + s.name}
                               onClick={() =>
-                                s.kind === "video" &&
+                                s.kind !== "audio" &&
                                 patch((d) =>
-                                  d.segments.push(newSegment(i, s.duration)),
+                                  d.segments.push(
+                                    newSegment(
+                                      i,
+                                      s.kind === "image" ? 3 : s.duration,
+                                    ),
+                                  ),
                                 )
                               }
                             >
@@ -1868,10 +2084,6 @@ export default function App({
                           </div>
                         ))}
                         <div className="panel-divider" />
-                        <Button onClick={() => void aiEdit()}>
-                          <Sparkles size={16} />
-                          Find my best takes
-                        </Button>
                         <Button
                           secondary
                           onClick={() => void generateCaptions()}
@@ -1914,10 +2126,42 @@ export default function App({
                         <option value="fit">Fit</option>
                         <option value="fill">Fill</option>
                       </select>
+                      <IconButton
+                        label="Expand video preview"
+                        onClick={() => {
+                          const stage = canvas.current?.parentElement;
+                          if (document.fullscreenElement)
+                            void document.exitFullscreen();
+                          else void stage?.requestFullscreen().catch(fail);
+                        }}
+                      >
+                        <Maximize size={16} />
+                      </IconButton>
                       <span>PREVIEW</span>
                     </div>
                     <div className="canvas-stage">
                       <canvas ref={canvas} aria-label="Video preview" />
+                      <PreviewHandles
+                        canvas={canvas}
+                        doc={doc}
+                        id={
+                          selectedLayer?.track === "overlays"
+                            ? selectedLayer.id
+                            : tool === "captions"
+                              ? selectedText
+                              : ""
+                        }
+                        time={playhead}
+                        onChange={change}
+                        onPreview={(d) => {
+                          if (player.current) {
+                            player.current.pause();
+                            setPlaying(false);
+                            player.current.doc = d;
+                            player.current.draw();
+                          }
+                        }}
+                      />
                     </div>
                     <div className="transport">
                       <span>
@@ -1981,8 +2225,11 @@ export default function App({
                               const t: TextLayer = {
                                 id: crypto.randomUUID(),
                                 text: "Your words here",
-                                start: playhead,
-                                end: Math.min(total, playhead + 3),
+                                start: Math.min(playhead, total - 0.1),
+                                end: Math.min(
+                                  total,
+                                  Math.min(playhead, total - 0.1) + 3,
+                                ),
                                 x: 0.5,
                                 y: 0.5,
                                 size: 0.055,
@@ -1991,6 +2238,7 @@ export default function App({
                                 font: "TikTok Sans",
                                 outline: true,
                                 animation: "none",
+                                ...doc.captionStyle,
                               };
                               patch((d) => d.texts.push(t));
                               setSelectedText(t.id);
@@ -2021,6 +2269,31 @@ export default function App({
                           <option value="boxed">Boxed · 4 words</option>
                           <option value="single">One word</option>
                         </select>
+                        <label className="checkbox">
+                          <input
+                            type="checkbox"
+                            checked={onlySelectedText}
+                            disabled={!textLayer}
+                            onChange={(e) =>
+                              setOnlySelectedText(e.target.checked)
+                            }
+                          />
+                          Only apply style to this caption
+                        </label>
+                        <label>
+                          Project font
+                          <select
+                            aria-label="Project font"
+                            value={doc.captionStyle?.font || "TikTok Sans"}
+                            onChange={(e) =>
+                              updateTextStyle({ font: e.target.value })
+                            }
+                          >
+                            {FONTS.map((f) => (
+                              <option key={f}>{f}</option>
+                            ))}
+                          </select>
+                        </label>
                         <div className="text-layer-list">
                           {doc.texts.map((t) => (
                             <button
@@ -2055,11 +2328,7 @@ export default function App({
                               aria-label="Font"
                               value={textLayer.font}
                               onChange={(e) =>
-                                patch((d) => {
-                                  d.texts.find(
-                                    (t) => t.id === selectedText,
-                                  )!.font = e.target.value;
-                                })
+                                updateTextStyle({ font: e.target.value })
                               }
                             >
                               {FONTS.map((f) => (
@@ -2078,13 +2347,7 @@ export default function App({
                                 min={Number(min)}
                                 max={Number(max)}
                                 onChange={(n) =>
-                                  patch((d) => {
-                                    (
-                                      d.texts.find(
-                                        (t) => t.id === selectedText,
-                                      ) as any
-                                    )[key] = n;
-                                  })
+                                  updateTextStyle({ [String(key)]: n })
                                 }
                               />
                             ))}
@@ -2094,13 +2357,7 @@ export default function App({
                                   key={c}
                                   aria-label={"Text color " + c}
                                   style={{ background: c }}
-                                  onClick={() =>
-                                    patch((d) => {
-                                      d.texts.find(
-                                        (t) => t.id === selectedText,
-                                      )!.color = c;
-                                    })
-                                  }
+                                  onClick={() => updateTextStyle({ color: c })}
                                 />
                               ))}
                             </div>
@@ -2109,11 +2366,7 @@ export default function App({
                                 type="checkbox"
                                 checked={textLayer.outline}
                                 onChange={(e) =>
-                                  patch((d) => {
-                                    d.texts.find(
-                                      (t) => t.id === selectedText,
-                                    )!.outline = e.target.checked;
-                                  })
+                                  updateTextStyle({ outline: e.target.checked })
                                 }
                               />
                               Text outline
@@ -2122,11 +2375,7 @@ export default function App({
                               aria-label="Text animation"
                               value={textLayer.animation}
                               onChange={(e) =>
-                                patch((d) => {
-                                  d.texts.find(
-                                    (t) => t.id === selectedText,
-                                  )!.animation = e.target.value;
-                                })
+                                updateTextStyle({ animation: e.target.value })
                               }
                             >
                               {[
@@ -2144,14 +2393,7 @@ export default function App({
                               text={textLayer}
                               timing={textTiming(doc, textLayer)}
                               total={total}
-                              onChange={(values) =>
-                                patch((d) => {
-                                  Object.assign(
-                                    d.texts.find((t) => t.id === selectedText)!,
-                                    values,
-                                  );
-                                })
-                              }
+                              onChange={(values) => updateTextStyle(values)}
                             />
                             <Button
                               secondary
@@ -2186,6 +2428,7 @@ export default function App({
                           secondary
                           onClick={() => {
                             mediaKind.current = "audio";
+                            replacingAudio.current = null;
                             extraInput.current?.click();
                           }}
                         >
@@ -2220,6 +2463,42 @@ export default function App({
                                 }
                               />
                             ))}
+                            <Range
+                              label="Overlay speed"
+                              min={0.25}
+                              max={4}
+                              step={0.05}
+                              value={o.speed ?? 1}
+                              onChange={(n) =>
+                                patch((d) => {
+                                  const l = d.overlays.find(
+                                    (x) => x.id === o.id,
+                                  )!;
+                                  l.speed = n;
+                                  if (d.sources[l.sourceIndex].kind !== "image")
+                                    l.end = Math.min(
+                                      total,
+                                      l.start +
+                                        (d.sources[l.sourceIndex].duration -
+                                          l.sourceStart) /
+                                          n,
+                                    );
+                                })
+                              }
+                            />
+                            <Range
+                              label="Overlay volume"
+                              min={0}
+                              max={1}
+                              value={o.volume ?? 0}
+                              onChange={(n) =>
+                                patch((d) => {
+                                  d.overlays.find(
+                                    (x) => x.id === o.id,
+                                  )!.volume = n;
+                                })
+                              }
+                            />
                             <details>
                               <summary>Overlay appearance</summary>
                               <AppearanceEditor
@@ -2253,13 +2532,53 @@ export default function App({
                               {doc.sources[a.sourceIndex].name} · lane{" "}
                               {a.lane + 1}
                             </strong>
+                            <Button
+                              secondary
+                              onClick={() => {
+                                mediaKind.current = "audio";
+                                replacingAudio.current = a.id;
+                                extraInput.current?.click();
+                              }}
+                            >
+                              Replace audio
+                            </Button>
+                            <label className="checkbox">
+                              <input
+                                type="checkbox"
+                                checked={a.muted ?? false}
+                                onChange={(e) =>
+                                  patch((d) => {
+                                    d.audio.find((x) => x.id === a.id)!.muted =
+                                      e.target.checked;
+                                  })
+                                }
+                              />
+                              Mute audio
+                            </label>
+                            <Range
+                              label="Audio speed"
+                              min={0.25}
+                              max={4}
+                              step={0.05}
+                              value={a.speed ?? 1}
+                              onChange={(n) =>
+                                patch((d) => {
+                                  const l = d.audio.find((x) => x.id === a.id)!;
+                                  const end =
+                                    l.start +
+                                    ((l.end - l.start) * (l.speed ?? 1)) / n;
+                                  l.speed = n;
+                                  l.end = Math.min(total, end);
+                                })
+                              }
+                            />
                             <Range
                               label="Audio source in"
                               min={0}
                               max={Math.max(
                                 0,
                                 doc.sources[a.sourceIndex].duration -
-                                  (a.end - a.start),
+                                  (a.end - a.start) * (a.speed ?? 1),
                               )}
                               value={a.sourceStart}
                               onChange={(n) =>
@@ -2332,40 +2651,49 @@ export default function App({
                           <p className="clip-name">
                             {doc.sources[segment.sourceIndex].name}
                           </p>
-                          <div className="timing-fields">
-                            <label>
-                              In
-                              <input
-                                type="number"
-                                aria-label="Clip in point"
-                                min={0}
-                                max={segment.end - 0.1}
-                                step={0.1}
-                                value={Number(segment.start.toFixed(2))}
-                                onChange={(e) =>
-                                  updateClip((s) => {
-                                    s.start = +e.target.value;
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              Out
-                              <input
-                                type="number"
-                                aria-label="Clip out point"
-                                min={segment.start + 0.1}
-                                max={doc.sources[segment.sourceIndex].duration}
-                                step={0.1}
-                                value={Number(segment.end.toFixed(2))}
-                                onChange={(e) =>
-                                  updateClip((s) => {
-                                    s.end = +e.target.value;
-                                  })
-                                }
-                              />
-                            </label>
-                          </div>
+                          <p className="panel-note">
+                            Drag the blue clip edges on the timeline to shorten
+                            or restore footage.
+                          </p>
+                          <details>
+                            <summary>Precision trim</summary>
+                            <div className="timing-fields">
+                              <label>
+                                In
+                                <input
+                                  type="number"
+                                  aria-label="Clip in point"
+                                  min={0}
+                                  max={segment.end - 0.1}
+                                  step={0.1}
+                                  value={Number(segment.start.toFixed(2))}
+                                  onChange={(e) =>
+                                    updateClip((s) => {
+                                      s.start = +e.target.value;
+                                    })
+                                  }
+                                />
+                              </label>
+                              <label>
+                                Out
+                                <input
+                                  type="number"
+                                  aria-label="Clip out point"
+                                  min={segment.start + 0.1}
+                                  max={
+                                    doc.sources[segment.sourceIndex].duration
+                                  }
+                                  step={0.1}
+                                  value={Number(segment.end.toFixed(2))}
+                                  onChange={(e) =>
+                                    updateClip((s) => {
+                                      s.end = +e.target.value;
+                                    })
+                                  }
+                                />
+                              </label>
+                            </div>
+                          </details>
                           <Range
                             label="Speed"
                             min={0.25}
@@ -2409,6 +2737,21 @@ export default function App({
                         label="Split clip at playhead"
                         onClick={() => {
                           try {
+                            if (
+                              selectedLayer &&
+                              selectedLayer.track !== "segments"
+                            ) {
+                              change(
+                                layerAction(
+                                  doc,
+                                  selectedLayer.track,
+                                  selectedLayer.id,
+                                  "split",
+                                  playhead,
+                                ),
+                              );
+                              return;
+                            }
                             const a = atTime(doc, playhead);
                             if (a)
                               change(split(doc, a.segment.id, a.sourceTime));
@@ -2422,21 +2765,58 @@ export default function App({
                       <IconButton
                         label="Duplicate selected clip"
                         onClick={() => {
-                          if (segment) change(duplicate(doc, segment.id));
+                          try {
+                            if (
+                              selectedLayer &&
+                              selectedLayer.track !== "segments"
+                            )
+                              change(
+                                layerAction(
+                                  doc,
+                                  selectedLayer.track,
+                                  selectedLayer.id,
+                                  "duplicate",
+                                  playhead,
+                                ),
+                              );
+                            else if (segment)
+                              change(duplicate(doc, segment.id));
+                          } catch (e) {
+                            fail(e);
+                          }
                         }}
                       >
                         <Copy size={16} />
                       </IconButton>
                       <IconButton
                         label="Delete selected clip"
-                        disabled={doc.segments.length <= 1}
-                        onClick={() =>
-                          patch((d) => {
-                            d.segments = d.segments.filter(
-                              (s) => s.id !== segment?.id,
-                            );
-                          })
+                        disabled={
+                          (!selectedLayer ||
+                            selectedLayer.track === "segments") &&
+                          doc.segments.length <= 1
                         }
+                        onClick={() => {
+                          if (
+                            selectedLayer &&
+                            selectedLayer.track !== "segments"
+                          ) {
+                            change(
+                              layerAction(
+                                doc,
+                                selectedLayer.track,
+                                selectedLayer.id,
+                                "delete",
+                                playhead,
+                              ),
+                            );
+                            setSelectedLayer(null);
+                          } else
+                            patch((d) => {
+                              d.segments = d.segments.filter(
+                                (s) => s.id !== segment?.id,
+                              );
+                            });
+                        }}
                       >
                         <Trash2 size={17} />
                       </IconButton>
@@ -2465,7 +2845,7 @@ export default function App({
                             const i = d.segments.findIndex(
                               (s) => s.id === segment?.id,
                             );
-                            if (i < d.segments.length - 1)
+                            if (i >= 0 && i < d.segments.length - 1)
                               [d.segments[i + 1], d.segments[i]] = [
                                 d.segments[i],
                                 d.segments[i + 1],
@@ -2475,6 +2855,77 @@ export default function App({
                       >
                         <ChevronRight size={18} />
                       </IconButton>
+                    </div>
+                    <div className="suite-tools">
+                      <button
+                        className="text-button editai-action"
+                        onClick={() => setEditorPanel("chat")}
+                      >
+                        <Sparkles size={16} />
+                        EditAI
+                      </button>
+                      <button
+                        className="text-button"
+                        aria-label="Open text tools"
+                        onClick={() => setTool("captions")}
+                      >
+                        <Type size={16} />
+                        Text
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setTool("captions");
+                          if (!selectedText)
+                            setSelectedText(doc.texts[0]?.id || "");
+                        }}
+                      >
+                        <Type size={16} />
+                        Font
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => void generateCaptions()}
+                      >
+                        <Subtitles size={16} />
+                        Auto captions
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          mediaKind.current = "audio";
+                          replacingAudio.current = null;
+                          extraInput.current?.click();
+                        }}
+                      >
+                        <Music size={16} />
+                        Audio
+                      </button>
+                      <button
+                        className="text-button"
+                        disabled={!segment || doc.segments.length < 2}
+                        title="Move the selected clip above the main track; keep another clip below"
+                        onClick={() => {
+                          if (!segment) return;
+                          try {
+                            change(makeOverlay(doc, segment.id, playhead));
+                            setSelectedLayer({
+                              track: "overlays",
+                              id: segment.id,
+                            });
+                            setSelected(
+                              doc.segments.find((s) => s.id !== segment.id)
+                                ?.id || "",
+                            );
+                            setTool("layers");
+                          } catch (e) {
+                            fail(e);
+                          }
+                        }}
+                      >
+                        <Layers size={16} />
+                        Overlay
+                      </button>
                     </div>
                     <span>
                       {doc.segments.length} clips · {time(total)}
@@ -2490,59 +2941,40 @@ export default function App({
                       Add media
                     </button>
                   </div>
-                  <input
-                    className="playhead-slider"
-                    aria-label="Timeline playhead"
-                    type="range"
-                    min={0}
-                    max={total}
-                    step={0.01}
-                    value={playhead}
-                    onChange={(e) => player.current?.seek(+e.target.value)}
+                  <EditorTimeline
+                    urls={urls}
+                    doc={doc}
+                    playhead={playhead}
+                    selected={selectedLayer?.id || selectedText || selected}
+                    onSeek={(t) => {
+                      player.current?.pause();
+                      setPlaying(false);
+                      player.current?.seek(t);
+                      setPlayhead(t);
+                    }}
+                    onSelect={(track, id) => {
+                      player.current?.pause();
+                      setPlaying(false);
+                      setSelectedLayer({ track, id });
+                      if (track === "segments") {
+                        setSelected(id);
+                        setSelectedText("");
+                        setTool("clip");
+                      } else if (track === "texts") {
+                        setSelectedText(id);
+                        setTool("captions");
+                      } else {
+                        setSelectedText("");
+                        setTool("layers");
+                      }
+                    }}
+                    onChange={change}
+                    onError={fail}
+                    onAdd={() => {
+                      mediaKind.current = "clip";
+                      extraInput.current?.click();
+                    }}
                   />
-                  <div className="timeline-clips">
-                    {doc.segments.map((s, i) => {
-                      const offset = doc.segments
-                        .slice(0, i)
-                        .reduce((n, s) => n + segmentDuration(s), 0);
-                      return (
-                        <button
-                          key={s.id}
-                          className={`timeline-clip ${selected === s.id ? "selected" : ""}`}
-                          style={{
-                            flex: Math.max(0.4, segmentDuration(s)),
-                            minWidth: 90,
-                          }}
-                          onClick={() => {
-                            setSelected(s.id);
-                            setTool("clip");
-                            player.current?.seek(offset);
-                          }}
-                        >
-                          <Film size={14} />
-                          <strong>{doc.sources[s.sourceIndex].name}</strong>
-                          <small>
-                            {time(segmentDuration(s))}
-                            {s.speed !== 1 ? ` · ${s.speed}×` : ""}
-                          </small>
-                          <div className="waveform">
-                            {Array.from({ length: 24 }, (_, j) => (
-                              <i key={j} style={{ height: 8 }} />
-                            ))}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="caption-track">
-                    <Subtitles size={14} />
-                    {doc.texts.length
-                      ? `${doc.texts.length} text layers`
-                      : "Add captions to tell your story"}
-                    <button onClick={() => setTool("captions")}>
-                      <Plus size={13} />
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
@@ -2733,21 +3165,18 @@ export default function App({
                         ))}
                       </select>
                     </label>
-                    <Button
-                      secondary
-                      onClick={() =>
-                        void api("logout", {})
-                          .then(() =>
-                            desktop()
-                              ? desktop()!.signOut()
-                              : location.assign("/"),
-                          )
-                          .catch(fail)
-                      }
-                    >
+                    <Button secondary onClick={() => void signOut()}>
                       <LogOut size={16} />
                       Sign out
                     </Button>
+                    <Button secondary onClick={() => void signOut(true)}>
+                      Use another Publik account
+                    </Button>
+                    <p>
+                      Sign out keeps your encrypted Publik connection on this
+                      device for your next visit. Use another account
+                      disconnects it. Neither action deletes your saved videos.
+                    </p>
                   </section>
                   <section className="settings-card">
                     <h2>

@@ -21,8 +21,8 @@ export const saveMedia = async (id: string, file: Blob, mime = file.type) => {
     if (!retained) await native.writeMedia(id, await file.arrayBuffer(), mime);
     return;
   }
-  const d = await db(),
-    root = scope + ":" + id;
+  const root = scope + ":" + id,
+    d = await db();
   const previous = await d.get("media", root);
   try {
     await d.put("media", file, root);
@@ -74,8 +74,8 @@ export const loadMedia = async (
   id: string,
 ): Promise<MediaResource | undefined> => {
   if (desktop()) return (await desktop()!.getMedia(id)) || undefined;
-  const d = await db(),
-    root = scope + ":" + id,
+  const root = scope + ":" + id,
+    d = await db(),
     value = await d.get("media", root);
   if (value == null || value instanceof Blob) return value;
   if (
@@ -104,20 +104,23 @@ export const loadMedia = async (
     );
   return file;
 };
-export const saveProject = async (p: Project) => {
-  await (await db()).put("projects", { ...p, _owner: scope });
+export const saveProject = async (p: Project, owner = scope) => {
+  await (await db()).put("projects", { ...p, _owner: owner });
 };
-export const listProjects = async (): Promise<Project[]> =>
+export const listProjects = async (owner = scope): Promise<Project[]> =>
   ((await (await db()).getAll("projects")) as (Project & { _owner?: string })[])
-    .filter((p) => p._owner === scope)
+    .filter((p) => p._owner === owner)
     .sort((a, b) => b.updatedAt - a.updatedAt);
 export const deleteProject = async (id: string) => {
-  const d = await db(),
+  const owner = scope,
+    d = await db(),
     p = await d.get("projects", id);
-  if (p?._owner !== scope) return;
+  if (p?._owner !== owner) return;
   await d.delete("projects", id);
   const used = new Set(
-    (await listProjects()).flatMap((p) => p.document.sources.map((s) => s.id)),
+    (await listProjects(owner)).flatMap((p) =>
+      p.document.sources.map((s) => s.id),
+    ),
   );
   for (const s of p.document.sources)
     if (!used.has(s.id)) {
@@ -125,7 +128,7 @@ export const deleteProject = async (id: string) => {
         await desktop()!.deleteMedia([s.id]);
         continue;
       }
-      const root = scope + ":" + s.id,
+      const root = owner + ":" + s.id,
         media = await d.get("media", root);
       if (media?.format === "editai-media-chunks-v1")
         for (const key of media.keys)
@@ -135,16 +138,17 @@ export const deleteProject = async (id: string) => {
     }
 };
 export const clearStorage = async () => {
-  const d = await db();
+  const owner = scope,
+    d = await db();
   if (desktop())
     await desktop()!.deleteMedia([
       ...new Set(
-        (await listProjects()).flatMap((p) =>
+        (await listProjects(owner)).flatMap((p) =>
           p.document.sources.map((s) => s.id),
         ),
       ),
     ]);
   for (const k of await d.getAllKeys("media"))
-    if (String(k).startsWith(scope + ":")) await d.delete("media", k);
-  for (const p of await listProjects()) await d.delete("projects", p.id);
+    if (String(k).startsWith(owner + ":")) await d.delete("media", k);
+  for (const p of await listProjects(owner)) await d.delete("projects", p.id);
 };

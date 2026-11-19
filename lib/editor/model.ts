@@ -72,6 +72,8 @@ export type TextLayer = {
   anchor?: { segmentId: string; start: number; end: number };
 };
 export type Overlay = {
+  speed?: number;
+  volume?: number;
   appearance?: Appearance;
   id: string;
   sourceIndex: number;
@@ -84,6 +86,8 @@ export type Overlay = {
   opacity: number;
 };
 export type AudioLayer = {
+  muted?: boolean;
+  speed?: number;
   id: string;
   sourceIndex: number;
   start: number;
@@ -104,6 +108,9 @@ export type Document = {
   quietCuts?: { clip: number; start: number; end: number }[];
   canvas: "original" | "9:16" | "16:9" | "1:1";
   framing: "fit" | "fill";
+  captionStyle?: Partial<
+    Omit<TextLayer, "id" | "text" | "anchor" | "start" | "end">
+  >;
   captionFormat: "standard" | "boxed" | "single";
 };
 export type Project = {
@@ -187,7 +194,7 @@ export function validate(d: Document) {
     if (
       ids.has(s.id) ||
       !src ||
-      src.kind !== "video" ||
+      src.kind === "audio" ||
       !finite(s.start, 0, src.duration) ||
       !finite(s.end, 0.1, src.duration + 0.01) ||
       s.end - s.start < 0.099 ||
@@ -234,15 +241,18 @@ export function validate(d: Document) {
   for (const o of d.overlays) {
     if (
       !d.sources[o.sourceIndex] ||
+      d.sources[o.sourceIndex].kind === "audio" ||
       !finite(o.start, 0, len) ||
       !finite(o.end, o.start + 0.01, len) ||
       !finite(o.sourceStart, 0, d.sources[o.sourceIndex].duration) ||
       (d.sources[o.sourceIndex].kind !== "image" &&
-        o.sourceStart + o.end - o.start >
+        o.sourceStart + (o.end - o.start) * (o.speed ?? 1) >
           d.sources[o.sourceIndex].duration + 0.05) ||
       !finite(o.x, 0, 1) ||
       !finite(o.y, 0, 1) ||
       !finite(o.width, 0.1, 1) ||
+      !finite(o.speed ?? 1, 0.25, 4) ||
+      !finite(o.volume ?? 0, 0, 1) ||
       !finite(o.opacity, 0, 1)
     )
       throw Error("Invalid overlay.");
@@ -250,11 +260,13 @@ export function validate(d: Document) {
   for (const a of d.audio) {
     if (
       !d.sources[a.sourceIndex] ||
+      d.sources[a.sourceIndex].kind === "image" ||
       !finite(a.start, 0, len) ||
       !finite(a.end, a.start + 0.01, len) ||
       !finite(a.sourceStart, 0, d.sources[a.sourceIndex].duration) ||
-      a.sourceStart + a.end - a.start >
+      a.sourceStart + (a.end - a.start) * (a.speed ?? 1) >
         d.sources[a.sourceIndex].duration + 0.05 ||
+      !finite(a.speed ?? 1, 0.25, 4) ||
       !finite(a.volume, 0, 1) ||
       !Number.isInteger(a.lane) ||
       a.lane < 0 ||
@@ -352,6 +364,7 @@ export function captions(d: Document, format = d.captionFormat) {
         font: "TikTok Sans",
         outline: true,
         animation: "none",
+        ...out.captionStyle,
         anchor: { segmentId: s.id, start: a, end: b },
       });
       group = [];
@@ -470,6 +483,38 @@ export function duplicate(d: Document, id: string) {
     });
   return validate(out);
 }
+// Match EditorDocument.makeOverlay: move the selected source range above the anchor track.
+export function makeOverlay(d: Document, id: string, time: number) {
+  const out = structuredClone(d),
+    clip = out.segments.find((s) => s.id === id);
+  if (!clip || out.segments.length < 2 || !Number.isFinite(time))
+    throw Error(
+      "Keep another clip on the main track before making an overlay.",
+    );
+  out.segments = out.segments.filter((s) => s.id !== id);
+  out.texts = out.texts.filter((t) => t.anchor?.segmentId !== id);
+  const len = duration(out),
+    start = Math.max(0, Math.min(time, len - segmentDuration(clip)));
+  out.overlays = out.overlays.filter((o) => o.start < len - 0.01);
+  out.audio = out.audio.filter((a) => a.start < len - 0.01);
+  for (const layer of [...out.overlays, ...out.audio])
+    layer.end = Math.min(layer.end, len);
+  out.overlays.push({
+    id: clip.id,
+    sourceIndex: clip.sourceIndex,
+    sourceStart: clip.start,
+    start,
+    end: Math.min(len, start + segmentDuration(clip)),
+    speed: clip.speed,
+    volume: clip.volume,
+    appearance: structuredClone(clip.appearance),
+    x: 0.5,
+    y: 0.5,
+    width: 0.5,
+    opacity: 1,
+  });
+  return validate(out);
+}
 export function planCuts(d: Document, plan: any) {
   return (plan.cuts || []).map((c: any) => {
     const a = d.words.find((w) => w.id === c.firstWord),
@@ -541,6 +586,12 @@ export const supportedOperations = [
   "captionSize",
   "captionPosition",
   "captionStyle",
+  "addClip",
+  "addOverlay",
+  "addAudio",
+  "makeOverlay",
+  "overlayLayout",
+  "audioSettings",
 ];
 export function applyOperations(d: Document, ops: any[]) {
   let out = structuredClone(d);
@@ -554,8 +605,234 @@ export function applyOperations(d: Document, ops: any[]) {
       )
       .join("");
   for (const op of ops) {
+    const caption = out.texts.find((t) => t.id === op.target);
+    const textKinds = [
+      "updateText",
+      "removeText",
+      "retimeText",
+      "captionSize",
+      "captionPosition",
+      "captionStyle",
+    ];
+    if (caption && op.kind === "delete") {
+      out.texts = out.texts.filter((t) => t.id !== caption.id);
+      continue;
+    }
+    if (caption && op.kind === "split") {
+      const timing = textTiming(out, caption),
+        at = op.value;
+      if (
+        !Number.isFinite(at) ||
+        at <= timing.start + 0.05 ||
+        at >= timing.end - 0.05
+      )
+        throw Error("Unsafe text split.");
+      const right = {
+        ...structuredClone(caption),
+        id: crypto.randomUUID(),
+        start: at,
+        end: timing.end,
+      };
+      delete right.anchor;
+      Object.assign(caption, { start: timing.start, end: at });
+      delete caption.anchor;
+      out.texts.push(right);
+      continue;
+    }
+    if (caption && !textKinds.includes(op.kind))
+      throw Error("This operation is not supported for text.");
+    if (op.target && textKinds.includes(op.kind) && !caption)
+      throw Error("Select a text layer.");
+    const overlay = out.overlays.find((x) => x.id === op.target);
+    const audio = out.audio.find((x) => x.id === op.target);
+    const mediaLayer = overlay || audio;
+    if (
+      mediaLayer &&
+      [
+        "trim",
+        "speed",
+        "volume",
+        "move",
+        "delete",
+        "split",
+        "duplicate",
+        "overlayLayout",
+        "audioSettings",
+      ].includes(op.kind)
+    ) {
+      const speed = mediaLayer.speed ?? 1;
+      const len = mediaLayer.end - mediaLayer.start;
+      switch (op.kind) {
+        case "trim": {
+          const end = op.end ?? mediaLayer.sourceStart + len * speed;
+          mediaLayer.sourceStart = op.start ?? mediaLayer.sourceStart;
+          mediaLayer.end =
+            mediaLayer.start + (end - mediaLayer.sourceStart) / speed;
+          break;
+        }
+        case "speed":
+          mediaLayer.speed = op.value;
+          mediaLayer.end = mediaLayer.start + (len * speed) / op.value;
+          break;
+        case "volume":
+          mediaLayer.volume = op.value;
+          break;
+        case "move":
+          mediaLayer.start = op.value;
+          mediaLayer.end = op.value + len;
+          break;
+        case "delete":
+          out.overlays = out.overlays.filter((x) => x.id !== op.target);
+          out.audio = out.audio.filter((x) => x.id !== op.target);
+          break;
+        case "duplicate":
+        case "split": {
+          const copy = {
+            ...structuredClone(mediaLayer),
+            id: crypto.randomUUID(),
+          };
+          if (op.kind === "split") {
+            const at =
+              mediaLayer.start + (op.value - mediaLayer.sourceStart) / speed;
+            if (
+              !Number.isFinite(at) ||
+              at <= mediaLayer.start + 0.05 ||
+              at >= mediaLayer.end - 0.05
+            )
+              throw Error("Unsafe layer split.");
+            copy.sourceStart = op.value;
+            copy.start = at;
+            mediaLayer.end = at;
+          } else {
+            copy.start =
+              op.media?.time ?? (overlay ? mediaLayer.start : mediaLayer.end);
+            copy.end = copy.start + len;
+          }
+          if (overlay) out.overlays.push(copy as Overlay);
+          else out.audio.push(copy as AudioLayer);
+          break;
+        }
+        case "overlayLayout":
+          if (!overlay || !op.media) throw Error("Select an overlay.");
+          overlay.x = op.media.centerX ?? overlay.x;
+          overlay.y = op.media.centerY ?? overlay.y;
+          overlay.width = op.media.width ?? overlay.width;
+          overlay.start = op.media.time ?? overlay.start;
+          overlay.end = overlay.start + len;
+          break;
+        case "audioSettings":
+          if (!audio || !op.media) throw Error("Select an audio clip.");
+          audio.lane = op.media.lane ?? audio.lane;
+          audio.fadeIn = op.media.fadeIn ?? audio.fadeIn;
+          audio.fadeOut = op.media.fadeOut ?? audio.fadeOut;
+          if (op.media.isMuted != null) audio.muted = op.media.isMuted;
+          audio.start = op.media.time ?? audio.start;
+          audio.end = audio.start + len;
+          break;
+      }
+      continue;
+    }
+    if (op.kind === "makeOverlay") {
+      out = makeOverlay(out, op.target, op.media?.time);
+      continue;
+    }
+    if (["addClip", "addOverlay", "addAudio"].includes(op.kind)) {
+      const index = op.media?.source;
+      const source = out.sources[index];
+      if (!source || (op.kind !== "addAudio" && source.kind === "audio"))
+        throw Error("Choose media from the source library.");
+      const start = op.start,
+        end = op.end;
+      if (
+        !Number.isFinite(start) ||
+        !Number.isFinite(end) ||
+        start < 0 ||
+        end - start < 0.1 ||
+        end > source.duration
+      )
+        throw Error("Unsafe media range.");
+      if (op.kind === "addClip") {
+        const at = op.value ?? out.segments.length;
+        if (!Number.isInteger(at) || at < 0 || at > out.segments.length)
+          throw Error("Invalid clip position.");
+        out.segments.splice(at, 0, { ...newSegment(index, end), start });
+      } else {
+        const time = op.media?.time;
+        if (!Number.isFinite(time) || time < 0)
+          throw Error("Invalid layer position.");
+        const speed = 1;
+        const common = {
+          id: crypto.randomUUID(),
+          sourceIndex: index,
+          sourceStart: start,
+          speed,
+          start: time,
+          end: Math.min(duration(out), time + (end - start) / speed),
+        };
+        if (op.kind === "addAudio") {
+          const lane =
+            op.media?.lane ??
+            [0, 1, 2].find(
+              (l) =>
+                !out.audio.some(
+                  (x) =>
+                    x.lane === l &&
+                    x.start < common.end &&
+                    x.end > common.start,
+                ),
+            );
+          if (lane == null) throw Error("Audio lanes are occupied.");
+          out.audio.push({
+            ...common,
+            lane,
+            volume: 1,
+            muted: op.media?.isMuted ?? false,
+            fadeIn: op.media?.fadeIn ?? 0,
+            fadeOut: op.media?.fadeOut ?? 0,
+          });
+        } else
+          out.overlays.push({
+            ...common,
+            x: op.media?.centerX ?? 0.5,
+            y: op.media?.centerY ?? 0.5,
+            width: op.media?.width ?? 0.5,
+            opacity: 1,
+            volume: 1,
+            appearance: appearance(),
+          });
+      }
+      continue;
+    }
+    const overlayTarget: Segment | undefined = overlay
+      ? {
+          ...newSegment(
+            overlay.sourceIndex,
+            overlay.sourceStart +
+              (overlay.end - overlay.start) * (overlay.speed ?? 1),
+          ),
+          id: overlay.id,
+          start: overlay.sourceStart,
+          appearance: overlay.appearance ?? appearance(),
+        }
+      : undefined;
+    if (audio) throw Error("This operation is not supported for audio.");
+    if (
+      overlay &&
+      ![
+        "filter",
+        "adjustment",
+        "opacity",
+        "crop",
+        "resetCrop",
+        "resetAppearance",
+      ].includes(op.kind)
+    )
+      throw Error("This operation is not supported for overlays.");
     const targets = op.target
-      ? out.segments.filter((s) => s.id === op.target)
+      ? [
+          ...out.segments.filter((s) => s.id === op.target),
+          ...(overlayTarget ? [overlayTarget] : []),
+        ]
       : out.segments;
     const texts = op.target
       ? out.texts.filter((t) => t.id === op.target)
@@ -567,7 +844,8 @@ export function applyOperations(d: Document, ops: any[]) {
     if (
       op.target &&
       !out.segments.some((s) => s.id === op.target) &&
-      !out.texts.some((t) => t.id === op.target)
+      !out.texts.some((t) => t.id === op.target) &&
+      !mediaLayer
     )
       throw Error(
         "AI referred to a layer that does not exist. Your project was kept.",
@@ -828,6 +1106,7 @@ export function applyOperations(d: Document, ops: any[]) {
           `This editor cannot safely apply ${op.kind}. Your timeline was kept.`,
         );
     }
+    if (overlay && overlayTarget) overlay.appearance = overlayTarget.appearance;
   }
   return validate(out);
 }

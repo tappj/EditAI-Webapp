@@ -216,3 +216,108 @@ Browser authentication and desktop IPC are fixtures and do not establish fresh r
 ### Restore original EditAI presentation — November 19, 2026
 
 At the owner's correction, restored the pre-CutAI onboarding styling from d5701b3: original icon tiles, flat pastel choices, corner selection checkmarks, centered headings and bordered white panel. Retained the segmented progress bar at the top, eight-step sequence and existing motion accessibility. Shared web/desktop styling is updated. Typecheck, 16 unit/security tests and both builds pass; both onboarding regressions pass in Chromium and WebKit against a fresh production Worker. The built desktop gate passes its fixture handoff check and the restored desktop screen was visually inspected. These fixture checks do not prove new Publik connectivity; the public desktop installer remains 0.2.2.
+
+## Editor suite native interaction parity — November 19, 2026
+
+Read the sibling editor's current Swift views, timeline/session model and chat
+operations, plus its editor/core-editing/caption documentation. The current Swift
+`makeOverlay` moves the selected source clip while retaining another main clip;
+the older documentation's copy behavior is superseded. The iOS checkout is
+read-only. Feature mapping and remaining platform differences are in
+`docs/WEB-PARITY.md`.
+
+Implemented upload-to-automatic-first-cut entry, safe error/cancellation fallback,
+original-timeline Undo, a visible proportional timeline playhead, source-frame
+thumbnails, ruler scrubbing, zoom, grouped edge trims and clip reordering. Left
+trims keep the opposite edge fixed during the drag and close the gap on release.
+Text/overlay/audio rows support moving, source-bound trimming, split, duplicate
+and delete; audio respects its neighbors on three lanes. Selected visual layers
+can be moved and resized on the preview. Main-track image append, independent
+layer decoders, overlay/audio speed and volume, audio replacement/mute, project
+font defaults/style scope and fullscreen preview use the shared browser/Electron
+renderer. The request-based EditAI button replaces the manual best-takes CTA and
+uses all 29 native operation names with actual imported layer context and atomic
+validation. Home and Edits layouts are unchanged; the focused editor returns via
+My creations.
+
+`npm run typecheck`, **21 unit/security checks**, **11 desktop checks**, production
+web build and desktop build pass. The desktop compositor regression now mutes
+the main track, includes both retimed overlay sound and imported audio, exports
+through real FFmpeg, and verifies audible output with volumedetect. New component
+and timeline-helper ESLint checks pass. Existing broad editor-file lint debt is
+not claimed clean.
+
+Fixtures were freshly generated with `scripts/make-fixture.mjs`, then FFmpeg
+converted the browser recording to MP4 and generated the PNG/PCM sound assets.
+Browser auth and provider results are intercepted only in Playwright. Because
+upload now invokes AI automatically, the suite explicitly intercepts the default
+AI failure boundary too; specific AI tests override it. An earlier test fell
+through to the unconfigured local Worker and left Chromium's font request
+pending; that is not evidence of a configured provider failure. Font preparation
+is also cached per player and requested only when the set of text fonts changes.
+A direct gesture test was corrected to scroll the trim grip into view before
+using mouse coordinates after clicking Undo.
+
+No production authentication bypass, fabricated production AI response, secret
+read, paid provider call, push, merge, hosted publication or signed installer
+release was performed. Fixture acceptance does not establish fresh real Publik
+or OpenAI connectivity, installed desktop release acceptance, actual Safari
+hardware behavior, or equivalence to AVFoundation HDR/frame timing.
+
+Final production-browser acceptance: **all 23 studio cases pass in Chromium
+(36.7 seconds) and WebKit (53.7 seconds)** against a freshly started built Worker
+on port 5181. This includes automatic first-cut entry with exactly one fixture
+transcription/edit request, original restoration with Undo/Redo, actual source
+layer context in EditAI requests, both trim grips/opposite-edge geometry,
+selection without seeking, preview manipulation, image append, global typography
+inheritance, imported-audio replacement/mute, real MP4 exports, storage recovery,
+recording, cached Chirp jobs, visual references and existing Home/Edits/auth flows.
+Desktop/narrow captures were inspected under ignored `outputs/`; the emitted
+regression MP4 was probed as H.264 + AAC, 854×854, 4.169 seconds. The new component
+lint and `git diff --check` pass. Historical live-provider evidence above is not
+reclassified as verification of this change.
+
+## Consent and library persistence across sign-out — November 19, 2026
+
+Root cause: sign-out deleted the install credential. For linked Publik wallets
+without a public account ID/handle, ownership falls back to that verified key ID;
+a new install therefore looked like a different account, hiding saved projects
+and their existing consent. The live database still contains five project rows
+across four owner scopes and three source-asset rows; this observation does not
+establish that every missing original was uploaded or associate those scopes
+with one person.
+
+Sign-out now revokes the active session by rotating its server-side bearer and
+retains the encrypted connection behind a separate HTTP-only, Secure, SameSite
+cookie. A signed-out visitor cannot read projects. Explicit Continue re-runs the
+genuine Publik wallet gate, restores only the matching verified owner, and rotates
+the active session. Use another account forgets the connection without deleting
+projects or source media. Allow and decline both remain persisted in account
+preferences. Desktop pauses telemetry and retains its OS-encrypted install until
+explicit account switching; matching-owner personal-key settings survive local
+session recreation. Settings disclose remembered-connection behavior.
+
+The client flushes the current edit before sign-out, captures IndexedDB ownership
+before asynchronous writes, and cancels stale account-library synchronization.
+This prevents the final edit or a delayed response being written under a later
+account's storage scope. Original media is retained across session changes.
+
+Validation: typecheck, 21 web unit/security tests, all 12 desktop checks and both
+production builds pass. A new backend integration test uses real SQLite, AES-GCM,
+local bucket bytes and cookie rotation with fixture provider transport: allow /
+decline persistence, original-byte retrieval, old-session rejection, explicit
+resume, revoked-key rejection, and other-account isolation all pass. Full studio
+Chromium: 24/24 (40.2s). WebKit's preceding 23 cases pass; its new resume case
+initially needed a more specific marketing Sign in selector. Final sign-out and
+resume checks, expanded to split immediately before logout and verify that edit
+on return, pass in Chromium (2 cases, 3.7s) and WebKit (2 cases, 11.5s) against the
+fresh final build. Authentication/provider fixtures do not prove a new live
+Publik sign-in.
+
+Recovery boundary: old sessions already deleted by the previous implementation
+cannot be safely mapped to a new handle-less install. This change prevents that
+loss of association going forward; it does not silently merge old owner scopes
+or promise recovery of originals never backed up. A stable public account ID or
+handle still permits account-scoped lookup across installs; otherwise the
+retained same-device connection is required. Existing cloud file/quota limits
+and browser-clearing limitations remain disclosed.

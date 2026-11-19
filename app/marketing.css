@@ -2036,7 +2036,7 @@
   user-select: none;
   padding-top: 6px;
   /* The lower half of the wordmark intentionally extends beyond the footer. */
-  transform: translateY(10%);
+  transform: translateY(24%);
 }
 /* Same official authentication, adapted to the new site design. */
 .marketing.marketing-sign-in {

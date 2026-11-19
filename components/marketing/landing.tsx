@@ -913,9 +913,8 @@ function ClosingCtaFooter({ onPrivacy }: { onPrivacy: () => void }) {
             </span>
           </h2>
           <p>
-            Record the whole take. Find your story.
-            <br />
-            Give it your own finishing touch.
+            Record the whole take. EditAI trims the pauses and mistakes. Add
+            your finishing touch.
           </p>
           <MainCta />
           <div className="marketing-downloads">

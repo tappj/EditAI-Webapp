@@ -10,10 +10,14 @@ export function MarketingVideo({
   emphasis = false,
   onProgress,
   paused = false,
+  manualPlayback = false,
+  hideCaption = false,
 }: {
   asset: VideoAsset;
   emphasis?: boolean;
   paused?: boolean;
+  manualPlayback?: boolean;
+  hideCaption?: boolean;
   onProgress?: (video: HTMLVideoElement) => void;
 }) {
   const host = useRef<HTMLDivElement>(null),
@@ -34,9 +38,8 @@ export function MarketingVideo({
         media.pause();
         media.muted = true;
         setMuted(true);
-      } else if (reduced.matches && !manuallyStarted.current) {
-        media.pause();
       } else if (
+        !manualPlayback &&
         !userPaused.current &&
         (!reduced.matches || manuallyStarted.current)
       )
@@ -45,7 +48,7 @@ export function MarketingVideo({
     const observer = new IntersectionObserver(
       ([entry]) => {
         inView.current = entry.isIntersecting && entry.intersectionRatio >= 0.4;
-        if (entry.isIntersecting) setLoaded(true);
+        if (entry.isIntersecting && !manualPlayback) setLoaded(true);
         update();
       },
       { threshold: [0, 0.4, 0.7] },
@@ -67,7 +70,7 @@ export function MarketingVideo({
       reduced.removeEventListener("change", update);
       media?.pause();
     };
-  }, [asset.id, loaded, paused]);
+  }, [asset.id, loaded, manualPlayback, paused]);
   const toggle = () => {
     const media = video.current;
     if (!media) return;
@@ -89,12 +92,13 @@ export function MarketingVideo({
       {asset.src && !failed ? (
         <video
           ref={video}
-          src={loaded ? asset.src : undefined}
+          src={manualPlayback || loaded ? asset.src : undefined}
           poster={asset.poster}
           preload="none"
           playsInline
           muted
-          loop
+          loop={!manualPlayback}
+          onEnded={() => setPlaying(false)}
           aria-label={asset.title}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
@@ -161,21 +165,23 @@ export function MarketingVideo({
           </button>
         </>
       )}
-      <div className="video-caption">
-        {asset.creator?.approved && (
-          <img
-            src={asset.creator.portrait}
-            alt=""
-            width="28"
-            height="28"
-            loading="lazy"
-          />
-        )}
-        <strong>
-          {asset.creator?.approved ? asset.creator.name : asset.title}
-        </strong>
-        <small>{failed ? "Preview unavailable" : asset.description}</small>
-      </div>
+      {(!hideCaption || failed) && (
+        <div className="video-caption">
+          {asset.creator?.approved && asset.creator.portrait && (
+            <img
+              src={asset.creator.portrait}
+              alt=""
+              width="28"
+              height="28"
+              loading="lazy"
+            />
+          )}
+          <strong>
+            {asset.creator?.approved ? asset.creator.name : asset.title}
+          </strong>
+          <small>{failed ? "Preview unavailable" : asset.description}</small>
+        </div>
+      )}
     </div>
   );
 }

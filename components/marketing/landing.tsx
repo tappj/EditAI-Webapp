@@ -21,7 +21,6 @@ import {
   Menu,
   Minus,
   LaptopMinimal,
-  Pause,
   Play,
   Plus,
   Scissors,
@@ -690,8 +689,6 @@ function FeatureGrid() {
   );
 }
 function CreatorVideoGallery() {
-  const realVideos = content.videos.some((video) => video.src);
-  const [paused, setPaused] = useState(false);
   return (
     <section
       className="gallery-section"
@@ -706,46 +703,40 @@ function CreatorVideoGallery() {
             <br />
             <span className="brand-highlight">Made with EditAI.</span>
           </h2>
-          <p>
-            {realVideos
-              ? "Finished videos, from the people behind the camera. Tap for sound."
-              : "Finished videos from creators with real audiences, edited with EditAI"}
-          </p>
+          <p>Finished videos from creators, edited with EditAI.</p>
         </div>
         <div className="creator-video-grid">
-          {content.videos.map((asset, i) => (
+          {content.videos.map((asset) => (
             <article className="creator-video-card m-reveal" key={asset.id}>
               <div className="gallery-frame-label">
-                {String(i + 1).padStart(2, "0")} · EDITAI STORIES
+                {asset.title} · {asset.duration}
               </div>
-              <MarketingVideo asset={asset} paused={paused} />
+              <MarketingVideo asset={asset} manualPlayback hideCaption />
               <div className="creator-video-credit">
-                <span>
-                  {asset.creator?.approved ? asset.creator.name : asset.title}
+                <span className="creator-video-name">
+                  {asset.creator?.portrait && (
+                    <img
+                      src={asset.creator.portrait}
+                      alt=""
+                      width={24}
+                      height={24}
+                      loading="lazy"
+                    />
+                  )}
+                  {asset.creator?.name}
                 </span>
-                <ArrowUpRight size={14} />
+                <span className="creator-video-views">
+                  <span>{asset.creator?.platform}</span>
+                  <strong>{asset.creator?.views} views</strong>
+                </span>
               </div>
-              <small>
-                {asset.creator?.approved
-                  ? `${asset.creator.platform || "CREATOR"}${asset.creator.followers ? ` · ${asset.creator.followers}` : ""}`
-                  : "YOUR FOOTAGE. YOUR POINT OF VIEW."}
-              </small>
+              <small>{asset.description}</small>
             </article>
           ))}
         </div>
         <p className="gallery-caption">
-          YOUR STORIES · A LITTLE MORE YOU · MADE WITH EDITAI
+          3 creators · 720K views · Edited with EditAI
         </p>
-        {realVideos ? (
-          <button
-            className="gallery-pause"
-            aria-pressed={paused}
-            onClick={() => setPaused(!paused)}
-          >
-            {paused ? <Play size={12} /> : <Pause size={12} />}
-            {paused ? "Resume the videos" : "Pause the videos"}
-          </button>
-        ) : null}
       </div>
     </section>
   );

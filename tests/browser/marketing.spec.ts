@@ -52,7 +52,8 @@ test("new reference layout, removed old sections, real logo and genuine app entr
   await expect(page.locator(".feature-card")).toHaveCount(7);
   await expect(page.locator(".ribbon-item")).toHaveCount(8);
   await expect(page.locator(".marketing-video")).toHaveCount(3);
-  await expect(page.locator("video,.review-stars")).toHaveCount(0);
+  await expect(page.locator("#creators video")).toHaveCount(3);
+  await expect(page.locator(".review-stars")).toHaveCount(0);
   await expect(page.locator(".m-header .m-brand img")).toHaveAttribute(
     "src",
     "/brand/editai-icon-192.png",

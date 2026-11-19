@@ -23,9 +23,9 @@ export type Creator = {
   id: string;
   approved: boolean;
   name: string;
-  portrait: string;
+  portrait?: string;
   platform?: string;
-  followers?: string;
+  views?: string;
 };
 export type VideoAsset = {
   id: string;
@@ -33,6 +33,7 @@ export type VideoAsset = {
   description: string;
   src?: string;
   poster?: string;
+  duration?: string;
   creator?: Creator;
 };
 export type Plan = {
@@ -366,22 +367,52 @@ export const marketingContent = {
     },
   ],
   calculator: { videos: 10, currentMinutes: 60, targetMinutes: 15 },
-  // TODO: supply approved portrait videos/posters, e.g. /marketing/creator-01.mp4.
   videos: [
     {
-      id: "creator-01",
-      title: "Your next story",
-      description: "Your footage. Your final say.",
+      id: "gabbie",
+      title: "Gabbie",
+      description: "Edited with EditAI",
+      src: "/marketing/creators/gabbie.mp4",
+      poster: "/marketing/creators/gabbie.jpg",
+      duration: "0:30",
+      creator: {
+        id: "gabbie",
+        approved: true,
+        name: "Gabbie Nunéz",
+        platform: "Instagram",
+        views: "79K",
+      },
     },
     {
-      id: "creator-02",
-      title: "Your point of view",
-      description: "Your footage. Your final say.",
+      id: "jadon",
+      title: "Jadon",
+      description: "Edited with EditAI",
+      src: "/marketing/creators/jadon.mp4",
+      poster: "/marketing/creators/jadon.jpg",
+      duration: "0:36",
+      creator: {
+        id: "jadon",
+        approved: true,
+        name: "Jadon Tapp",
+        platform: "Instagram",
+        views: "117.9K",
+        portrait: "/marketing/avatars/jadon.jpg",
+      },
     },
     {
-      id: "creator-03",
-      title: "Your kind of creative",
-      description: "Your footage. Your final say.",
+      id: "monica",
+      title: "Monica",
+      description: "Edited with EditAI",
+      src: "/marketing/creators/monica.mp4",
+      poster: "/marketing/creators/monica.jpg",
+      duration: "0:10",
+      creator: {
+        id: "monica",
+        approved: true,
+        name: "Monica Brown",
+        platform: "TikTok",
+        views: "523.1K",
+      },
     },
   ] as VideoAsset[],
   // Web/desktop editor is free. AI uses the visitor's Publik plan or own key.

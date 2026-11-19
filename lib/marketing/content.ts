@@ -340,7 +340,7 @@ export const marketingContent = {
     {
       question: "Can I fine-tune the AI edit?",
       answer:
-        "Yes. Review suggested edits, then trim, split, reorder, style captions and adjust your video on the timeline. Your original source stays intact.",
+        "You’re in control: undo changes, trim and reorder clips, and style captions yourself. You can also ask EditAI chat to fine-tune your edit.",
     },
     {
       question: "How do I get started?",

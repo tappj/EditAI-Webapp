@@ -1968,7 +1968,7 @@
   isolation: isolate;
   background: #eef3f4;
   border-top: 1px solid #d0dce7;
-  padding: 50px 0 0;
+  padding: 50px 0 clamp(72px, 7vw, 112px);
   overflow: hidden;
 }
 .m-footer > .m-container {
@@ -2049,6 +2049,7 @@
   font-weight: 800;
   user-select: none;
   pointer-events: none;
+  transform: translateY(68%);
 }
 /* Same official authentication, adapted to the new site design. */
 .marketing.marketing-sign-in {
@@ -3237,6 +3238,7 @@
   }
   .m-footer {
     padding-top: 35px;
+    padding-bottom: 56px;
   }
   .footer-grid {
     grid-template-columns: 1fr 1fr;
@@ -3276,6 +3278,7 @@
   .footer-wordmark {
     font-size: 20vw;
     letter-spacing: -3px;
+    transform: translateY(72px);
   }
   .sign-in-header {
     padding: 19px 0;

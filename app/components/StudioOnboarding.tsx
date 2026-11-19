@@ -32,6 +32,11 @@ import {
 } from "lucide-react";
 import { Button, Wordmark } from "./ui";
 import "./studio-onboarding.css";
+import {
+  CutSimulation,
+  EditingTimeEstimate,
+  usePresentationProgress,
+} from "./OnboardingMotion";
 
 const draftKey = "editai-studio-onboarding-v1";
 const steps = [
@@ -147,27 +152,49 @@ function OnboardingDemo({
   heading,
   next,
   back,
+  replay,
 }: {
   edited: boolean;
   heading: React.RefObject<HTMLHeadingElement | null>;
   next: () => void;
   back: () => void;
+  replay: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [duration, setDuration] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [simulationPaused, setSimulationPaused] = useState(false);
+  const { target, progress } = usePresentationProgress(3400, simulationPaused);
+  const simulating = edited && progress < 1;
+  const clipEdited = edited && !simulating;
 
   useEffect(() => {
     const player = video.current;
-    if (!player || matchMedia("(prefers-reduced-motion: reduce)").matches)
+    if (
+      !player ||
+      simulating ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
       return;
-    player.muted = true;
     void player.play().catch(() => {});
+  }, [simulating]);
+
+  useEffect(() => {
+    const pauseWhenHidden = () => {
+      if (document.visibilityState === "hidden") video.current?.pause();
+    };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () =>
+      document.removeEventListener("visibilitychange", pauseWhenHidden);
   }, []);
 
   function togglePlayback() {
+    if (simulating) {
+      setSimulationPaused((value) => !value);
+      return;
+    }
     const player = video.current;
     if (!player) return;
     if (player.paused) void player.play().catch(() => {});
@@ -181,16 +208,24 @@ function OnboardingDemo({
   }
 
   return (
-    <section className="studio-onboarding-demo" aria-label="EditAI onboarding">
+    <section
+      className="studio-onboarding-demo"
+      aria-label="EditAI onboarding"
+      ref={target}
+    >
       <video
+        key={clipEdited ? "edited" : "raw"}
         ref={video}
         playsInline
         preload="metadata"
         muted={muted}
-        src={edited ? "/onboarding/edited.mp4" : "/onboarding/raw.mp4"}
-        poster={edited ? "/onboarding/edited.jpg" : "/onboarding/raw.jpg"}
-        aria-label={edited ? "Edited sample video" : "Raw sample video"}
-        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+        src={clipEdited ? "/onboarding/edited.mp4" : "/onboarding/raw.mp4"}
+        poster={clipEdited ? "/onboarding/edited.jpg" : "/onboarding/raw.jpg"}
+        aria-label={clipEdited ? "Edited sample video" : "Raw sample video"}
+        onLoadedMetadata={(event) => {
+          setDuration(event.currentTarget.duration);
+          setElapsed(0);
+        }}
         onTimeUpdate={(event) => setElapsed(event.currentTarget.currentTime)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
@@ -210,10 +245,18 @@ function OnboardingDemo({
         <div className="studio-demo-controls">
           <button
             className="studio-demo-control"
-            aria-label={playing ? "Pause sample" : "Play sample"}
+            aria-label={
+              (simulating ? !simulationPaused : playing)
+                ? "Pause sample"
+                : "Play sample"
+            }
             onClick={togglePlayback}
           >
-            {playing ? <Pause size={18} /> : <Play size={18} />}
+            {(simulating ? !simulationPaused : playing) ? (
+              <Pause size={18} />
+            ) : (
+              <Play size={18} />
+            )}
           </button>
           <button
             className="studio-demo-control"
@@ -249,10 +292,25 @@ function OnboardingDemo({
             </span>
           </div>
         </div>
-        <Button onClick={next}>
-          {edited ? "Make it mine" : "See it happen"}
+        {edited && !simulating && (
+          <Button secondary onClick={replay}>
+            Replay the cut
+          </Button>
+        )}
+        <Button onClick={next} disabled={simulating}>
+          {simulating
+            ? "Editing sample…"
+            : edited
+              ? "Make it mine"
+              : "See it happen"}
         </Button>
       </div>
+      {edited && (
+        <CutSimulation
+          progress={progress}
+          playback={elapsed / (duration || 1)}
+        />
+      )}
     </section>
   );
 }
@@ -278,6 +336,7 @@ function savedDraft(): Draft {
 export function StudioOnboarding({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState(emptyDraft);
   const [restored, setRestored] = useState(false);
+  const [demoRun, setDemoRun] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const step = draft.step;
   const index = steps.indexOf(step);
@@ -341,10 +400,11 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
   if (media)
     return (
       <OnboardingDemo
-        key={step}
+        key={step + demoRun}
         edited={edited}
         heading={heading}
         next={() => move(1)}
+        replay={() => setDemoRun((value) => value + 1)}
         back={() => move(-1)}
       />
     );
@@ -442,28 +502,7 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
               : "Make your first edit a little easier."}
           </h1>
           {hours > 0 ? (
-            <>
-              <div className="studio-onboarding-estimate">
-                <strong>
-                  About <b>{hours}</b> {hours === 1 ? "hour" : "hours"} a month
-                </strong>
-                <p>
-                  Estimated time you currently spend editing, based on your
-                  weekly answer.
-                </p>
-              </div>
-              <div className="studio-onboarding-hour-grid">
-                <p>1 square = 1 hour this month.</p>
-                <div aria-hidden="true">
-                  {Array.from({ length: 720 }, (_, index) => (
-                    <span
-                      key={index}
-                      className={index < hours ? "marked" : undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-            </>
+            <EditingTimeEstimate hours={hours} />
           ) : (
             <>
               <img

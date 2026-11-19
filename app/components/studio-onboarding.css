@@ -388,3 +388,217 @@
     padding: 0;
   }
 }
+
+.cut-simulation {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: #f6f7fb;
+}
+.cut-simulation-heading,
+.cut-simulation-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.cut-simulation-heading {
+  color: #172d48;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.cut-simulation-heading > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cut-simulation-heading > span:last-child {
+  color: #46515f;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.cut-simulation-ruler {
+  display: flex;
+  justify-content: space-between;
+  margin: 1.1rem 0 0.4rem;
+  font-size: 0.7rem;
+  color: #606770;
+}
+.cut-simulation-track {
+  position: relative;
+  height: 4.4rem;
+}
+.cut-piece {
+  position: absolute;
+  top: 0.6rem;
+  height: 2.6rem;
+  display: flex;
+  align-items: center;
+  padding-inline: 0.3rem;
+  border: 1px solid #a8b8cd;
+  overflow: hidden;
+  will-change: left, width, transform, opacity;
+}
+.cut-piece.kept {
+  background: linear-gradient(110deg, #a8f0f0, #c4e0ff);
+  color: #172d48;
+}
+.cut-piece.discarded {
+  background: #f6d7d6;
+  color: #703630;
+  border-color: #dba9a5;
+}
+.cut-piece > span {
+  font-size: 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cut-simulation-scissors {
+  position: absolute;
+  z-index: 2;
+  top: -0.5rem;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #172d48;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+.cut-simulation-playhead {
+  position: absolute;
+  top: 0.1rem;
+  width: 2px;
+  height: 3.8rem;
+  background: #326ab4;
+}
+.cut-simulation-legend {
+  justify-content: flex-start;
+  gap: 1rem;
+  font-size: 0.72rem;
+  color: #46515f;
+}
+.cut-simulation-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.cut-simulation-legend i {
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 1px solid #92a6bf;
+  border-radius: 3px;
+}
+.keep-swatch {
+  background: #c4e0ff;
+}
+.discard-swatch {
+  background: #f6d7d6;
+}
+.cut-simulation > p {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: #606770;
+  margin-top: 0.7rem;
+}
+.monthly-time {
+  display: grid;
+  gap: 1.1rem;
+}
+.monthly-time .studio-onboarding-estimate strong {
+  font-variant-numeric: tabular-nums;
+}
+.monthly-time-chart {
+  display: grid;
+  grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.25rem;
+}
+.monthly-time-chart .studio-onboarding-hour-grid {
+  width: 100%;
+  max-width: 21rem;
+}
+.monthly-time-chart .studio-onboarding-hour-grid > div {
+  gap: 2px;
+}
+.monthly-time-chart .studio-onboarding-hour-grid > div > span {
+  border-radius: 1.5px;
+}
+[data-activity="editing"] {
+  --activity-color: #326ab4;
+}
+[data-activity="sleep"] {
+  --activity-color: #c9bdf2;
+}
+[data-activity="work"] {
+  --activity-color: #a9d8e7;
+}
+[data-activity="meals"] {
+  --activity-color: #f2cf83;
+}
+[data-activity="care"] {
+  --activity-color: #eab5c7;
+}
+[data-activity="home"] {
+  --activity-color: #a8d3b8;
+}
+[data-activity="other"] {
+  --activity-color: #d9dfe5;
+}
+.monthly-time-chart .studio-onboarding-hour-grid span {
+  background: var(--activity-color);
+}
+.monthly-time-legend {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.monthly-time-legend li {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #46515f;
+}
+.monthly-time-legend li[data-activity="editing"] {
+  font-weight: 700;
+  color: #172d48;
+}
+.monthly-time-legend i {
+  flex: none;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  background: var(--activity-color);
+}
+.monthly-time-legend strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.studio-onboarding .monthly-time-assumptions {
+  font-size: 0.75rem;
+  color: #606770;
+}
+.monthly-time > .button {
+  justify-self: start;
+}
+@media (max-width: 580px) {
+  .monthly-time-chart {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .monthly-time-chart .studio-onboarding-hour-grid {
+    max-width: 21rem;
+    margin-inline: auto;
+  }
+  .monthly-time-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 1rem;
+  }
+}

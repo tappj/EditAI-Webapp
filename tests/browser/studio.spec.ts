@@ -1056,3 +1056,85 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
     page.getByRole("heading", { name: "Upload your raw takes here" }),
   ).toBeVisible();
 });
+
+test("sample cut animation joins retained clips and monthly hours count into a filled grid", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await resumeAtAccount(page);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "editai-studio-onboarding-v1",
+      JSON.stringify({ step: "demo", answers: {} }),
+    ),
+  );
+  await page.route("**/api/session", (route) =>
+    route.fulfill({
+      json: {
+        screen: { id: "sign_in", title: "Sign in with publik", buttons: [] },
+        profile: {},
+      },
+    }),
+  );
+  await page.goto("/sign-in");
+  const simulation = page.getByLabel("EditAI sample cut simulation");
+  await expect(simulation).toHaveAttribute("data-stage", "Cutting retakes");
+  await expect(page.locator(".studio-onboarding-demo video")).toHaveAttribute(
+    "src",
+    "/onboarding/raw.mp4",
+  );
+  await page.getByRole("button", { name: "Pause sample" }).click();
+  const paused = await simulation
+    .locator(".cut-piece")
+    .evaluateAll((elements) => elements.map((el) => el.getAttribute("style")));
+  await page.waitForTimeout(250);
+  expect(
+    await simulation
+      .locator(".cut-piece")
+      .evaluateAll((elements) =>
+        elements.map((el) => el.getAttribute("style")),
+      ),
+  ).toEqual(paused);
+  await page.getByRole("button", { name: "Play sample" }).click();
+  await expect(simulation).toHaveAttribute("data-stage", "Cut ready");
+  await expect(page.locator(".studio-onboarding-demo video")).toHaveAttribute(
+    "src",
+    "/onboarding/edited.mp4",
+  );
+  const discarded = simulation.locator(".discarded");
+  for (const piece of await discarded.all())
+    await expect(piece).toHaveCSS("opacity", "0");
+  await expect(simulation.locator(".kept")).toHaveCount(5);
+  await page.getByRole("button", { name: "Replay the cut" }).click();
+  await expect(simulation).toHaveAttribute("data-stage", "Finding cuts");
+
+  await page.getByRole("button", { name: "Make it mine" }).click();
+  for (let step = 0; step < 4; step++)
+    await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.getByRole("button", { name: "3 to 6 hours" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  const ticker = page.locator(".studio-onboarding-estimate b");
+  await expect(ticker).toBeVisible();
+  const readings: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    readings.push(Number(await ticker.innerText()));
+    await page.waitForTimeout(100);
+  }
+  expect(readings.some((value) => value > 0 && value < 20)).toBe(true);
+  await expect(ticker).toHaveText("20");
+  await expect(page.locator(".studio-onboarding-hour-grid span")).toHaveCount(
+    720,
+  );
+  await expect(
+    page.locator('.studio-onboarding-hour-grid [data-activity="sleep"]'),
+  ).toHaveCount(240);
+  await expect(
+    page.locator(".studio-onboarding-hour-grid .marked"),
+  ).toHaveCount(20);
+  const counts = await page
+    .locator(".monthly-time-legend strong")
+    .allTextContents();
+  expect(
+    counts.reduce((sum, count) => sum + Number(count.replace("h", "")), 0),
+  ).toBe(720);
+});

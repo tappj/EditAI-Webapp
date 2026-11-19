@@ -397,7 +397,6 @@ export const marketingContent = {
     description: "A little less editing. A little more you.",
     firstLine: "Stop editing.",
     secondLine: "Start creating.",
-    note: "Web & macOS · iOS coming soon",
     product: [
       { label: "How it works", href: "#how-it-works" },
       { label: "Creators", href: "#creators" },

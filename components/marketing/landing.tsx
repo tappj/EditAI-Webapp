@@ -726,7 +726,14 @@ function CreatorVideoGallery() {
                   {asset.creator?.name}
                 </span>
                 <span className="creator-video-views">
-                  <span>{asset.creator?.platform}</span>
+                  {asset.creator?.platform && (
+                    <img
+                      src={`/marketing/creators/${asset.creator.platform.toLowerCase()}.svg`}
+                      alt={asset.creator.platform}
+                      width={16}
+                      height={16}
+                    />
+                  )}
                   <strong>{asset.creator?.views} views</strong>
                 </span>
               </div>

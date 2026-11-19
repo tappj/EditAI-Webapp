@@ -4163,13 +4163,13 @@
   object-fit: cover;
 }
 .creator-video-views {
-  display: grid;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
-.creator-video-views span {
-  font-size: 12px;
-  color: var(--m-muted);
+.creator-video-views img {
+  display: block;
 }
 .creator-video-views strong {
   font-size: 14px;

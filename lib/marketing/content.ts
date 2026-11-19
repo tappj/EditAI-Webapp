@@ -24,7 +24,7 @@ export type Creator = {
   approved: boolean;
   name: string;
   portrait?: string;
-  platform?: string;
+  platform?: "Instagram" | "TikTok";
   views?: string;
 };
 export type VideoAsset = {

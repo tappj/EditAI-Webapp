@@ -186,3 +186,9 @@ Desktop and 375px mobile screenshots were visually compared with the supplied re
 ## Hero and review copy — November 18, 2026
 
 Changed the gradient hero line to “edited videos in minutes.” and the review-placeholder footer to “Reviews coming soon.” Typecheck, all 15 model/security tests and production build pass. The existing layout/sign-in and seven-width responsive checks pass in Chromium and WebKit (two cases per engine). A direct browser check confirms the exact headline and all 24 repeated placeholder footers; inspected desktop/mobile captures under outputs/marketing-copy have no document overflow. These UI checks use fixture authentication and do not establish fresh Publik connectivity. Main and the public deployment remain unchanged under the current branch restriction.
+
+## Native app pricing alignment — November 18, 2026
+
+Matched the website pricing to the sibling iOS app's read-only `OnboardingState.swift` and `OnboardingPaywallView.swift`: Starter / Pro / Ultimate, 10 / 100 AI edit starts / unlimited AI edits per month, and their editor/transcription/caption/batch benefits. U.S. monthly prices are $9.99 / $19.95 / $49.99; annual totals are $79.90 / $159.00 / $399.00 with native monthly equivalents $6.65 / $13.25 / $33.25. Annual totals remain visible beside the monthly equivalent. Local App Store pricing is confirmed in the app; website checkout remains unavailable and web/macOS Publik access is disclosed separately. No iOS source was modified.
+
+Typecheck, all 15 model/security tests and production build pass. Three targeted browser checks pass in Chromium and WebKit against a freshly started production Worker: exact tier prices/allowances and cadence switching, seven-width responsive coverage, and selection visibility. Fixture authentication is scoped to UI checks and does not establish fresh Publik connectivity; no paid provider call was made.

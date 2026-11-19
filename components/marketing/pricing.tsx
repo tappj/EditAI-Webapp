@@ -22,7 +22,7 @@ export function PricingSelector() {
           </h2>
           <p>
             {content.pricing.approved
-              ? "Choose the plan that fits your creative rhythm."
+              ? "Choose your EditAI iOS app plan."
               : "A preview of what’s next. Plan details coming soon."}
           </p>
         </div>
@@ -42,15 +42,17 @@ export function PricingSelector() {
           ))}
         </div>
         <fieldset className="pricing-grid">
-          <legend className="m-sr-only">Choose a plan preview</legend>
+          <legend className="m-sr-only">Choose a plan</legend>
           {content.pricing.plans.map((plan) => {
             const offer = plan[cadence];
             const checkout =
               content.pricing.approved &&
-              offer &&
+              offer?.checkoutUrl &&
               /^https:\/\//.test(offer.checkoutUrl)
                 ? offer.checkoutUrl
                 : null;
+            const monthlyEquivalent =
+              cadence === "annual" ? plan.annual?.monthlyEquivalent : undefined;
             return (
               <article
                 className={`pricing-card m-reveal ${plan.id === planId ? "selected" : ""}`}
@@ -74,14 +76,16 @@ export function PricingSelector() {
                   className={`plan-price ${!content.pricing.approved || !offer ? "pending" : ""}`}
                 >
                   {content.pricing.approved && offer
-                    ? offer.price
+                    ? monthlyEquivalent ?? offer.price
                     : "Coming soon"}
                 </div>
                 <p className="plan-cadence">
                   {content.pricing.approved && offer
                     ? cadence === "monthly"
                       ? "per month, billed monthly"
-                      : "per year, billed annually"
+                      : monthlyEquivalent
+                        ? `per month, billed ${offer.price} annually`
+                        : "per year, billed annually"
                     : `${cadence === "monthly" ? "Monthly" : "Annual"} pricing to be announced`}
                 </p>
                 <ul>
@@ -99,7 +103,7 @@ export function PricingSelector() {
                   </a>
                 ) : (
                   <button className="m-button" disabled>
-                    Plans coming soon <ArrowRight size={16} />
+                    iOS coming soon
                   </button>
                 )}
               </article>
@@ -113,8 +117,9 @@ export function PricingSelector() {
             : " pricing to be announced. No checkout is available."}
         </p>
         <p className="pricing-disclosure">
-          Current AI access is connected through Publik. Your account there
-          shows your actual plan and usage.
+          U.S. iOS App Store prices in USD. Subscriptions renew automatically;
+          cancel anytime. Local prices and availability are confirmed in the app.
+          Web and macOS AI access uses your Publik account and its plan and usage.
         </p>
         <a className="pricing-web-link" href={content.links.app}>
           Explore the web editor <ArrowRight size={14} />

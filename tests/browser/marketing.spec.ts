@@ -106,24 +106,34 @@ test("workflow exploration and full-width active navigation", async ({
     })),
   ).toEqual({ top: 0, left: 0, width: true });
 });
-test("three plan cards retain real cadence/plan selection without invented checkout", async ({
+test("pricing matches the iOS app tiers, allowances and billing without web checkout", async ({
   page,
 }) => {
   await page.goto("/");
   const pricing = page.locator("#pricing");
   await pricing.scrollIntoViewIfNeeded();
   await expect(pricing.locator(".pricing-card")).toHaveCount(3);
-  await expect(pricing.getByRole("radio", { name: /Creator/ })).toBeChecked();
+  await expect(pricing.locator(".plan-price")).toHaveText(["$9.99", "$19.95", "$49.99"]);
+  await expect(pricing.locator(".pricing-card").nth(0)).toContainText("10 AI edit starts per month");
+  await expect(pricing.locator(".pricing-card").nth(1)).toContainText("100 AI edit starts per month");
+  await expect(pricing.locator(".pricing-card").nth(2)).toContainText("Unlimited AI edits per month");
+  await expect(pricing.getByRole("radio", { name: /^Pro$/ })).toBeChecked();
   await pricing.getByRole("button", { name: "Annual", exact: true }).click();
-  await pricing.getByRole("radio", { name: /Studio/ }).check();
+  await expect(pricing.locator(".plan-price")).toHaveText(["$6.65", "$13.25", "$33.25"]);
+  await expect(pricing.locator(".plan-cadence")).toHaveText([
+    "per month, billed $79.90 annually",
+    "per month, billed $159.00 annually",
+    "per month, billed $399.00 annually",
+  ]);
+  await pricing.getByRole("radio", { name: /Ultimate/ }).check();
   await expect(pricing.locator(".billing-summary")).toContainText(
-    "Studio · Annual pricing to be announced",
+    "Ultimate · Annual · $399.00",
   );
   await expect(
-    pricing.getByRole("button", { name: "Plans coming soon" }),
+    pricing.getByRole("button", { name: "iOS coming soon" }),
   ).toHaveCount(3);
   for (const button of await pricing
-    .getByRole("button", { name: "Plans coming soon" })
+    .getByRole("button", { name: "iOS coming soon" })
     .all())
     await expect(button).toBeDisabled();
   await pricing.getByRole("radio", { name: /Starter/ }).check();
@@ -820,7 +830,7 @@ test("pricing selection keeps previously revealed cards visible", async ({
         ),
     )
     .toBe(true);
-  for (const plan of ["Studio", "Starter", "Creator"]) {
+  for (const plan of ["Ultimate", "Starter", "Pro"]) {
     await pricing.getByRole("radio", { name: new RegExp(plan) }).check();
     const opacity = await pricing
       .locator(".pricing-card")

@@ -40,8 +40,8 @@ export type Plan = {
   name: string;
   description: string;
   benefits: string[];
-  monthly: { price: string; checkoutUrl: string } | null;
-  annual: { price: string; checkoutUrl: string } | null;
+  monthly: { price: string; checkoutUrl?: string } | null;
+  annual: { price: string; monthlyEquivalent?: string; checkoutUrl?: string } | null;
   recommended?: boolean;
 };
 // Owner-supplied reviews; brand mentions updated to EditAI with owner permission.
@@ -356,42 +356,51 @@ export const marketingContent = {
       description: "Your footage. Your final say.",
     },
   ] as VideoAsset[],
-  // Presentation-ready slots, NOT purchasable subscriptions. No price/quota claims.
+  // U.S. iOS prices/benefits from OnboardingPlan and OnboardingPaywallView.
+  // App Store checkout remains in the iOS app; web/macOS AI access uses Publik.
   pricing: {
-    approved: false,
+    approved: true,
     usage: ["A few a week", "Every day", "Lots to create"],
     plans: [
       {
         id: "starter",
         name: "Starter",
         description: "For your next creative beginning",
-        benefits: ["Timeline editing", "Caption styling", "MP4 exports"],
-        monthly: null,
-        annual: null,
+        benefits: [
+          "10 AI edit starts per month",
+          "Full editor suite",
+          "Transcribe and analyze videos",
+        ],
+        monthly: { price: "$9.99" },
+        annual: { price: "$79.90", monthlyEquivalent: "$6.65" },
       },
       {
-        id: "creator",
-        name: "Creator",
+        id: "pro",
+        name: "Pro",
         description: "For a regular creative rhythm",
         benefits: [
-          "Timeline editing",
-          "Caption styling",
-          "Multiple project workflow",
+          "100 AI edit starts per month",
+          "Full editor suite",
+          "Transcribe and analyze videos",
+          "Auto captions for your videos",
+          "Batch edit up to 10 videos",
         ],
-        monthly: null,
-        annual: null,
+        monthly: { price: "$19.95" },
+        annual: { price: "$159.00", monthlyEquivalent: "$13.25" },
       },
       {
-        id: "studio",
-        name: "Studio",
+        id: "ultimate",
+        name: "Ultimate",
         description: "For a workspace full of ideas",
         benefits: [
-          "Timeline editing",
-          "Caption styling",
-          "Batch project imports",
+          "Unlimited AI edits per month",
+          "Full editor suite",
+          "Transcribe and analyze videos",
+          "Auto captions for your videos",
+          "Batch edit up to 10 videos",
         ],
-        monthly: null,
-        annual: null,
+        monthly: { price: "$49.99" },
+        annual: { price: "$399.00", monthlyEquivalent: "$33.25" },
       },
     ] as Plan[],
   },

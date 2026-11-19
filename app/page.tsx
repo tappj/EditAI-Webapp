@@ -102,6 +102,7 @@ import { makeReference, type Reference } from "@/lib/editor/reference";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
 import { Button, IconButton, Range, Wordmark } from "./components/ui";
 import { ProjectCard } from "./components/ProjectCard";
+import { StudioAccount, StudioOnboarding } from "./components/StudioOnboarding";
 import {
   ProfileAvatar,
   ProfileCustomization,
@@ -216,7 +217,9 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     !session.profile.consentDecided &&
     !session.profile.consent;
   const authPopup = useRef<Window | null>(null);
-  const [authOpened, setAuthOpened] = useState(false);
+  const [authPurpose, setAuthPurpose] = useState<"sign_in" | "get_plan" | null>(
+    null,
+  );
   const [blockedAuthURL, setBlockedAuthURL] = useState("");
   const recordingDirty = useRef(false);
   const lastPlayheadPaint = useRef(0);
@@ -288,18 +291,23 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     setError(e.message || String(e));
     setErrorURL(e.url || "");
   }, []);
+  const gateScreen = session?.screen;
+  const gateAdvanced =
+    gateScreen?.id === "ready" ||
+    (authPurpose === "sign_in" && gateScreen?.id === "choose") ||
+    (authPurpose === "get_plan" &&
+      gateScreen?.buttons?.some(
+        (button: { action: string }) => button.action === "connect",
+      ));
   useEffect(() => {
-    if (session?.screen.id !== "sign_in" && authPopup.current) {
-      // COOP may sever the WindowProxy after cross-origin navigation. Closing
-      // is best effort; never weaken media isolation to control an auth window.
-      if (!authPopup.current.closed) authPopup.current.close();
-      authPopup.current = null;
-    }
-    if (session?.screen.id === "ready") {
-      setAuthOpened(false);
-      setBlockedAuthURL("");
-    }
-  }, [session?.screen.id]);
+    if (!gateAdvanced || !authPurpose) return;
+    // The popup may already be detached by cross-origin opener isolation.
+    if (authPopup.current && !authPopup.current.closed)
+      authPopup.current.close();
+    authPopup.current = null;
+    setAuthPurpose(null);
+    setBlockedAuthURL("");
+  }, [gateAdvanced, authPurpose]);
   const refresh = useCallback(async () => {
     try {
       const s = await api("session");
@@ -355,7 +363,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     renameInput.current?.select();
   }, [renaming]);
   useEffect(() => {
-    if (session?.screen.id === "ready" || (!signIn && !desktop())) return;
+    if (!authPurpose || gateAdvanced) return;
     const started = Date.now();
     const resumed = () => {
       if (document.visibilityState === "visible") void refresh();
@@ -365,7 +373,10 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     const id = setInterval(() => {
       if (Date.now() - started >= 600000) {
         clearInterval(id);
-        setGateError("Sign-in is still pending. Use Retry to check again.");
+        setAuthPurpose(null);
+        setGateError(
+          "Connection is still pending. Select Retry to check again.",
+        );
         return;
       }
       if (document.visibilityState === "visible") void refresh();
@@ -375,7 +386,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       window.removeEventListener("focus", resumed);
       document.removeEventListener("visibilitychange", resumed);
     };
-  }, [session?.screen.id, refresh, signIn]);
+  }, [authPurpose, gateAdvanced, refresh]);
   useEffect(() => {
     if (session?.screen.id !== "ready" || consentRequired) return;
     setStorageScope(session.profile.ownerId || session.profile.handle);
@@ -558,15 +569,16 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
   async function choose(choice: string) {
     try {
       if (choice === "sign_in" || choice === "get_plan") {
-        const url = session.claimURL;
+        const url = session?.claimURL;
         if (url) {
           const popup = window.open(
             "about:blank",
             "editai-publik",
             "popup,width=540,height=720",
           );
-          setAuthOpened(true);
+          setAuthPurpose(choice);
           if (popup) {
+            setBlockedAuthURL("");
             popup.opener = null;
             popup.location.href = url;
             authPopup.current = popup;
@@ -575,7 +587,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         return;
       }
       await api("choice", {
-        choice: choice === "connect" ? "publik" : "own_key",
+        choice: choice === "own_key" ? "own_key" : "publik",
       });
       await refresh();
       if (choice === "own_key") setScreen("settings");
@@ -1228,6 +1240,69 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     if (s === "settings") void refresh();
     setMenu(false);
   };
+  const accountGate = (
+    <StudioAccount
+      title={
+        pending
+          ? "Opening your studio…"
+          : gateScreen?.title || "Sign in with publik"
+      }
+      signIn={
+        !pending &&
+        !gateError &&
+        gateScreen?.id === "sign_in" &&
+        Boolean(session?.claimURL)
+      }
+      onGoogle={() => void choose("sign_in")}
+    >
+      {pending ? (
+        <LoaderCircle className="spin" aria-label="Loading" />
+      ) : gateError ? (
+        <>
+          <p role="alert">{gateError}</p>
+          <Button
+            onClick={() => {
+              setPending(true);
+              void refresh();
+            }}
+          >
+            Retry
+          </Button>
+        </>
+      ) : (
+        <>
+          {gateScreen?.id === "choose" && <p>{gateScreen.body}</p>}
+          {gateScreen?.buttons?.map(
+            (button: { action: string; label: string }, index: number) => (
+              <Button
+                key={button.action}
+                secondary={gateScreen.id === "sign_in" || index > 0}
+                disabled={button.action === "sign_in" && !session?.claimURL}
+                onClick={() => void choose(button.action)}
+              >
+                {button.label}
+              </Button>
+            ),
+          )}
+          {gateScreen?.id === "sign_in" && !session?.claimURL && (
+            <Button onClick={() => void refresh()}>Retry</Button>
+          )}
+        </>
+      )}
+      {authPurpose && (
+        <p role="status">
+          {authPurpose === "sign_in"
+            ? "Finish signing in in the Publik window, then return here."
+            : "Finish connecting your plan in the Publik window, then return here."}
+        </p>
+      )}
+      {blockedAuthURL && (
+        <a href={blockedAuthURL} target="_blank" rel="noreferrer">
+          Open Publik sign-in
+        </a>
+      )}
+    </StudioAccount>
+  );
   const busyUI = busy && (
     <div className="modal-backdrop">
       <div className="modal progress-modal">
@@ -1327,66 +1402,11 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       {pending || session?.screen.id !== "ready" ? (
         signIn || desktop() ? (
           <MarketingSignIn onPrivacy={() => setPrivacy(true)}>
-            <section className="sign-in-card">
-              <img
-                className="sign-in-logo"
-                src="/brand/editai-icon-192.png"
-                width={56}
-                height={56}
-                alt=""
-              />
-              <h2>
-                {pending
-                  ? "Opening your studio…"
-                  : gateError
-                    ? "Sign in with publik"
-                    : session?.screen.title || "Sign in with publik"}
-              </h2>
-              <p>
-                {gateError ||
-                  session?.screen.body ||
-                  "Your next great video starts here."}
-              </p>
-              {pending ? (
-                <LoaderCircle className="spin" />
-              ) : gateError ? (
-                <Button
-                  onClick={() => {
-                    setPending(true);
-                    void refresh();
-                  }}
-                >
-                  Retry <ArrowRight size={18} />
-                </Button>
-              ) : (
-                session?.screen.buttons.map((b: any, i: number) => (
-                  <Button
-                    key={b.action}
-                    secondary={i > 0}
-                    onClick={() => void choose(b.action)}
-                  >
-                    {b.label}
-                    <ArrowUpRight size={16} />
-                  </Button>
-                ))
-              )}
-              {authOpened && (
-                <p className="panel-note" role="status">
-                  Approve in the Publik sign-in window, then return here. Your
-                  studio continues automatically.
-                </p>
-              )}
-              {blockedAuthURL && (
-                <a href={blockedAuthURL} target="_blank" rel="noreferrer">
-                  Open Publik sign-in ↗
-                </a>
-              )}
-              <small>
-                One account for your creative tools.
-                <br />
-                AI powered by publik. Editing powered by you.
-              </small>
-            </section>
+            {gateScreen?.id === "choose" || (pending && !session) ? (
+              accountGate
+            ) : (
+              <StudioOnboarding>{accountGate}</StudioOnboarding>
+            )}
           </MarketingSignIn>
         ) : (
           <MarketingLanding onPrivacy={() => setPrivacy(true)} />

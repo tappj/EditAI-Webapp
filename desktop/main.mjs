@@ -105,6 +105,7 @@ const gateUI = {
 };
 async function unlockEditor() {
   ready = false;
+  screen = null;
   await window.loadURL(appOrigin + "/gate.html");
   try {
     const connected = await sdk.ensureSignedIn(gateUI);
@@ -339,6 +340,8 @@ async function startDesktop() {
         ".css": "text/css",
         ".svg": "image/svg+xml",
         ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".mp4": "video/mp4",
         ".ttf": "font/ttf",
         ".bin": "application/octet-stream",
       };

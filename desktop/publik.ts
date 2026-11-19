@@ -60,7 +60,7 @@ export interface Wallet {
   prepaid_remaining_percent?: number | null; // 0..100 of prepaid money left; null: never a top-up or a grant
 }
 export type GateAction =
-  "sign_in" | "retry" | "get_plan" | "connect" | "own_key";
+  "sign_in" | "retry" | "get_plan" | "connect" | "free" | "own_key";
 export interface GateScreen {
   id: "sign_in" | "unreachable" | "choose";
   title: string;
@@ -270,18 +270,14 @@ export function gateScreen(
   const who = w?.account?.handle
     ? `You are signed in as @${w.account.handle}.`
     : "You are signed in to publik.";
-  if (
-    !w ||
-    (w.plan.kind === "none" &&
-      w.balance_micros === 0 &&
-      !(w.available_micros && w.available_micros > 0))
-  )
+  if (!w || w.plan.kind === "none")
     return {
       id,
-      title: "Choose how to pay for AI",
+      title: "Your account is ready",
       note,
-      body: `${who} This app uses AI. Get a publik plan, or use your own key.`,
+      body: `${who} Start editing and saving projects for free. Publik AI uses your available balance.`,
       buttons: [
+        { action: "free", label: "Open studio for free" },
         { action: "get_plan", label: "Get a plan" },
         { action: "own_key", label: "Use my own key" },
       ],
@@ -292,11 +288,11 @@ export function gateScreen(
       : "You have publik use ready.";
   return {
     id,
-    title: "Connect your plan",
+    title: w.plan.kind === "plan" ? "Connect your plan" : "Your account is ready",
     note,
     body: `${who} ${what} Connect it to use AI in this app, or use your own key.`,
     buttons: [
-      { action: "connect", label: "Connect your plan" },
+      { action: "connect", label: w.plan.kind === "plan" ? "Connect your plan" : "Use Publik balance" },
       { action: "own_key", label: "Use my own key" },
     ],
   };
@@ -346,7 +342,7 @@ export async function ensureSignedIn(
     await new Promise(() => {});
   }
   let signNote: string | null = null,
-    signPoll = true,
+    signPoll = false,
     planNote: string | null = null,
     planPoll = false;
   for (;;) {
@@ -411,11 +407,7 @@ export async function ensureSignedIn(
       ? (readCredential()?.choice ?? null)
       : null;
     if (USES_AI && !choice) {
-      if (
-        w.plan.kind !== "none" ||
-        w.balance_micros > 0 ||
-        (w.available_micros ?? 0) > 0
-      ) {
+      if (w.plan.kind !== "none") {
         planNote = null;
         planPoll = false;
       } // the plan is there: Connect your plan
@@ -423,12 +415,7 @@ export async function ensureSignedIn(
         ui,
         gateScreen("choose", w, planNote),
         c.key,
-        planPoll
-          ? (x) =>
-              x.plan.kind !== "none" ||
-              x.balance_micros > 0 ||
-              (x.available_micros ?? 0) > 0
-          : undefined,
+        planPoll ? (x) => x.plan.kind !== "none" : undefined,
       );
       planNote = null;
       planPoll = false;
@@ -439,8 +426,8 @@ export async function ensureSignedIn(
       }
       if (a === "timeout")
         planNote = "No plan after 10 minutes. Click Get a plan to try again.";
-      if (a !== "connect" && a !== "own_key") continue; // "done": the plan is there; the next screen is Connect your plan
-      choice = a === "connect" ? "publik" : "own_key";
+      if (a !== "connect" && a !== "free" && a !== "own_key") continue;
+      choice = a === "own_key" ? "own_key" : "publik";
       setChoice(choice);
     }
     startTelemetry();

@@ -112,21 +112,27 @@ export function gateScreen(w: any, choice: string | null) {
       claimURL: safePublikURL(w.claim_url),
     };
   if (!choice) {
-    const ready =
-      !!(w.plan?.kind && w.plan.kind !== "none") ||
-      w.balance_micros > 0 ||
-      w.available_micros > 0;
+    const hasPlan = w.plan?.kind === "plan";
+    const hasPack = w.plan?.kind === "pack";
     return {
       id: "choose",
-      title: ready ? "Connect your plan" : "Choose how to pay for AI",
-      body: ready
-        ? "Connect your publik plan, or use your own key."
-        : "Get a publik plan for AI, or use your own key.",
+      title: hasPlan ? "Connect your plan" : "Your account is ready",
+      body:
+        hasPlan || hasPack
+          ? "Use your Publik balance for AI, or use your own key."
+          : "Start editing and saving projects for free. Publik AI uses your available balance.",
       buttons: [
-        {
-          action: ready ? "connect" : "get_plan",
-          label: ready ? "Connect your plan" : "Get a plan",
-        },
+        ...(hasPlan || hasPack
+          ? [
+              {
+                action: "connect",
+                label: hasPlan ? "Connect your plan" : "Use Publik balance",
+              },
+            ]
+          : [
+              { action: "free", label: "Open studio for free" },
+              { action: "get_plan", label: "Get a plan" },
+            ]),
         { action: "own_key", label: "Use my own key" },
       ],
       claimURL: safePublikURL(w.top_up_url) || ORIGIN + "/wallet",

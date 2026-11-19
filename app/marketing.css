@@ -2057,7 +2057,8 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #f6f7f8;
+  background: var(--canvas);
+  color: var(--ink);
 }
 .sign-in-header {
   display: flex;
@@ -2068,69 +2069,11 @@
 }
 .back-to-site {
   font-size: 11px;
-  color: #536c81 !important;
+  color: var(--control) !important;
 }
 .marketing-sign-in > main {
   flex: 1;
   padding: 65px 20px 75px;
-}
-.sign-in-heading {
-  text-align: center;
-  margin-bottom: 28px;
-}
-.sign-in-heading .m-eyebrow {
-  font-size: 8px;
-}
-.marketing .sign-in-heading h1 {
-  font-size: 27px;
-  letter-spacing: -1px;
-  margin-top: 12px;
-}
-.marketing-sign-in .sign-in-card {
-  width: 390px;
-  max-width: 100%;
-  min-height: 0;
-  margin: auto;
-  background: #f8fbff;
-  border: 1px solid #d0deeb;
-  border-radius: 7px;
-  padding: 32px;
-  box-shadow: 0 9px 18px #44627c0b;
-  gap: 18px;
-}
-.marketing-sign-in .sign-in-card .app-symbol {
-  width: 45px;
-  height: 45px;
-  border-radius: 10px;
-  background: #0c1b24;
-  color: var(--m-accent-bright);
-  box-shadow: none;
-}
-.marketing-sign-in .sign-in-card h2 {
-  font-size: 27px;
-  text-transform: none;
-  letter-spacing: -1.1px;
-}
-.marketing-sign-in .sign-in-card p {
-  font-size: 13px;
-}
-.marketing-sign-in .sign-in-card .button {
-  border-radius: 999px;
-  background: var(--m-premium-gradient);
-  color: var(--m-ink);
-  box-shadow: 0 8px 30px #598fd91a;
-  border: 1px solid var(--m-accent-bright);
-  min-height: 45px;
-  font-size: 12px;
-}
-.marketing-sign-in .sign-in-card .button.secondary {
-  background: #f8fbff;
-  border: 1px solid #cbdbe9;
-  color: #3a5d73;
-}
-.marketing-sign-in .sign-in-card small {
-  font-size: 10px;
-  color: #70869a;
 }
 .sign-in-platforms {
   display: grid;
@@ -3289,20 +3232,6 @@
   }
   .marketing-sign-in > main {
     padding: 45px 20px 60px;
-  }
-  .marketing .sign-in-heading h1 {
-    font-size: 24px;
-    letter-spacing: -0.8px;
-  }
-  .sign-in-heading .m-eyebrow {
-    font-size: 7px;
-    letter-spacing: 1px;
-  }
-  .marketing-sign-in .sign-in-card {
-    padding: 29px 24px;
-  }
-  .marketing-sign-in .sign-in-card h2 {
-    font-size: 25px;
   }
   .marketing-sign-in > footer {
     gap: 25px;

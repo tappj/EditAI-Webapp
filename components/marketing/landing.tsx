@@ -1065,10 +1065,6 @@ export function MarketingSignIn({
         </a>
       </header>
       <main>
-        <div className="sign-in-heading">
-          <span className="m-eyebrow">YOUR NEXT GREAT VIDEO STARTS HERE</span>
-          <h1>Make room for your ideas.</h1>
-        </div>
         {children}
         <div className="sign-in-platforms">
           <DesktopDownloads />

@@ -34,8 +34,6 @@ await build({
   },
 });
 await copyFile("desktop/preload.cjs", join(out, "preload.cjs"));
-for (const name of ["gate.html", "gate.js"])
-  await copyFile("desktop/renderer/" + name, join(out, "renderer", name));
 await cp("drizzle", join(out, "migrations"), { recursive: true });
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const nativeBuild = await readFile("desktop/bin/native-build.json", "utf8")

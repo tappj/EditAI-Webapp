@@ -20,6 +20,14 @@ test.beforeEach(async ({ page }) => {
       : route.fulfill({ status: 404 }),
   );
 });
+async function resumeAtAccount(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "editai-studio-onboarding-v1",
+      JSON.stringify({ step: "account", answers: {} }),
+    );
+  });
+}
 async function authenticated(page: import("@playwright/test").Page) {
   await page.route("**/api/session", (r) => r.fulfill({ json: session }));
   await page.route("**/api/projects", (r) =>
@@ -42,6 +50,7 @@ async function openStudio(page: import("@playwright/test").Page) {
 test("public first page requires Publik sign-in; responsive and no secret exposure", async ({
   page,
 }) => {
+  await resumeAtAccount(page);
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
@@ -503,6 +512,7 @@ test("Publik popup remains official, has no opener, and approval opens the studi
       body: "<title>Isolated transport fixture</title><p>Publik sign-in fixture; no real account or telemetry.</p>",
     }),
   );
+  await resumeAtAccount(page);
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
     0,
@@ -552,6 +562,7 @@ test("blocked sign-in popups expose a direct official recovery link", async ({
       },
     }),
   );
+  await resumeAtAccount(page);
   await page.goto("/sign-in");
   await page
     .getByRole("button", { name: "Sign in with publik", exact: true })
@@ -637,6 +648,7 @@ for (const device of [
         );
         await expect(install).toContainText("Apple silicon");
       }
+      await resumeAtAccount(page);
       await page.goto("/sign-in");
       await expect(
         page.getByRole("button", { name: "Sign in with publik", exact: true }),
@@ -885,5 +897,126 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
   await page.getByRole("button", { name: "Edits", exact: true }).click();
   await expect(
     card.getByRole("button", { name: "Final take", exact: true }),
+  ).toBeVisible();
+});
+
+test("first-time onboarding resumes, hands Google sign-in to Publik, and opens the free studio", async ({
+  page,
+  context,
+}) => {
+  const claim = "https://publikhq.com/claim/EDITAI-ONBOARDING";
+  let claimed = false;
+  let choice: string | null = null;
+  await context.route(claim, (route) =>
+    route.fulfill({ body: "Publik sign-in fixture" }),
+  );
+  await page.route("**/api/session", (route) =>
+    route.fulfill({
+      json: {
+        screen: !claimed
+          ? {
+              id: "sign_in",
+              title: "Sign in with publik",
+              buttons: [{ action: "sign_in", label: "Sign in with publik" }],
+            }
+          : !choice
+            ? {
+                id: "choose",
+                title: "Your account is ready",
+                body: "Start editing and saving projects for free.",
+                buttons: [{ action: "free", label: "Open studio for free" }],
+              }
+            : { id: "ready" },
+        profile: { ...session.profile, choice },
+        claimURL: claim,
+      },
+    }),
+  );
+  await page.route("**/api/choice", (route) => {
+    expect(claimed).toBe(true);
+    choice = route.request().postDataJSON().choice;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.route("**/api/projects", (route) =>
+    route.fulfill({ json: { projects: [] } }),
+  );
+  await page.route("**/api/telemetry", (route) =>
+    route.fulfill({ json: { ok: true } }),
+  );
+
+  await page.goto("/sign-in");
+  const funnel = page.getByRole("region", { name: "EditAI onboarding" });
+  await expect(
+    funnel.getByRole("heading", { name: "Film it messy." }),
+  ).toBeVisible();
+  await expect(funnel.locator("video")).toHaveAttribute(
+    "src",
+    "/onboarding/raw.mp4",
+  );
+  await expect
+    .poll(() =>
+      funnel
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.readyState),
+    )
+    .toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: /Continue with Google/ }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "See it happen" }).click();
+  await expect(funnel.locator("video")).toHaveAttribute(
+    "src",
+    "/onboarding/edited.mp4",
+  );
+  await expect
+    .poll(() =>
+      funnel
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.readyState),
+    )
+    .toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Make it mine" }).click();
+  await page.getByRole("button", { name: "UGC creator" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Fashion" }).click();
+  await page.getByRole("button", { name: "Business" }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Fashion" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: "Business" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.getByRole("button", { name: "3 to 6 hours" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(funnel).toContainText("About 20 hours a month");
+  await page.getByRole("button", { name: "Build my studio" }).click();
+  await page.getByRole("button", { name: "Continue to sign in" }).click();
+  await expect(
+    funnel.getByRole("heading", { name: "Save your progress." }),
+  ).toBeVisible();
+  const popupOpened = context.waitForEvent("page");
+  await page
+    .getByRole("button", { name: "Continue with Google via Publik" })
+    .click();
+  const popup = await popupOpened;
+  await popup.waitForURL(claim);
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
+  claimed = true;
+  await popup.close();
+  await page.getByRole("button", { name: "Open studio for free" }).click();
+  expect(choice).toBe("publik");
+  await expect(
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
   ).toBeVisible();
 });

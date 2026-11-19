@@ -36,12 +36,27 @@ try {
     exact: true,
   });
   const connect = page.getByRole("button", {
-    name: "Connect your plan",
-    exact: true,
+    name: /^(Connect your plan|Open studio for free|Use Publik balance)$/,
   });
   const ownKeySetup = page.getByLabel("Own OpenAI API key", { exact: true });
-  await Promise.race([home.waitFor(), signIn.waitFor(), connect.waitFor(), ownKeySetup.waitFor()]);
-  if (await ownKeySetup.isVisible()) await page.getByRole("button", { name: "Home", exact: true }).click();
+  const welcome = page.getByRole("button", { name: "See it happen" });
+  await Promise.race([
+    home.waitFor(),
+    signIn.waitFor(),
+    connect.waitFor(),
+    ownKeySetup.waitFor(),
+    welcome.waitFor(),
+  ]);
+  if (await welcome.isVisible()) {
+    await welcome.click();
+    await page.getByRole("button", { name: "Make it mine" }).click();
+    for (let step = 0; step < 5; step++)
+      await page.getByRole("button", { name: "Skip", exact: true }).click();
+    await page.getByRole("button", { name: "Build my studio" }).click();
+    await page.getByRole("button", { name: "Continue to sign in" }).click();
+  }
+  if (await ownKeySetup.isVisible())
+    await page.getByRole("button", { name: "Home", exact: true }).click();
   if (await signIn.isVisible()) {
     await app.evaluate(({ shell }) => {
       const original = shell.openExternal;

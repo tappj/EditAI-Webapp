@@ -8,5 +8,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias: { "@": root } },
   css: { postcss: root },
-  build: { outDir: root + "desktop/dist/renderer", emptyOutDir: true },
+  build: {
+    outDir: root + "desktop/dist/renderer",
+    emptyOutDir: true,
+    rolldownOptions: {
+      input: [
+        root + "desktop/renderer/index.html",
+        root + "desktop/renderer/gate.html",
+      ],
+    },
+  },
 });

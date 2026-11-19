@@ -87,6 +87,28 @@ test("a legitimately linked Publik account may have no public handle", async () 
   );
 });
 
+test("the free studio path requires an authenticated Publik account", async () => {
+  const { gateScreen } = await import("../lib/server/publik.ts");
+  const wallet = {
+    claim_state: "anonymous",
+    plan: { kind: "none" },
+    balance_micros: 0,
+  };
+  assert.equal(gateScreen(wallet, "publik").id, "sign_in");
+  const claimed = { ...wallet, claim_state: "claimed" };
+  assert.deepEqual(
+    gateScreen(claimed, null).buttons.map((button) => button.action),
+    ["free", "get_plan", "own_key"],
+  );
+  assert.equal(gateScreen(claimed, "publik").id, "ready");
+  const starter = { ...claimed, balance_micros: 50_000 };
+  assert.equal(gateScreen(starter, null).buttons[0].action, "free");
+  assert.equal(
+    gateScreen({ ...starter, plan: { kind: "plan" } }, null).buttons[0].action,
+    "connect",
+  );
+});
+
 test("a lost one-time install credential recovers once with a fresh install", async () => {
   const { provision } = await import("../lib/server/publik.ts");
   const original = globalThis.fetch;

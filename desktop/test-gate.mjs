@@ -14,12 +14,21 @@ const app = await electron.launch({
 });
 try {
   const page = await app.firstWindow();
+  await page.getByRole("button", { name: "See it happen" }).click();
+  await page.getByRole("button", { name: "Make it mine" }).click();
+  for (let step = 0; step < 5; step++)
+    await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.getByRole("button", { name: "Build my studio" }).click();
+  await page.getByRole("button", { name: "Continue to sign in" }).click();
+  await expect(
+    page.getByRole("button", { name: "Continue with Google via Publik" }),
+  ).toBeVisible({ timeout: 45000 });
   await expect(
     page.getByRole("button", { name: "Sign in with publik", exact: true }),
   ).toBeVisible({ timeout: 45000 });
-  await expect(
-    page.getByRole("button", { name: "Upload clips" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
   const prefs = await app.evaluate(({ BrowserWindow }) => {
     const p =
       BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();

@@ -540,7 +540,8 @@
   color: var(--m-accent);
 }
 .motion-region:hover [class$="-track"],
-.motion-region:focus-within [class$="-track"],
+.motion-region:focus-visible [class$="-track"],
+.motion-region:has(:focus-visible) [class$="-track"],
 .motion-region[data-in-view="false"] [class$="-track"],
 .marketing[data-paused="true"] [class$="-track"] {
   animation-play-state: paused !important;

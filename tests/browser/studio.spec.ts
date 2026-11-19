@@ -958,57 +958,33 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
   const theme = page.locator(".onboarding-theme");
   await expect(theme).toHaveAttribute("data-onboarding-theme", "light");
   await expect(theme).toHaveCSS("color-scheme", "light");
-  const welcome = funnel.getByRole("heading", { name: "Film it messy." });
-  await expect(welcome).toBeVisible();
-  await expect(welcome).toHaveCSS("color", "rgb(17, 17, 17)");
-  await expect(funnel.getByRole("button", { name: "See it happen" })).toHaveCSS(
-    "color",
-    "rgb(17, 35, 45)",
-  );
-  await expect(funnel.locator("video")).not.toHaveAttribute("controls", "");
   await expect(
-    funnel.getByRole("button", { name: "Play sample" }),
+    funnel.getByRole("heading", { name: "Who’s behind the camera?" }),
   ).toBeVisible();
-  await expect(funnel.locator("video")).toHaveAttribute(
-    "src",
-    "/onboarding/raw.mp4",
+  await expect(funnel.getByRole("heading")).toHaveCSS(
+    "color",
+    "rgb(17, 17, 17)",
   );
-  await expect
-    .poll(() =>
-      funnel
-        .locator("video")
-        .evaluate((video: HTMLVideoElement) => video.readyState),
-    )
-    .toBeGreaterThan(0);
+  await expect(funnel.locator("video")).toHaveCount(0);
+  await expect(
+    funnel.getByRole("progressbar", { name: "Onboarding progress" }),
+  ).toHaveAttribute("aria-valuenow", "1");
+  await expect(funnel.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuemax",
+    "8",
+  );
+  await expect(
+    funnel.getByRole("button", { name: "Back", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    funnel.getByRole("button", { name: "Continue", exact: true }),
+  ).toBeDisabled();
   await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
     0,
   );
   await expect(
     page.getByRole("button", { name: /Continue with Google/ }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "See it happen" }).click();
-  await expect(funnel.locator("video")).toHaveAttribute(
-    "src",
-    "/onboarding/edited.mp4",
-  );
-  await expect
-    .poll(() =>
-      funnel
-        .locator("video")
-        .evaluate((video: HTMLVideoElement) => video.readyState),
-    )
-    .toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Make it mine" }).click();
-  await expect(
-    funnel.getByRole("progressbar", { name: "Onboarding progress" }),
-  ).toHaveText("3/10");
-  await expect(funnel.getByRole("heading")).toHaveCSS(
-    "color",
-    "rgb(17, 17, 17)",
-  );
-  await expect(
-    page.getByRole("button", { name: "TikTok Shop seller" }),
-  ).toHaveCSS("background-color", "rgb(232, 245, 247)");
   await page.getByRole("button", { name: "UGC creator" }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Fashion" }).click();
@@ -1065,7 +1041,7 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
   ).toBeVisible();
 });
 
-test("sample cut animation joins retained clips and monthly hours count into a filled grid", async ({
+test("legacy demo drafts resume at questions and monthly hours animate into a filled grid", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -1085,38 +1061,22 @@ test("sample cut animation joins retained clips and monthly hours count into a f
     }),
   );
   await page.goto("/sign-in");
-  const simulation = page.getByLabel("EditAI sample cut simulation");
-  await expect(simulation).toHaveAttribute("data-stage", "Cutting retakes");
-  await expect(page.locator(".studio-onboarding-demo video")).toHaveAttribute(
-    "src",
-    "/onboarding/raw.mp4",
-  );
-  await page.getByRole("button", { name: "Pause sample" }).click();
-  const paused = await simulation
-    .locator(".cut-piece")
-    .evaluateAll((elements) => elements.map((el) => el.getAttribute("style")));
-  await page.waitForTimeout(250);
-  expect(
-    await simulation
-      .locator(".cut-piece")
-      .evaluateAll((elements) =>
-        elements.map((el) => el.getAttribute("style")),
-      ),
-  ).toEqual(paused);
-  await page.getByRole("button", { name: "Play sample" }).click();
-  await expect(simulation).toHaveAttribute("data-stage", "Cut ready");
-  await expect(page.locator(".studio-onboarding-demo video")).toHaveAttribute(
-    "src",
-    "/onboarding/edited.mp4",
-  );
-  const discarded = simulation.locator(".discarded");
-  for (const piece of await discarded.all())
-    await expect(piece).toHaveCSS("opacity", "0");
-  await expect(simulation.locator(".kept")).toHaveCount(5);
-  await page.getByRole("button", { name: "Replay the cut" }).click();
-  await expect(simulation).toHaveAttribute("data-stage", "Finding cuts");
-
-  await page.getByRole("button", { name: "Make it mine" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Who’s behind the camera?" }),
+  ).toBeVisible();
+  await expect(page.locator(".studio-onboarding video")).toHaveCount(0);
+  await page.getByRole("button", { name: "UGC creator" }).click();
+  await expect(
+    page.getByRole("button", { name: "UGC creator" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "What niches do you create for?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "UGC creator" }),
+  ).toHaveAttribute("aria-pressed", "true");
   for (let step = 0; step < 4; step++)
     await page.getByRole("button", { name: "Skip", exact: true }).click();
   await page.getByRole("button", { name: "3 to 6 hours" }).click();

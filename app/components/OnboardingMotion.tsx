@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Scissors } from "lucide-react";
 import { Button } from "./ui";
 
 // Presentation time stops while the component is offscreen or the tab is hidden.
@@ -64,125 +63,6 @@ export function usePresentationProgress(milliseconds: number, paused = false) {
     };
   }, [milliseconds, paused]);
   return { target, progress };
-}
-
-// First frames after verified jumps in the app's bundled 30 fps edited sample.
-export const sampleCuts = [0, 64 / 30, 150 / 30, 290 / 30, 410 / 30, 17.367];
-const rawSeconds = 23.036;
-const editedSeconds = sampleCuts.at(-1)!;
-const gapSeconds = (rawSeconds - editedSeconds) / 4;
-const pieces = sampleCuts.slice(1).flatMap((end, index) => {
-  const retained = {
-    key: "take-" + index,
-    keep: true,
-    duration: end - sampleCuts[index],
-    index,
-  };
-  return index === 4
-    ? [retained]
-    : [
-        retained,
-        { key: "gap-" + index, keep: false, duration: gapSeconds, index },
-      ];
-});
-const clamp = (value: number) => Math.min(1, Math.max(0, value));
-const ease = (value: number) => value * value * (3 - 2 * value);
-
-export function CutSimulation({
-  progress,
-  playback,
-}: {
-  progress: number;
-  playback: number;
-}) {
-  const stage =
-    progress < 0.12
-      ? "Finding cuts"
-      : progress < 0.44
-        ? "Cutting retakes"
-        : progress < 0.64
-          ? "Removing pauses"
-          : progress < 1
-            ? "Joining clips"
-            : "Cut ready";
-  const sliced = progress >= 0.12;
-  const removed = ease(clamp((progress - 0.44) / 0.2));
-  const joined = ease(clamp((progress - 0.64) / 0.26));
-  const scan = clamp((progress - 0.12) / 0.32);
-  let rawStart = 0;
-  let editedStart = 0;
-  return (
-    <div
-      className="cut-simulation"
-      data-stage={stage}
-      aria-label="EditAI sample cut simulation"
-    >
-      <div className="cut-simulation-heading">
-        <span>
-          <Scissors size={17} aria-hidden="true" /> {stage}
-        </span>
-        <span>
-          0:23 raw <span aria-hidden="true">→</span> 0:17 edited
-        </span>
-      </div>
-      <div className="cut-simulation-ruler" aria-hidden="true">
-        <span>0:00</span>
-        <span>{joined === 1 ? "0:08" : "0:11"}</span>
-        <span>{joined === 1 ? "0:17" : "0:23"}</span>
-      </div>
-      <div className="cut-simulation-track" aria-hidden="true">
-        {pieces.map((piece) => {
-          const start = rawStart / rawSeconds;
-          rawStart += piece.duration;
-          const joinedStart = editedStart / editedSeconds;
-          if (piece.keep) editedStart += piece.duration;
-          const left = 100 * (start + (joinedStart - start) * joined);
-          const rawWidth = piece.duration / rawSeconds;
-          const endWidth = piece.duration / editedSeconds;
-          const width = 100 * (rawWidth + (endWidth - rawWidth) * joined);
-          return (
-            <span
-              key={piece.key}
-              className={piece.keep ? "cut-piece kept" : "cut-piece discarded"}
-              style={{
-                left: left + "%",
-                width: `calc(${width}% - ${sliced ? 4 : 0}px)`,
-                opacity: piece.keep ? 1 : 1 - removed,
-                transform: `translateY(${piece.keep ? 0 : removed * 28}px)`,
-                borderRadius: sliced ? 7 : 0,
-              }}
-            >
-              <span>{piece.keep ? `Take ${piece.index + 1}` : "Retake"}</span>
-            </span>
-          );
-        })}
-        {progress >= 0.12 && progress < 0.44 && (
-          <span
-            className="cut-simulation-scissors"
-            style={{ left: `calc(${scan * 100}% - 13px)` }}
-          >
-            <Scissors size={20} />
-          </span>
-        )}
-        {progress === 1 && (
-          <span
-            className="cut-simulation-playhead"
-            style={{ left: `calc(${clamp(playback) * 100}% - 1px)` }}
-          />
-        )}
-      </div>
-      <div className="cut-simulation-legend">
-        <span>
-          <i className="keep-swatch" />
-          Good takes
-        </span>
-        <span>
-          <i className="discard-swatch" />
-          Retakes & pauses
-        </span>
-      </div>
-    </div>
-  );
 }
 
 const activities = [

@@ -14,8 +14,6 @@ const app = await electron.launch({
 });
 try {
   const page = await app.firstWindow();
-  await page.getByRole("button", { name: "See it happen" }).click();
-  await page.getByRole("button", { name: "Make it mine" }).click();
   for (let step = 0; step < 5; step++)
     await page.getByRole("button", { name: "Skip", exact: true }).click();
   await page.getByRole("button", { name: "Build my studio" }).click();

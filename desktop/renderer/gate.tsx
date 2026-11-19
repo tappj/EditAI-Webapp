@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Button } from "../../app/components/ui";
+import { Button, Wordmark } from "../../app/components/ui";
 import {
   StudioAccount,
   StudioOnboarding,
@@ -76,11 +76,14 @@ function DesktopGate() {
       className="onboarding-theme desktop-onboarding"
       data-onboarding-theme="light"
     >
-      {!screen || screen.id === "choose" ? (
-        account
-      ) : (
-        <StudioOnboarding>{account}</StudioOnboarding>
-      )}
+      <div className="desktop-onboarding-content">
+        <Wordmark />
+        {!screen || screen.id === "choose" ? (
+          account
+        ) : (
+          <StudioOnboarding>{account}</StudioOnboarding>
+        )}
+      </div>
     </main>
   );
 }

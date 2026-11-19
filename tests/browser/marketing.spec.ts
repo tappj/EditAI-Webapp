@@ -72,7 +72,7 @@ test("new reference layout, removed old sections, real logo and genuine app entr
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page).toHaveTitle("EditAI: #1 Video Editor");
   await expect(
-    page.getByRole("button", { name: "See it happen", exact: true }),
+    page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -141,7 +141,7 @@ test("web and desktop pricing offers free editing, Publik plans and own-key entr
     .click();
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
-    page.getByRole("button", { name: "See it happen", exact: true }),
+    page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeVisible();
 });
 test("calculator follows volume with the requested labels and explicit configured assumptions", async ({
@@ -326,7 +326,7 @@ test("responsive references, reduced motion, mobile menu, real logo and sign-in 
   );
   await page.goto("/sign-in");
   await expect(
-    page.getByRole("button", { name: "See it happen", exact: true }),
+    page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: `outputs/new-design/${browserName}-sign-in-mobile.png`,

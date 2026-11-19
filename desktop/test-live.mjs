@@ -39,7 +39,9 @@ try {
     name: /^(Connect your plan|Open studio for free|Use Publik balance)$/,
   });
   const ownKeySetup = page.getByLabel("Own OpenAI API key", { exact: true });
-  const welcome = page.getByRole("button", { name: "See it happen" });
+  const welcome = page.getByRole("heading", {
+    name: "Who’s behind the camera?",
+  });
   await Promise.race([
     home.waitFor(),
     signIn.waitFor(),
@@ -48,8 +50,6 @@ try {
     welcome.waitFor(),
   ]);
   if (await welcome.isVisible()) {
-    await welcome.click();
-    await page.getByRole("button", { name: "Make it mine" }).click();
     for (let step = 0; step < 5; step++)
       await page.getByRole("button", { name: "Skip", exact: true }).click();
     await page.getByRole("button", { name: "Build my studio" }).click();

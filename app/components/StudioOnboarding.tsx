@@ -3,11 +3,32 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  Camera,
   Check,
+  CircleHelp,
   Clock3,
+  Dumbbell,
+  Ellipsis,
   Film,
-  Scissors,
+  GraduationCap,
+  Heart,
+  House,
+  Monitor,
+  Pause,
+  Play,
+  ShoppingCart,
   Sparkles,
+  Store,
+  Timer,
+  Shirt,
+  UserRound,
+  Users,
+  Utensils,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Button, Wordmark } from "./ui";
 import "./studio-onboarding.css";
@@ -87,6 +108,154 @@ const questions: Record<
     ],
   },
 };
+
+const choiceIcons = {
+  role: [
+    Store,
+    ShoppingCart,
+    Camera,
+    GraduationCap,
+    Building2,
+    Users,
+    UserRound,
+    CircleHelp,
+  ],
+  niches: [
+    Sparkles,
+    Shirt,
+    Utensils,
+    Dumbbell,
+    House,
+    Monitor,
+    Users,
+    BriefcaseBusiness,
+    Heart,
+    Ellipsis,
+  ],
+  frequency: [CalendarDays, CalendarDays, CalendarDays, Sparkles],
+  volume: [Film, Film, Film, Sparkles],
+  editingTime: [Timer, Timer, Timer, Timer, Timer, Clock3],
+};
+
+function displayTime(seconds: number) {
+  const whole = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+function OnboardingDemo({
+  edited,
+  heading,
+  next,
+  back,
+}: {
+  edited: boolean;
+  heading: React.RefObject<HTMLHeadingElement | null>;
+  next: () => void;
+  back: () => void;
+}) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const player = video.current;
+    if (!player || matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return;
+    player.muted = true;
+    void player.play().catch(() => {});
+  }, []);
+
+  function togglePlayback() {
+    const player = video.current;
+    if (!player) return;
+    if (player.paused) void player.play().catch(() => {});
+    else player.pause();
+  }
+  function toggleSound() {
+    const player = video.current;
+    if (!player) return;
+    player.muted = !player.muted;
+    setMuted(player.muted);
+  }
+
+  return (
+    <section className="studio-onboarding-demo" aria-label="EditAI onboarding">
+      <video
+        ref={video}
+        playsInline
+        preload="metadata"
+        muted={muted}
+        src={edited ? "/onboarding/edited.mp4" : "/onboarding/raw.mp4"}
+        poster={edited ? "/onboarding/edited.jpg" : "/onboarding/raw.jpg"}
+        aria-label={edited ? "Edited sample video" : "Raw sample video"}
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+        onTimeUpdate={(event) => setElapsed(event.currentTarget.currentTime)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+      />
+      <div className="studio-demo-header">
+        {edited && (
+          <button
+            className="studio-demo-control"
+            onClick={back}
+            aria-label="Back"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+        <Wordmark />
+        <div className="studio-demo-controls">
+          <button
+            className="studio-demo-control"
+            aria-label={playing ? "Pause sample" : "Play sample"}
+            onClick={togglePlayback}
+          >
+            {playing ? <Pause size={18} /> : <Play size={18} />}
+          </button>
+          <button
+            className="studio-demo-control"
+            aria-label={muted ? "Unmute sample" : "Mute sample"}
+            onClick={toggleSound}
+          >
+            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+          <button className="studio-demo-control" onClick={next}>
+            Skip
+          </button>
+        </div>
+      </div>
+      <div className="studio-demo-footer">
+        <h1 ref={heading} tabIndex={-1}>
+          {edited ? "Keep the good takes." : "Film it messy."}
+        </h1>
+        <p>
+          {edited
+            ? "See the same footage after EditAI removes the retakes and dead space."
+            : "Retakes, rambling, dead space."}
+        </p>
+        <div className="studio-demo-timeline">
+          <progress
+            aria-label="Sample playback progress"
+            value={elapsed}
+            max={duration || 1}
+          />
+          <div>
+            <span>{edited ? "Edited sample" : "Raw footage"}</span>
+            <span>
+              {displayTime(elapsed)} / {displayTime(duration)}
+            </span>
+          </div>
+        </div>
+        <Button onClick={next}>
+          {edited ? "Make it mine" : "See it happen"}
+        </Button>
+      </div>
+    </section>
+  );
+}
 
 function savedDraft(): Draft {
   try {
@@ -169,18 +338,41 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
     ([0.5, 2, 4.5, 8, 10, 0][editingIndex] ?? 0) * 4.345,
   );
 
+  if (media)
+    return (
+      <OnboardingDemo
+        key={step}
+        edited={edited}
+        heading={heading}
+        next={() => move(1)}
+        back={() => move(-1)}
+      />
+    );
+
   return (
     <section className="studio-onboarding" aria-label="EditAI onboarding">
       <div className="studio-onboarding-header">
+        <button
+          className="studio-onboarding-back"
+          onClick={() => move(-1)}
+          aria-label="Back"
+        >
+          <ArrowLeft size={18} />
+        </button>
         <Wordmark />
-        <progress
+        <span
+          className="studio-onboarding-progress"
+          role="progressbar"
           aria-label="Onboarding progress"
-          value={index + 1}
-          max={steps.length}
-        />
-        {index > 0 && (
-          <Button secondary onClick={() => move(-1)}>
-            <ArrowLeft size={16} /> Back
+          aria-valuemin={1}
+          aria-valuenow={index + 1}
+          aria-valuemax={steps.length}
+        >
+          {index + 1}/{steps.length}
+        </span>
+        {question && (
+          <Button secondary onClick={() => move(1)}>
+            Skip
           </Button>
         )}
       </div>
@@ -191,84 +383,100 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
           </h1>
           {children}
         </>
-      ) : media ? (
-        <div className="studio-onboarding-demo">
-          <video
-            key={step}
-            controls
-            playsInline
-            preload="metadata"
-            src={edited ? "/onboarding/edited.mp4" : "/onboarding/raw.mp4"}
-            poster={edited ? "/onboarding/edited.jpg" : "/onboarding/raw.jpg"}
-            aria-label={edited ? "Edited sample video" : "Raw sample video"}
-          />
-          <div>
-            <h1 ref={heading} tabIndex={-1}>
-              {edited ? "Keep the good takes." : "Film it messy."}
-            </h1>
-            <p>
-              {edited
-                ? "See the same footage after EditAI removes the retakes and dead space."
-                : "Start with the raw footage, retakes and all."}
-            </p>
-            <Button onClick={() => move(1)}>
-              {edited ? "Make it mine" : "See it happen"}
-            </Button>
-          </div>
-        </div>
       ) : question ? (
         <>
           <h1 ref={heading} tabIndex={-1}>
             {questions[question].title}
           </h1>
-          {question === "niches" && (
-            <p>Pick every niche that fits your content.</p>
-          )}
+          <p className="studio-onboarding-instruction">
+            {question === "niches"
+              ? "Pick every niche that fits your content."
+              : "Select one."}
+          </p>
           <div
-            className="studio-onboarding-choices"
+            className={
+              question === "niches"
+                ? "studio-onboarding-choices niche-choices"
+                : "studio-onboarding-choices"
+            }
             role="group"
             aria-label={questions[question].title}
           >
-            {questions[question].options.map((option) => (
-              <button
-                key={option}
-                aria-pressed={selection.includes(option)}
-                onClick={() => select(question, option)}
-              >
-                {option}
-                {selection.includes(option) && (
-                  <Check size={16} aria-hidden="true" />
-                )}
-              </button>
-            ))}
+            {questions[question].options.map((option, index) => {
+              const Icon = choiceIcons[question][index];
+              const selected = selection.includes(option);
+              return (
+                <button
+                  key={option}
+                  aria-pressed={selected}
+                  onClick={() => select(question, option)}
+                >
+                  <span
+                    className="studio-onboarding-choice-icon"
+                    aria-hidden="true"
+                  >
+                    <Icon size={23} />
+                  </span>
+                  {option}
+                  {selected && (
+                    <span
+                      className="studio-onboarding-check"
+                      aria-hidden="true"
+                    >
+                      <Check size={14} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <div className="studio-onboarding-actions">
-            <Button onClick={() => move(1)} disabled={!selection.length}>
-              Continue
-            </Button>
-            <Button secondary onClick={() => move(1)}>
-              Skip
-            </Button>
-          </div>
+          <Button onClick={() => move(1)} disabled={!selection.length}>
+            Continue
+          </Button>
         </>
       ) : step === "estimate" ? (
         <>
           <h1 ref={heading} tabIndex={-1}>
-            Make time for your next video.
+            {hours > 0
+              ? "Your editing time"
+              : "Make your first edit a little easier."}
           </h1>
           {hours > 0 ? (
-            <div className="studio-onboarding-estimate">
-              <Clock3 size={28} aria-hidden="true" />
-              <strong>
-                About {hours} {hours === 1 ? "hour" : "hours"} a month
-              </strong>
-              <p>
-                Estimated time you currently spend editing, based on your weekly
-                answer.
-              </p>
-            </div>
+            <>
+              <div className="studio-onboarding-estimate">
+                <strong>
+                  About <b>{hours}</b> {hours === 1 ? "hour" : "hours"} a month
+                </strong>
+                <p>
+                  Estimated time you currently spend editing, based on your
+                  weekly answer.
+                </p>
+              </div>
+              <div className="studio-onboarding-hour-grid">
+                <p>1 square = 1 hour this month.</p>
+                <div aria-hidden="true">
+                  {Array.from({ length: 720 }, (_, index) => (
+                    <span
+                      key={index}
+                      className={index < hours ? "marked" : undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
           ) : (
-            <p>Start with a rough cut and make it yours at your own pace.</p>
+            <>
+              <img
+                className="studio-onboarding-mark"
+                src="/brand/editai-icon-192.png"
+                width="76"
+                height="76"
+                alt=""
+              />
+              <p className="studio-onboarding-instruction">
+                Start with a rough cut and make it yours at your own pace.
+              </p>
+            </>
           )}
           <Button onClick={() => move(1)}>Build my studio</Button>
         </>
@@ -277,16 +485,23 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
           <h1 ref={heading} tabIndex={-1}>
             Your studio is ready.
           </h1>
+          <img
+            className="studio-onboarding-mark"
+            src="/brand/editai-icon-192.png"
+            width="76"
+            height="76"
+            alt=""
+          />
           <ol className="studio-onboarding-tutorial">
             <li>
-              <Film size={20} aria-hidden="true" />{" "}
+              <span aria-hidden="true">1</span>
               <div>
                 <strong>Upload your video</strong>
                 <p>Start with one clip or bring in several takes.</p>
               </div>
             </li>
             <li>
-              <Scissors size={20} aria-hidden="true" />{" "}
+              <span aria-hidden="true">2</span>
               <div>
                 <strong>Send it to EditAI</strong>
                 <p>
@@ -296,7 +511,7 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
               </div>
             </li>
             <li>
-              <Sparkles size={20} aria-hidden="true" />{" "}
+              <span aria-hidden="true">3</span>
               <div>
                 <strong>Make it yours</strong>
                 <p>Fine-tune the edit, add captions and export.</p>

@@ -944,10 +944,22 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
     route.fulfill({ json: { ok: true } }),
   );
 
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   await page.goto("/sign-in");
   const funnel = page.getByRole("region", { name: "EditAI onboarding" });
+  const theme = page.locator(".onboarding-theme");
+  await expect(theme).toHaveAttribute("data-onboarding-theme", "light");
+  await expect(theme).toHaveCSS("color-scheme", "light");
+  const welcome = funnel.getByRole("heading", { name: "Film it messy." });
+  await expect(welcome).toBeVisible();
+  await expect(welcome).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(funnel.getByRole("button", { name: "See it happen" })).toHaveCSS(
+    "color",
+    "rgb(17, 35, 45)",
+  );
+  await expect(funnel.locator("video")).not.toHaveAttribute("controls", "");
   await expect(
-    funnel.getByRole("heading", { name: "Film it messy." }),
+    funnel.getByRole("button", { name: "Play sample" }),
   ).toBeVisible();
   await expect(funnel.locator("video")).toHaveAttribute(
     "src",
@@ -979,11 +991,32 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
     )
     .toBeGreaterThan(0);
   await page.getByRole("button", { name: "Make it mine" }).click();
+  await expect(
+    funnel.getByRole("progressbar", { name: "Onboarding progress" }),
+  ).toHaveText("3/10");
+  await expect(funnel.getByRole("heading")).toHaveCSS(
+    "color",
+    "rgb(17, 17, 17)",
+  );
+  await expect(
+    page.getByRole("button", { name: "TikTok Shop seller" }),
+  ).toHaveCSS("background-color", "rgb(232, 245, 247)");
   await page.getByRole("button", { name: "UGC creator" }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Fashion" }).click();
   await page.getByRole("button", { name: "Business" }).click();
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "editai-preferences",
+      JSON.stringify({ theme: "dark" }),
+    ),
+  );
   await page.reload();
+  await expect(theme).toHaveAttribute("data-onboarding-theme", "dark");
+  await expect(funnel.getByRole("heading")).toHaveCSS(
+    "color",
+    "rgb(243, 245, 247)",
+  );
   await expect(page.getByRole("button", { name: "Fashion" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -998,6 +1031,9 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
   await page.getByRole("button", { name: "3 to 6 hours" }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(funnel).toContainText("About 20 hours a month");
+  await expect(
+    funnel.locator(".studio-onboarding-hour-grid .marked"),
+  ).toHaveCount(20);
   await page.getByRole("button", { name: "Build my studio" }).click();
   await page.getByRole("button", { name: "Continue to sign in" }).click();
   await expect(

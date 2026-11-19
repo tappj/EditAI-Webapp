@@ -1204,13 +1204,16 @@
     transform-origin: center;
     animation: feature-sparkle 520ms ease-out;
   }
-  .feature-card[data-feature="sparkles"]:hover .feature-tile path:nth-of-type(2) {
+  .feature-card[data-feature="sparkles"]:hover
+    .feature-tile
+    path:nth-of-type(2) {
     animation-delay: 90ms;
   }
   .feature-card[data-feature="captions"]:hover .feature-caption-text {
     transform-box: view-box;
     transform-origin: center;
-    animation: feature-caption-pop 400ms cubic-bezier(0.2, 0.8, 0.3, 1) 250ms both;
+    animation: feature-caption-pop 400ms cubic-bezier(0.2, 0.8, 0.3, 1) 250ms
+      both;
   }
 }
 /* Framed creator stories: owner assets remain editable; no fabricated endorsements. */
@@ -2053,11 +2056,10 @@
   transform: translateY(68%);
 }
 /* Same official authentication, adapted to the new site design. */
-.marketing.marketing-sign-in {
+.marketing-sign-in {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: var(--canvas);
   color: var(--ink);
 }
 .sign-in-header {
@@ -2065,7 +2067,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 22px 0;
-  border-bottom: 1px solid var(--m-border);
+  border-bottom: 1px solid var(--border);
 }
 .back-to-site {
   font-size: 11px;
@@ -2073,7 +2075,7 @@
 }
 .marketing-sign-in > main {
   flex: 1;
-  padding: 65px 20px 75px;
+  padding: clamp(1rem, 4vw, 2.5rem) 1rem;
 }
 .sign-in-platforms {
   display: grid;
@@ -2086,7 +2088,7 @@
     8px "CourierPrime",
     monospace;
   letter-spacing: 1px;
-  color: #758a9d;
+  color: var(--muted);
 }
 .marketing-sign-in > footer {
   display: flex;
@@ -2094,8 +2096,12 @@
   gap: 27px;
   padding: 22px;
   font-size: 10px;
-  color: #61788f;
-  border-top: 1px solid var(--m-border);
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+.sign-in-header a,
+.marketing-sign-in > footer a {
+  text-decoration: none;
 }
 @media (prefers-reduced-motion: no-preference) {
   .marketing[data-enhanced="true"] .m-reveal {
@@ -3229,9 +3235,6 @@
   }
   .back-to-site {
     font-size: 10px;
-  }
-  .marketing-sign-in > main {
-    padding: 45px 20px 60px;
   }
   .marketing-sign-in > footer {
     gap: 25px;

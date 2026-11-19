@@ -1,5 +1,6 @@
 @import url("/fonts/fonts.css");
-:root {
+:root,
+.onboarding-theme {
   --bg: #fff;
   --canvas: #f6f7f8;
   --surface: #eef3f4;
@@ -18,7 +19,8 @@
   --danger: #a33535;
   color-scheme: light;
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+.onboarding-theme[data-onboarding-theme="dark"] {
   --bg: #101216;
   --canvas: #171b21;
   --surface: #242b34;

@@ -1,4 +1,5 @@
 "use client";
+import { Wordmark } from "@/app/components/ui";
 import {
   useEffect,
   useId,
@@ -1051,15 +1052,22 @@ export function MarketingLanding({ onPrivacy }: { onPrivacy: () => void }) {
 }
 export function MarketingSignIn({
   children,
+  dark,
   onPrivacy,
 }: {
   children: ReactNode;
+  dark: boolean;
   onPrivacy: () => void;
 }) {
   return (
-    <div className="marketing marketing-sign-in">
+    <div
+      className="onboarding-theme marketing-sign-in"
+      data-onboarding-theme={dark ? "dark" : "light"}
+    >
       <header className="sign-in-header m-container">
-        <MarketingBrand />
+        <a href={content.links.home} aria-label="EditAI home">
+          <Wordmark />
+        </a>
         <a href={content.links.home} className="back-to-site">
           Back to EditAI <ArrowUpRight size={14} />
         </a>

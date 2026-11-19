@@ -340,7 +340,7 @@ export const marketingContent = {
     {
       question: "Can I fine-tune the AI edit?",
       answer:
-        "You’re in control: undo changes, trim and reorder clips, and style captions yourself. You can also ask EditAI chat to fine-tune your edit.",
+        "Yes. You can always undo, trim, reorder and style captions yourself. We also have an EditAI chatbox which can fine-tune your edit for you.",
     },
     {
       question: "How do I get started?",

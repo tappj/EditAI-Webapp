@@ -237,7 +237,29 @@ async function startDesktop() {
       return { action: "deny" };
     });
     window.webContents.on("will-navigate", (event, url) => {
-      if (![appOrigin + "/", appOrigin + "/gate.html"].includes(url))
+      const destination = new URL(url);
+      if (
+        !ready &&
+        destination.protocol === "editai:" &&
+        destination.host === "app" &&
+        destination.pathname === "/sign-in"
+      ) {
+        event.preventDefault();
+        void unlockEditor();
+        return;
+      }
+      if (!ready && url === appOrigin + "/") {
+        event.preventDefault();
+        void window.loadURL(appOrigin + "/?signed-out=1");
+        return;
+      }
+      if (
+        ![
+          appOrigin + "/",
+          appOrigin + "/gate.html",
+          appOrigin + "/?signed-out=1",
+        ].includes(url)
+      )
         event.preventDefault();
     });
     const ses = window.webContents.session;
@@ -372,7 +394,8 @@ async function startDesktop() {
       await sdk.flushCredentialStore();
       apiCookie = "";
       handler = null;
-      void unlockEditor();
+      screen = null;
+      await window.loadURL(appOrigin + "/?signed-out=1");
     });
     expose("media:retain", (id, path, type) =>
       store.importFile(id, path, type),

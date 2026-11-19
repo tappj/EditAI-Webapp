@@ -690,7 +690,9 @@ test("own-key users land on Home and can open secure settings without a Publik s
     await r.fulfill({ json: { ok: true } });
   });
   await page.goto("/sign-in");
-  const home = page.getByRole("heading", { name: "Upload your raw takes here" });
+  const home = page.getByRole("heading", {
+    name: "Upload your raw takes here",
+  });
   await expect(home).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.reload();
@@ -1143,4 +1145,45 @@ test("sample cut animation joins retained clips and monthly hours count into a f
   expect(
     counts.reduce((sum, count) => sum + Number(count.replace("h", "")), 0),
   ).toBe(720);
+});
+
+test("signing out from the web studio returns to the public homepage", async ({
+  page,
+}) => {
+  let signedIn = true;
+  await page.route("**/api/session", (route) =>
+    route.fulfill({
+      json: signedIn
+        ? session
+        : {
+            screen: {
+              id: "sign_in",
+              buttons: [{ action: "sign_in", label: "Sign in with publik" }],
+            },
+            profile: {},
+          },
+    }),
+  );
+  await page.route("**/api/projects", (route) =>
+    route.fulfill({ json: { projects: [] } }),
+  );
+  await page.route("**/api/telemetry", (route) =>
+    route.fulfill({ json: { ok: true } }),
+  );
+  await page.route("**/api/logout", (route) => {
+    signedIn = false;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/sign-in");
+  await expect(
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator(".marketing-hero")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "EditAI onboarding" }),
+  ).toHaveCount(0);
+  await expect(page.locator(".app-shell")).toHaveCount(0);
 });

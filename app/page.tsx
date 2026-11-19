@@ -165,7 +165,13 @@ async function api(path: string, body?: unknown, method?: string) {
   }
   return b;
 }
-export default function App({ signIn = false }: { signIn?: boolean }) {
+export default function App({
+  signIn = false,
+  signedOut = false,
+}: {
+  signIn?: boolean;
+  signedOut?: boolean;
+}) {
   const [session, setSession] = useState<any>(null),
     [gateError, setGateError] = useState(""),
     [pending, setPending] = useState(true),
@@ -328,14 +334,14 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     }
   }, []);
   useEffect(() => {
-    void refresh();
+    if (!signedOut) void refresh();
     let p: any = {};
     try {
       p = JSON.parse(localStorage.getItem("editai-preferences") || "{}");
     } catch {}
     if (validAppearance(p.theme)) setTheme(p.theme);
     setLanguage(p.language || "auto");
-  }, [refresh]);
+  }, [refresh, signedOut]);
   useEffect(() => {
     const preference = matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -1394,10 +1400,8 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         }}
       />
       {pending || session?.screen.id !== "ready" ? (
-        signIn || desktop() ? (
-          <MarketingSignIn
-            onPrivacy={() => setPrivacy(true)}
-          >
+        !signedOut && (signIn || desktop()) ? (
+          <MarketingSignIn onPrivacy={() => setPrivacy(true)}>
             {gateScreen?.id === "choose" || (pending && !session) ? (
               accountGate
             ) : (
@@ -2732,9 +2736,13 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                     <Button
                       secondary
                       onClick={() =>
-                        void api("logout", {}).then(() =>
-                          desktop() ? desktop()!.signOut() : location.reload(),
-                        )
+                        void api("logout", {})
+                          .then(() =>
+                            desktop()
+                              ? desktop()!.signOut()
+                              : location.assign("/"),
+                          )
+                          .catch(fail)
                       }
                     >
                       <LogOut size={16} />

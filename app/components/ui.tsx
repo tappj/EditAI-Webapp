@@ -85,9 +85,7 @@ export function Wordmark() {
   return (
     <span className="wordmark">
       <img src="/brand/editai-icon-192.png" width={32} height={32} alt="" />
-      <span>
-        Edit<span>AI</span>
-      </span>
+      <span>EditAI</span>
     </span>
   );
 }

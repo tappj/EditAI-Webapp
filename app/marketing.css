@@ -15,7 +15,7 @@
   --m-lavender: #eae6f8;
   --m-gold: #f7eacb;
   --m-mint: #dff2e4;
-  --m-brand-gradient: linear-gradient(135deg, #90dce8, #c9bdf2, #f8e894);
+  --m-brand-gradient: var(--brand-gradient);
   --m-premium-gradient: linear-gradient(135deg, #d1f2f7, #e6e0ff, #ffe3d9);
   --m-action-gradient: linear-gradient(90deg, #a8f0f0, #c4e0ff);
   display: flow-root;

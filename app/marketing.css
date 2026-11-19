@@ -1228,12 +1228,12 @@
 .creator-video-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
-  max-width: 910px;
+  gap: 26px;
+  max-width: 1080px;
   margin: 50px auto 0;
 }
 .creator-video-card {
-  padding: 10px;
+  padding: 12px;
   background: #eef3f4;
   border: 1px solid #d7e0eb;
   position: relative;
@@ -1241,8 +1241,8 @@
 .gallery-frame-label {
   position: absolute;
   z-index: 3;
-  top: 19px;
-  left: 19px;
+  top: 21px;
+  left: 21px;
   background: #eaf1f8dc;
   padding: 4px 7px;
   font:
@@ -2969,7 +2969,7 @@
     scrollbar-color: #aabecf transparent;
   }
   .creator-video-card {
-    flex: 0 0 78%;
+    flex: 0 0 84%;
     scroll-snap-align: center;
     padding: 9px;
   }

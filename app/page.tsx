@@ -312,12 +312,6 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     try {
       const s = await api("session");
       setSession(s);
-      if (
-        s.screen.id === "ready" &&
-        s.profile.choice === "own_key" &&
-        !s.profile.hasOwnKey
-      )
-        setScreen((current) => (current === "home" ? "settings" : current));
       setGateError("");
       setConsent(s.profile.consent);
       setTelemetry(s.profile.telemetry);
@@ -590,7 +584,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         choice: choice === "own_key" ? "own_key" : "publik",
       });
       await refresh();
-      if (choice === "own_key") setScreen("settings");
+      setScreen("home");
     } catch (e) {
       fail(e);
     }

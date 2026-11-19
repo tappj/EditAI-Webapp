@@ -668,7 +668,7 @@ for (const device of [
   });
 }
 
-test("own-key onboarding opens secure settings without a Publik subscription", async ({
+test("own-key users land on Home and can open secure settings without a Publik subscription", async ({
   page,
 }) => {
   let saved = false;
@@ -690,6 +690,12 @@ test("own-key onboarding opens secure settings without a Publik subscription", a
     await r.fulfill({ json: { ok: true } });
   });
   await page.goto("/sign-in");
+  const home = page.getByRole("heading", { name: "Upload your raw takes here" });
+  await expect(home).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.reload();
+  await expect(home).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   const input = page.getByLabel("Own OpenAI API key", { exact: true });
   await expect(input).toBeVisible();
   await expect(input).toHaveAttribute("type", "password");

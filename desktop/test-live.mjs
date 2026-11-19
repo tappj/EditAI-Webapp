@@ -29,7 +29,7 @@ try {
   page.setDefaultTimeout(30000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   const home = page.getByRole("heading", {
-    name: "What will you create today?",
+    name: "Upload your raw takes here",
   });
   const signIn = page.getByRole("button", {
     name: "Sign in with publik",

@@ -14,6 +14,7 @@ export type Source = {
   height: number;
   kind: "video" | "image" | "audio";
   mime: string;
+  bytes?: number;
   transcribed?: boolean;
   speechJob?: string;
 };

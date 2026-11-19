@@ -11,7 +11,7 @@ export type MediaResource = Blob | NativeMedia;
 export type DesktopBridge = {
   platform: string;
   signOut(): Promise<void>;
-  importFile(id: string, file: File): Promise<NativeMedia | null>;
+  importFile(id: string, file: File, mime: string): Promise<NativeMedia | null>;
   writeMedia(
     id: string,
     bytes: ArrayBuffer,

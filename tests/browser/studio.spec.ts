@@ -13,6 +13,13 @@ const session = {
     aiProviders: [],
   },
 };
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/assets/*", (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({ json: { ok: true } })
+      : route.fulfill({ status: 404 }),
+  );
+});
 async function authenticated(page: import("@playwright/test").Page) {
   await page.route("**/api/session", (r) => r.fulfill({ json: session }));
   await page.route("**/api/projects", (r) =>
@@ -29,7 +36,7 @@ async function openStudio(page: import("@playwright/test").Page) {
   // File inputs exist before the async sign-in gate finishes. Wait for the
   // visible studio that a real user reaches before choosing their media.
   await expect(
-    page.getByRole("heading", { name: "What will you create today?" }),
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
   ).toBeVisible();
 }
 test("public first page requires Publik sign-in; responsive and no secret exposure", async ({
@@ -38,7 +45,7 @@ test("public first page requires Publik sign-in; responsive and no secret exposu
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Turn your raw footage into something worth sharing.",
+      name: "Turn your raw footage into edited videos in minutes.",
     }),
   ).toBeVisible();
   await page
@@ -49,9 +56,9 @@ test("public first page requires Publik sign-in; responsive and no secret exposu
   await expect(
     page.getByRole("heading", { name: "Sign in with publik", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Create a video" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
   await page.screenshot({ path: "outputs/gate-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "outputs/gate-mobile.png", fullPage: true });
@@ -106,7 +113,7 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   await file.saveAs("outputs/verified-export.mp4");
   await expect(page.getByRole("status")).toContainText("MP4 exported");
   await page
-    .getByRole("button", { name: "My creations", exact: true })
+    .getByRole("button", { name: "Edits", exact: true })
     .first()
     .click();
   await expect(page.locator(".project-card")).toHaveCount(1);
@@ -169,12 +176,12 @@ test("large local media survives a browser reload and deletion removes its stora
     page.getByRole("button", { name: "Split clip at playhead" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "My creations", exact: true })
+    .getByRole("button", { name: "Edits", exact: true })
     .first()
     .click();
   await page.reload();
   await page
-    .getByRole("button", { name: /^My creations/ })
+    .getByRole("button", { name: /^Edits/ })
     .first()
     .click();
   await page.locator(".project-card-title").click();
@@ -189,7 +196,7 @@ test("large local media survives a browser reload and deletion removes its stora
     .toBeGreaterThan(0.2);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page
-    .getByRole("button", { name: "My creations", exact: true })
+    .getByRole("button", { name: "Edits", exact: true })
     .first()
     .click();
   page.once("dialog", (d) => d.accept());
@@ -285,7 +292,7 @@ test("overlay and imported audio appear in actual exported media", async ({
   await authenticated(page);
   await openStudio(page);
   await expect(
-    page.getByRole("button", { name: "Create a video", exact: true }),
+    page.getByRole("button", { name: "Upload clips", exact: true }),
   ).toBeVisible();
   await page
     .locator("input[type=file]")
@@ -405,7 +412,7 @@ test("Publik Chirp upload flow creates one resumable word-timestamp job per sour
   );
   await openStudio(page);
   await expect(
-    page.getByRole("button", { name: "Create a video", exact: true }),
+    page.getByRole("button", { name: "Upload clips", exact: true }),
   ).toBeVisible();
   await page
     .locator("input[type=file]")
@@ -442,7 +449,7 @@ test("visual style references attach actual browser-decoded image frames to chat
   });
   await openStudio(page);
   await expect(
-    page.getByRole("button", { name: "Create a video", exact: true }),
+    page.getByRole("button", { name: "Upload clips", exact: true }),
   ).toBeVisible();
   await page
     .locator("input[type=file]")
@@ -500,9 +507,9 @@ test("Publik popup remains official, has no opener, and approval opens the studi
     }),
   );
   await page.goto("/");
-  await expect(
-    page.getByRole("button", { name: "Create a video" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
   await page
     .getByRole("link", { name: "Open EditAI Web", exact: true })
     .first()
@@ -520,7 +527,7 @@ test("Publik popup remains official, has no opener, and approval opens the studi
   linked = true;
   await page.bringToFront();
   await expect(
-    page.getByRole("heading", { name: "What will you create today?" }),
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
   ).toBeVisible({ timeout: 15000 });
   if (!popup.isClosed()) await popup.close();
   // The authenticated dashboard still offers supported desktop downloads.
@@ -556,9 +563,9 @@ test("blocked sign-in popups expose a direct official recovery link", async ({
     page.getByRole("link", { name: "Open Publik sign-in" }),
   ).toHaveAttribute("href", "https://publikhq.com/claim/EDITAI-TEST");
   await expect(page.getByRole("status")).toContainText("return here");
-  await expect(
-    page.getByRole("button", { name: "Create a video" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
 });
 
 for (const device of [
@@ -652,12 +659,22 @@ for (const device of [
   });
 }
 
-
-test("own-key onboarding opens secure settings without a Publik subscription", async ({ page }) => {
+test("own-key onboarding opens secure settings without a Publik subscription", async ({
+  page,
+}) => {
   let saved = false;
-  await page.route("**/api/session", r => r.fulfill({ json: { ...session, profile: { ...session.profile, plan: "No plan", hasOwnKey: saved } } }));
-  await page.route("**/api/projects", r => r.fulfill({ json: { projects: [] } }));
-  await page.route("**/api/settings", async r => {
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
+      json: {
+        ...session,
+        profile: { ...session.profile, plan: "No plan", hasOwnKey: saved },
+      },
+    }),
+  );
+  await page.route("**/api/projects", (r) =>
+    r.fulfill({ json: { projects: [] } }),
+  );
+  await page.route("**/api/settings", async (r) => {
     const body = r.request().postDataJSON();
     expect(body.ownKey).toBe("fixture-only-openai-key");
     saved = true;
@@ -667,11 +684,157 @@ test("own-key onboarding opens secure settings without a Publik subscription", a
   const input = page.getByLabel("Own OpenAI API key", { exact: true });
   await expect(input).toBeVisible();
   await expect(input).toHaveAttribute("type", "password");
-  await expect(page.locator("main")).toContainText("No Publik subscription is needed");
+  await expect(page.locator("main")).toContainText(
+    "No Publik subscription is needed",
+  );
   await input.fill("fixture-only-openai-key");
-  await page.getByRole("button", { name: "Save preferences", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Save preferences", exact: true })
+    .click();
   await expect(input).toHaveValue("");
   await expect(input).toHaveAttribute("placeholder", "A key is securely saved");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "What will you create today?" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
+  ).toBeVisible();
+});
+
+test("first-run Allow persists and Edits shows a frame, size and a rename action", async ({
+  page,
+  browserName,
+}) => {
+  let choice: boolean | null = null;
+  let profile: Record<string, unknown> = {};
+  let savedId = "";
+  let backedUp = false;
+  let renamed = "";
+  const fixture = await readFile("outputs/fixture.mp4");
+  await authenticated(page);
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
+      json: {
+        ...session,
+        profile: {
+          ...session.profile,
+          ...profile,
+          consent: choice === true,
+          consentDecided: choice !== null,
+        },
+      },
+    }),
+  );
+  await page.route("**/api/consent", (r) => {
+    choice = r.request().postDataJSON().allow;
+    return r.fulfill({ json: { ok: true } });
+  });
+  await page.route("**/api/settings", (r) => {
+    const body = r.request().postDataJSON();
+    expect(body).not.toHaveProperty("telemetry");
+    profile = body;
+    return r.fulfill({ json: { ok: true } });
+  });
+  await page.route("**/api/projects", (r) => {
+    if (r.request().method() === "POST") {
+      const body = r.request().postDataJSON();
+      savedId = body.id;
+      expect(body.document.sources[0].bytes).toBe(fixture.length);
+    }
+    return r.fulfill({ json: { projects: [] } });
+  });
+  await page.route("**/api/assets/*", (r) => {
+    expect(savedId).toBeTruthy();
+    expect(r.request().method()).toBe("PUT");
+    expect(r.request().headers()["content-type"]).toBe("video/mp4");
+    // WebKit's request interception omits File payloads.
+    if (browserName === "chromium")
+      expect(r.request().postDataBuffer()).toEqual(fixture);
+    backedUp = true;
+    return r.fulfill({ json: { ok: true } });
+  });
+  await page.route("**/api/projects/*", (r) => {
+    expect(r.request().method()).toBe("PATCH");
+    expect(r.request().url()).toContain(savedId);
+    renamed = r.request().postDataJSON().title;
+    return r.fulfill({ json: { updatedAt: Date.now() } });
+  });
+
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Allow AI processing?" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Upload clips" })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Allow", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Upload your raw takes here" }),
+  ).toBeVisible();
+  await expect(page.locator(".sidebar-note")).toHaveText("iOS coming soon");
+  await expect(page.locator(".sidebar-note a")).toHaveCount(0);
+  await expect(
+    page.locator(".upload-card input[type=checkbox], .corner-arrow"),
+  ).toHaveCount(0);
+  await expect(
+    page.locator(".topbar").getByRole("button", { name: "Record" }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".sidebar nav").getByRole("button", { name: "Record" }),
+  ).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: /Allow AI processing/ }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: /Share official usage/ }),
+  ).not.toBeChecked();
+
+  await page
+    .getByRole("button", { name: "Open profile customization" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Customize profile" }),
+  ).toBeVisible();
+  await page.getByLabel("Display name").fill("Taylor Editor");
+  await page.getByRole("radio", { name: /Midnight/ }).check();
+  await page.getByRole("radio", { name: "Dark", exact: true }).check();
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByRole("status")).toContainText("Profile saved");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const profileButton = page.getByRole("button", {
+    name: "Open profile customization",
+  });
+  await expect(profileButton).toContainText("Taylor Editor");
+  await expect(profileButton.locator(".avatar")).toHaveText("TE");
+
+  await page
+    .getByRole("button", { name: "Upload clips", exact: true })
+    .first()
+    .waitFor();
+  await page.screenshot({
+    path: `outputs/studio-refresh/${browserName}-dark-home.png`,
+  });
+  await page.locator("input[type=file]").first().setInputFiles({
+    name: "original.mp4",
+    mimeType: "video/mp4",
+    buffer: fixture,
+  });
+  await expect.poll(() => backedUp).toBe(true);
+  await page.getByRole("button", { name: "Edits", exact: true }).click();
+  const card = page.locator(".project-card");
+  await expect(card.locator("video.frame-ready")).toBeVisible();
+  await expect(card.locator("small")).toContainText(/\d.+KB · /);
+  await page.getByRole("button", { name: "Rename original" }).click();
+  await page.getByLabel("Edit name").fill("Final take");
+  await page.getByRole("button", { name: "Save name" }).click();
+  await expect(
+    card.getByRole("button", { name: "Final take", exact: true }),
+  ).toBeVisible();
+  expect(renamed).toBe("Final take");
+  await page.reload();
+  await page.getByRole("button", { name: "Edits", exact: true }).click();
+  await expect(
+    card.getByRole("button", { name: "Final take", exact: true }),
+  ).toBeVisible();
 });

@@ -8,7 +8,8 @@ import {
   existsSync,
   unlinkSync,
 } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { copyFile, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { Readable } from "node:stream";
 const uuid = (value) =>
@@ -89,6 +90,29 @@ export class LocalStore {
       )
       .run(id, resolved, basename(resolved), mime, managed ? 1 : 0);
     return this.media(id);
+  }
+  async importFile(id, path, mime) {
+    if (
+      !uuid(id) ||
+      typeof path !== "string" ||
+      !/^(video|audio|image)\//.test(mime)
+    )
+      throw Error("Invalid media request.");
+    const input = realpathSync(path);
+    const stat = statSync(input);
+    if (!stat.isFile() || stat.size > 1024 ** 3)
+      throw Error("Choose a supported media file under 1 GB.");
+    const directory = join(this.directory, "media");
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    const destination = join(directory, id);
+    const temporary = destination + "." + crypto.randomUUID();
+    try {
+      await copyFile(input, temporary, constants.COPYFILE_FICLONE);
+      await rename(temporary, destination);
+      return this.retain(id, destination, mime, true);
+    } finally {
+      await rm(temporary, { force: true });
+    }
   }
   media(id) {
     if (!uuid(id)) throw Error("Invalid media ID.");

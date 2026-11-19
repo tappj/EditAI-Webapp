@@ -84,8 +84,10 @@ export function Range({
 export function Wordmark() {
   return (
     <span className="wordmark">
-      Edit<span>AI</span>
-      <span className="wordmark-dot">✦</span>
+      <img src="/brand/editai-icon-192.png" width={32} height={32} alt="" />
+      <span>
+        Edit<span>AI</span>
+      </span>
     </span>
   );
 }

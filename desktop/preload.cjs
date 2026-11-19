@@ -3,11 +3,9 @@ const call = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
 contextBridge.exposeInMainWorld("editaiDesktop", {
   platform: process.platform,
   signOut: () => ipcRenderer.invoke("account:sign-out"),
-  importFile: (id, file) => {
+  importFile: (id, file, mime) => {
     const path = webUtils.getPathForFile(file);
-    return path
-      ? call("media:retain", id, path, file.type || "video/mp4")
-      : Promise.resolve(null);
+    return path ? call("media:retain", id, path, mime) : Promise.resolve(null);
   },
   writeMedia: (id, bytes, type) => call("media:write", id, bytes, type),
   getMedia: (id) => call("media:get", id),

@@ -13,13 +13,12 @@ const db = () =>
       d.createObjectStore("preferences");
     },
   });
-export const saveMedia = async (id: string, file: Blob) => {
+export const saveMedia = async (id: string, file: Blob, mime = file.type) => {
   const native = desktop();
   if (native) {
     const retained =
-      file instanceof File ? await native.importFile(id, file) : null;
-    if (!retained)
-      await native.writeMedia(id, await file.arrayBuffer(), file.type);
+      file instanceof File ? await native.importFile(id, file, mime) : null;
+    if (!retained) await native.writeMedia(id, await file.arrayBuffer(), mime);
     return;
   }
   const d = await db(),

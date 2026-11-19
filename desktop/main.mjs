@@ -200,6 +200,7 @@ async function startDesktop() {
         "0000_furry_phil_sheldon.sql",
         "0001_massive_expediter.sql",
         "0002_optimal_the_anarchist.sql",
+        "0003_account_preferences.sql",
       ].map((name) => readFile(join(bundledRoot, "migrations", name), "utf8")),
     );
     store = new LocalStore(app.getPath("userData"), migrations);
@@ -306,7 +307,8 @@ async function startDesktop() {
             sdk.setChoice("own_key");
             await sdk.flushCredentialStore();
           }
-          process.env.PUBLIK_TELEMETRY = b.telemetry ? "true" : "false";
+          if (typeof b.telemetry === "boolean")
+            process.env.PUBLIK_TELEMETRY = b.telemetry ? "true" : "false";
         }
         return new Response(response.body, {
           status: response.status,
@@ -369,7 +371,9 @@ async function startDesktop() {
       handler = null;
       void unlockEditor();
     });
-    expose("media:retain", (id, path, type) => store.retain(id, path, type));
+    expose("media:retain", (id, path, type) =>
+      store.importFile(id, path, type),
+    );
     expose("media:write", (id, bytes, type) => store.save(id, bytes, type));
     expose("media:get", (id) => store.media(id));
     expose("media:delete", (ids) => store.remove(ids));

@@ -57,3 +57,10 @@ export const profiles = sqliteTable("profiles", {
   avatar: text("avatar"),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const accountPreferences = sqliteTable("account_preferences", {
+  owner: text("owner").primaryKey(),
+  consent: integer("consent"),
+  avatarPreset: text("avatar_preset").notNull().default("editAI"),
+  appearance: text("appearance"),
+});

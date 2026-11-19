@@ -60,7 +60,7 @@ for (const target of ["browser", "desktop"]) {
       page = await app.firstWindow();
     }
     await page
-      .getByRole("heading", { name: "What will you create today?" })
+      .getByRole("heading", { name: "Upload your raw takes here" })
       .waitFor();
     const startupMs = Date.now() - startup;
     await page

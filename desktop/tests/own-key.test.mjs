@@ -64,13 +64,13 @@ test("personal OpenAI settings encrypt credentials and route AI without a Publik
       }),
     },
   );
-  const request = (path, body) =>
+  const request = (path, body, sessionToken = token) =>
     api(
       new Request("https://editai.test/api/" + path, {
-        method: "POST",
+        method: body === undefined ? "GET" : "POST",
         headers: {
           origin: "https://editai.test",
-          cookie: "editai_session=" + token,
+          cookie: "editai_session=" + sessionToken,
           ...(body instanceof FormData
             ? {}
             : { "content-type": "application/json" }),
@@ -81,13 +81,49 @@ test("personal OpenAI settings encrypt credentials and route AI without a Publik
   const originalFetch = globalThis.fetch;
   const calls = [];
   try {
+    const before = await (await request("session")).json();
+    assert.equal(
+      before.profile.consent,
+      true,
+      "honor an existing session's consent",
+    );
+    assert.equal(before.profile.consentDecided, true);
+    assert.equal((await request("consent", { allow: false })).status, 200);
+    const declined = await (await request("session")).json();
+    assert.equal(declined.profile.consent, false);
+    assert.equal(declined.profile.consentDecided, true);
+    assert.equal((await request("consent", { allow: true })).status, 200);
+    const secondToken = crypto.randomUUID();
+    store.database
+      .prepare(
+        "INSERT INTO sessions (id,install_id,credential,created_at,expires_at,telemetry) VALUES (?,?,?,?,?,0)",
+      )
+      .run(
+        await hash(secondToken),
+        crypto.randomUUID(),
+        await encrypt("fixture-second-install", secret),
+        Date.now(),
+        Date.now() + 60000,
+      );
+    const nextSession = await (
+      await request("session", undefined, secondToken)
+    ).json();
+    assert.equal(nextSession.profile.consent, true);
+    assert.equal(nextSession.profile.telemetry, false);
     const saved = await request("settings", {
       displayName: "Personal test",
       ownKey: fixtureKey,
-      consent: true,
+      avatarPreset: "midnight",
+      appearance: "dark",
       telemetry: false,
     });
     assert.equal(saved.status, 200);
+    const sharedProfile = await (
+      await request("session", undefined, secondToken)
+    ).json();
+    assert.equal(sharedProfile.profile.appearance, "dark");
+    assert.equal(sharedProfile.profile.avatarPreset, "midnight");
+    assert.equal(sharedProfile.profile.displayName, "Personal test");
     const row = store.database
       .prepare("SELECT own_key,choice FROM sessions WHERE id=?")
       .get(id);
@@ -142,6 +178,11 @@ test("personal OpenAI settings encrypt credentials and route AI without a Publik
       "https://api.openai.com/v1/chat/completions",
       "https://api.openai.com/v1/audio/transcriptions",
     ]);
+    assert.equal(
+      (await request("consent", { allow: false }, secondToken)).status,
+      200,
+    );
+    assert.equal((await request("ai/summary", { words: [] })).status, 403);
     claimed = false;
     assert.equal((await request("ai/summary", { words: [] })).status, 401);
     assert.equal(calls.length, 2, "an unclaimed session must not call AI");

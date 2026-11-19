@@ -21,6 +21,7 @@ import {
   validateChatRequest,
 } from "../ios/chat.mjs";
 import { validate } from "../editor/model";
+import { validAppearance, validPreset } from "../editor/profile";
 export type ApiEnvironment = {
   DB?: D1Database;
   BUCKET?: R2Bucket;
@@ -118,7 +119,7 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
       if (e instanceof ApiError && e.status === 401) {
         await db
           .prepare(
-            "UPDATE sessions SET credential=NULL,choice=NULL,owner=NULL WHERE id=?",
+            "UPDATE sessions SET credential=NULL,choice=NULL,owner=NULL,consent=0 WHERE id=?",
           )
           .bind(s.id)
           .run();
@@ -134,13 +135,46 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
     const identity = walletIdentity(w);
     const owner = await hash("publik:" + identity.reference);
     if (s.owner !== owner) {
+      // A legacy session can carry consent only for its original owner.
+      if (s.owner) s.consent = 0;
       await db
-        .prepare("UPDATE sessions SET owner=? WHERE id=?")
-        .bind(owner, s.id)
+        .prepare("UPDATE sessions SET owner=?,consent=? WHERE id=?")
+        .bind(owner, s.consent, s.id)
         .run();
       s.owner = owner;
     }
     return owner;
+  }
+  type AccountPreferences = {
+    consent: number | null;
+    avatar_preset: string;
+    appearance: string | null;
+  };
+  async function accountPreferences(db: D1Database, s: Session, owner: string) {
+    const read = () =>
+      db
+        .prepare(
+          "SELECT consent,avatar_preset,appearance FROM account_preferences WHERE owner=?",
+        )
+        .bind(owner)
+        .first<AccountPreferences>();
+    const preferences = await read();
+    if (preferences?.consent != null || !s.consent) return preferences;
+    await db
+      .prepare(
+        "INSERT INTO account_preferences (owner,consent) VALUES (?,1) ON CONFLICT(owner) DO UPDATE SET consent=1 WHERE account_preferences.consent IS NULL",
+      )
+      .bind(owner)
+      .run();
+    return read();
+  }
+
+  function writeConsent(db: D1Database, owner: string, allowed: boolean) {
+    return db
+      .prepare(
+        "INSERT INTO account_preferences (owner,consent) VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET consent=excluded.consent",
+      )
+      .bind(owner, allowed ? 1 : 0);
   }
   function wordsValid(words: any) {
     if (!Array.isArray(words) || !words.length || words.length > 6000)
@@ -329,7 +363,7 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
           if (e instanceof ApiError && e.status === 401)
             await db
               .prepare(
-                "UPDATE sessions SET credential=NULL,choice=NULL,owner=NULL WHERE id=?",
+                "UPDATE sessions SET credential=NULL,choice=NULL,owner=NULL,consent=0 WHERE id=?",
               )
               .bind(s.id)
               .run();
@@ -337,6 +371,10 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         }
         const screen = gateScreen(w, s.choice);
         if (w.claim_state === "claimed") await bindIdentity(db, s, w);
+        const preferences =
+          w.claim_state === "claimed" && s.owner
+            ? await accountPreferences(db, s, s.owner)
+            : null;
         const savedProfile = s.owner
           ? await db
               .prepare("SELECT name,avatar FROM profiles WHERE owner=?")
@@ -363,7 +401,10 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
               aiProviders: w.ai_providers || [],
               choice: s.choice,
               hasOwnKey: !!s.own_key,
-              consent: !!s.consent,
+              consent: preferences?.consent === 1,
+              consentDecided: preferences?.consent != null,
+              avatarPreset: preferences?.avatar_preset || "editAI",
+              appearance: preferences?.appearance ?? null,
               telemetry: !!s.telemetry,
             },
             claimURL: screen.claimURL,
@@ -391,25 +432,48 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
           .run();
         return result({ ok: true });
       }
+      if (path === "consent" && req.method === "POST") {
+        const b = await jsonBody(req);
+        if (typeof b.allow !== "boolean")
+          throw new ApiError(400, "Choose whether to allow AI processing.");
+        await writeConsent(db, owner, b.allow).run();
+        return result({ ok: true });
+      }
       if (path === "settings" && req.method === "POST") {
         const b = await jsonBody(req, 100000);
-        if (
-          typeof b.displayName !== "string" ||
-          b.displayName.length > 80 ||
-          (b.avatar != null &&
-            (typeof b.avatar !== "string" ||
-              b.avatar.length > 70000 ||
-              !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(
-                b.avatar,
-              )))
-        )
-          throw new ApiError(400, "Invalid profile.");
-        await db
-          .prepare(
-            "INSERT INTO profiles (owner,name,avatar,updated_at) VALUES (?,?,?,?) ON CONFLICT(owner) DO UPDATE SET name=excluded.name,avatar=excluded.avatar,updated_at=excluded.updated_at",
+        const statements: D1PreparedStatement[] = [];
+        if (b.displayName !== undefined) {
+          if (
+            typeof b.displayName !== "string" ||
+            b.displayName.length > 80 ||
+            /[\r\n]/.test(b.displayName) ||
+            (b.avatar != null &&
+              (typeof b.avatar !== "string" ||
+                b.avatar.length > 70000 ||
+                !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(
+                  b.avatar,
+                )))
           )
-          .bind(owner, b.displayName.trim(), b.avatar || null, Date.now())
-          .run();
+            throw new ApiError(400, "Invalid profile.");
+          statements.push(
+            db
+              .prepare(
+                "INSERT INTO profiles (owner,name,avatar,updated_at) VALUES (?,?,?,?) ON CONFLICT(owner) DO UPDATE SET name=excluded.name,avatar=excluded.avatar,updated_at=excluded.updated_at",
+              )
+              .bind(owner, b.displayName.trim(), b.avatar || null, Date.now()),
+          );
+        }
+        if (b.avatarPreset !== undefined || b.appearance !== undefined) {
+          if (!validPreset(b.avatarPreset) || !validAppearance(b.appearance))
+            throw new ApiError(400, "Invalid appearance.");
+          statements.push(
+            db
+              .prepare(
+                "INSERT INTO account_preferences (owner,avatar_preset,appearance) VALUES (?,?,?) ON CONFLICT(owner) DO UPDATE SET avatar_preset=excluded.avatar_preset,appearance=excluded.appearance",
+              )
+              .bind(owner, b.avatarPreset, b.appearance),
+          );
+        }
         if (b.ownKey) {
           if (
             typeof b.ownKey !== "string" ||
@@ -425,15 +489,23 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
             }),
             secret(),
           );
-          await db
-            .prepare("UPDATE sessions SET own_key=?,choice='own_key' WHERE id=?")
-            .bind(encrypted, s.id)
-            .run();
+          statements.push(
+            db
+              .prepare(
+                "UPDATE sessions SET own_key=?,choice='own_key' WHERE id=?",
+              )
+              .bind(encrypted, s.id),
+          );
         }
-        await db
-          .prepare("UPDATE sessions SET consent=?,telemetry=? WHERE id=?")
-          .bind(b.consent ? 1 : 0, b.telemetry ? 1 : 0, s.id)
-          .run();
+        if (typeof b.consent === "boolean")
+          statements.push(writeConsent(db, owner, b.consent));
+        if (typeof b.telemetry === "boolean")
+          statements.push(
+            db
+              .prepare("UPDATE sessions SET telemetry=? WHERE id=?")
+              .bind(b.telemetry ? 1 : 0, s.id),
+          );
+        if (statements.length) await db.batch(statements);
         return result({ ok: true });
       }
       if (path === "telemetry" && req.method === "POST") {
@@ -465,6 +537,26 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
               .all()
           ).results,
         });
+      if (path.startsWith("projects/") && req.method === "PATCH") {
+        const id = path.split("/")[1];
+        const { title } = await jsonBody(req);
+        if (
+          typeof title !== "string" ||
+          !title.trim() ||
+          title.length > 140 ||
+          /[\r\n]/.test(title)
+        )
+          throw new ApiError(400, "Enter a name of 1–140 characters.");
+        const updatedAt = Date.now();
+        const update = await db
+          .prepare(
+            "UPDATE projects SET title=?,updated_at=? WHERE id=? AND owner=?",
+          )
+          .bind(title.trim(), updatedAt, id, owner)
+          .run();
+        if (!update.meta.changes) throw new ApiError(404, "Project not found.");
+        return result({ updatedAt });
+      }
       if (path === "projects" && req.method === "POST") {
         const b = await jsonBody(req, 2 * 1024 * 1024);
         if (
@@ -538,6 +630,9 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
           db.prepare("DELETE FROM usage WHERE owner=?").bind(owner),
           db.prepare("DELETE FROM speech_jobs WHERE owner=?").bind(owner),
           db.prepare("DELETE FROM profiles WHERE owner=?").bind(owner),
+          db
+            .prepare("DELETE FROM account_preferences WHERE owner=?")
+            .bind(owner),
           db.prepare("DELETE FROM sessions WHERE owner=?").bind(owner),
         ]);
         return result(
@@ -553,12 +648,12 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         if (!/^[a-f0-9-]{36}$/.test(id))
           throw new ApiError(400, "Invalid media ID.");
         if (req.method === "PUT") {
-          await limit(db, "upload:" + owner, 30, 3600);
+          await limit(db, "upload:" + owner, 60, 3600);
           const size = Number(req.headers.get("content-length"));
           if (!size || size > 100 * 1024 * 1024)
             throw new ApiError(
               413,
-              "Cloud backup supports files up to 100 MB. Larger videos stay in this browser.",
+              "Private cloud storage supports files up to 100 MB.",
             );
           const quota = await db
             .prepare("SELECT SUM(bytes) AS bytes FROM assets WHERE owner=?")
@@ -597,24 +692,53 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
           return result({ ok: true });
         }
         const a = await db
-          .prepare("SELECT * FROM assets WHERE id=? AND owner=?")
+          .prepare("SELECT mime,bytes FROM assets WHERE id=? AND owner=?")
           .bind(id, owner)
-          .first<{ mime: string }>();
+          .first<{ mime: string; bytes: number }>();
         if (!a) throw new ApiError(404, "Media not found.");
-        const o = await env.BUCKET.get(owner + "/" + id);
-        if (!o) throw new ApiError(404, "Media not found.");
-        return new Response(o.body, {
-          headers: {
-            "content-type": a.mime,
-            "cache-control": "private, max-age=3600",
-            "x-content-type-options": "nosniff",
-            "content-disposition": "attachment",
-            "content-security-policy": "sandbox; default-src 'none'",
-          },
+        const headers = new Headers({
+          "content-type": a.mime,
+          "content-length": String(a.bytes),
+          "accept-ranges": "bytes",
+          "cache-control": "private, max-age=3600",
+          "x-content-type-options": "nosniff",
+          "content-disposition": "attachment",
+          "content-security-policy": "sandbox; default-src 'none'",
         });
+        if (req.method === "HEAD") return new Response(null, { headers });
+        if (req.method !== "GET")
+          throw new ApiError(405, "Method not available.");
+        const range = req.headers.get("range");
+        let requested: { offset: number; length: number } | undefined;
+        if (range) {
+          const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+          const start = match?.[1]
+            ? Number(match[1])
+            : Math.max(0, a.bytes - Number(match?.[2]));
+          const end =
+            match?.[1] && match[2]
+              ? Math.min(a.bytes - 1, Number(match[2]))
+              : a.bytes - 1;
+          if (
+            !match ||
+            !Number.isSafeInteger(start) ||
+            start > end ||
+            start >= a.bytes
+          ) {
+            headers.set("content-range", `bytes */${a.bytes}`);
+            headers.delete("content-length");
+            return new Response(null, { status: 416, headers });
+          }
+          requested = { offset: start, length: end - start + 1 };
+          headers.set("content-range", `bytes ${start}-${end}/${a.bytes}`);
+          headers.set("content-length", String(requested.length));
+        }
+        const o = await env.BUCKET.get(owner + "/" + id, { range: requested });
+        if (!o) throw new ApiError(404, "Media not found.");
+        return new Response(o.body, { status: requested ? 206 : 200, headers });
       }
       if (path === "ai/audio-upload" && req.method === "POST") {
-        if (!s.consent)
+        if ((await accountPreferences(db, s, owner))?.consent !== 1)
           throw new ApiError(
             403,
             "Allow AI processing in Settings before sending audio.",
@@ -660,7 +784,10 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         return result({ id: upload.id, uploadTicket });
       }
       if (path === "ai/audio-put" && req.method === "PUT") {
-        if (!s.consent || s.choice !== "publik")
+        if (
+          s.choice !== "publik" ||
+          (await accountPreferences(db, s, owner))?.consent !== 1
+        )
           throw new ApiError(
             403,
             "Connect publik and allow AI processing first.",
@@ -772,7 +899,10 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         return result({ ok: true });
       }
       if (path === "ai/transcription-job" && req.method === "POST") {
-        if (!s.consent || s.choice !== "publik")
+        if (
+          s.choice !== "publik" ||
+          (await accountPreferences(db, s, owner))?.consent !== 1
+        )
           throw new ApiError(
             403,
             "Connect publik and allow AI processing first.",
@@ -882,7 +1012,7 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         });
       }
       if (path === "ai/transcribe" && req.method === "POST") {
-        if (!s.consent)
+        if ((await accountPreferences(db, s, owner))?.consent !== 1)
           throw new ApiError(
             403,
             "Allow AI processing in Settings before sending audio.",
@@ -926,7 +1056,7 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         return result({ words: b.words || [], text: b.text || "" });
       }
       if (path.startsWith("ai/") && req.method === "POST") {
-        if (!s.consent)
+        if ((await accountPreferences(db, s, owner))?.consent !== 1)
           throw new ApiError(
             403,
             "Allow AI processing in Settings before sending transcripts.",

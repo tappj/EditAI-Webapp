@@ -18,7 +18,7 @@ try {
     page.getByRole("button", { name: "Sign in with publik", exact: true }),
   ).toBeVisible({ timeout: 45000 });
   await expect(
-    page.getByRole("button", { name: "Create a video" }),
+    page.getByRole("button", { name: "Upload clips" }),
   ).toHaveCount(0);
   const prefs = await app.evaluate(({ BrowserWindow }) => {
     const p =

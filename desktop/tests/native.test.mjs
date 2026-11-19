@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile, rm, access } from "node:fs/promises";
+import {
+  mkdtemp,
+  readFile,
+  writeFile,
+  rm,
+  access,
+  rename,
+  copyFile,
+} from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -102,6 +110,26 @@ await test("native media and real FFmpeg pipeline", async (t) => {
         );
         assert.equal(store.media(id).id, id);
         assert.throws(() => store.path("../source.mp4"));
+      },
+    );
+    await t.test(
+      "new imports stay playable when the selected original moves",
+      async () => {
+        const selected = join(directory, "selected.mp4");
+        const moved = join(directory, "moved.mp4");
+        const imported = randomUUID();
+        await copyFile(source, selected);
+        const media = await store.importFile(imported, selected, "video/mp4");
+        await rename(selected, moved);
+        assert.equal(media.size, (await readFile(source)).length);
+        assert.deepEqual(
+          await readFile(store.path(imported)),
+          await readFile(moved),
+        );
+        const managedPath = store.path(imported);
+        store.remove([imported]);
+        await assert.rejects(access(managedPath));
+        await access(moved);
       },
     );
     await t.test("native WAV extraction preserves real audio", async () => {

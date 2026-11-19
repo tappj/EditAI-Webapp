@@ -157,6 +157,7 @@ export async function probe(file: File): Promise<Source> {
       height: b.height,
       kind,
       mime: file.type,
+      bytes: file.size,
     };
   }
   const el = document.createElement(kind === "audio" ? "audio" : "video");
@@ -191,7 +192,8 @@ export async function probe(file: File): Promise<Source> {
       width: kind === "video" ? (el as HTMLVideoElement).videoWidth : 0,
       height: kind === "video" ? (el as HTMLVideoElement).videoHeight : 0,
       kind,
-      mime: file.type || "video/mp4",
+      mime: file.type || (kind === "audio" ? "audio/mpeg" : "video/mp4"),
+      bytes: file.size,
     };
   } finally {
     el.removeAttribute("src");

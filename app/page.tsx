@@ -12,10 +12,8 @@ import {
   ArrowUpRight,
   AudioLines,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clapperboard,
   Copy,
   Download,
   Film,
@@ -104,6 +102,16 @@ import { makeReference, type Reference } from "@/lib/editor/reference";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
 import { Button, IconButton, Range, Wordmark } from "./components/ui";
 import { ProjectCard } from "./components/ProjectCard";
+import {
+  ProfileAvatar,
+  ProfileCustomization,
+} from "./components/ProfileCustomization";
+import {
+  validAppearance,
+  validPreset,
+  type AvatarPreset,
+  type ProfileAppearance,
+} from "@/lib/editor/profile";
 import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
 import { TextStyleEditor } from "./components/TextStyleEditor";
@@ -114,6 +122,7 @@ type Screen =
   | "library"
   | "editor"
   | "settings"
+  | "profile"
   | "record"
   | "batch"
   | "analysis"
@@ -185,14 +194,27 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     [ownKey, setOwnKey] = useState(""),
     [consent, setConsent] = useState(false),
     [telemetry, setTelemetry] = useState(true),
-    [theme, setTheme] = useState("system"),
+    [theme, setTheme] = useState<ProfileAppearance>("system"),
+    [avatarPreset, setAvatarPreset] = useState<AvatarPreset>("editAI"),
     [language, setLanguage] = useState("auto"),
     [summary, setSummary] = useState<any>(null),
     [profileName, setProfileName] = useState(""),
     [avatar, setAvatar] = useState<string | null>(null),
     [privacy, setPrivacy] = useState(false),
     [menu, setMenu] = useState(false),
-    [cloud, setCloud] = useState(false);
+    [consentSaving, setConsentSaving] = useState(false),
+    [consentError, setConsentError] = useState(""),
+    [renaming, setRenaming] = useState<Project | null>(null),
+    [renameTitle, setRenameTitle] = useState(""),
+    [renameSaving, setRenameSaving] = useState(false),
+    [renameError, setRenameError] = useState("");
+  const persistedProject = useRef<Project | null>(null);
+  const renameInput = useRef<HTMLInputElement>(null);
+  const renameDialog = useRef<HTMLDialogElement>(null);
+  const consentRequired =
+    session?.screen.id === "ready" &&
+    !session.profile.consentDecided &&
+    !session.profile.consent;
   const authPopup = useRef<Window | null>(null);
   const [authOpened, setAuthOpened] = useState(false);
   const [blockedAuthURL, setBlockedAuthURL] = useState("");
@@ -282,12 +304,21 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     try {
       const s = await api("session");
       setSession(s);
-      if (s.screen.id === "ready" && s.profile.choice === "own_key" && !s.profile.hasOwnKey) setScreen("settings");
+      if (
+        s.screen.id === "ready" &&
+        s.profile.choice === "own_key" &&
+        !s.profile.hasOwnKey
+      )
+        setScreen((current) => (current === "home" ? "settings" : current));
       setGateError("");
       setConsent(s.profile.consent);
       setTelemetry(s.profile.telemetry);
       setProfileName(s.profile.displayName || "");
       setAvatar(s.profile.avatar || null);
+      setAvatarPreset(
+        validPreset(s.profile.avatarPreset) ? s.profile.avatarPreset : "editAI",
+      );
+      if (validAppearance(s.profile.appearance)) setTheme(s.profile.appearance);
     } catch (e: any) {
       setGateError(e.message);
     } finally {
@@ -300,20 +331,29 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     try {
       p = JSON.parse(localStorage.getItem("editai-preferences") || "{}");
     } catch {}
-    setTheme(p.theme || "system");
+    if (validAppearance(p.theme)) setTheme(p.theme);
     setLanguage(p.language || "auto");
   }, [refresh]);
   useEffect(() => {
-    const dark =
-      theme === "dark" ||
-      (theme === "system" &&
-        matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    const preference = matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      const dark =
+        theme === "dark" || (theme === "system" && preference.matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+    };
+    apply();
+    preference.addEventListener("change", apply);
     localStorage.setItem(
       "editai-preferences",
       JSON.stringify({ theme, language }),
     );
-  }, [theme, language, profileName]);
+    return () => preference.removeEventListener("change", apply);
+  }, [theme, language]);
+  useEffect(() => {
+    if (!renaming) return;
+    renameDialog.current?.showModal();
+    renameInput.current?.select();
+  }, [renaming]);
   useEffect(() => {
     if (session?.screen.id === "ready" || (!signIn && !desktop())) return;
     const started = Date.now();
@@ -337,7 +377,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     };
   }, [session?.screen.id, refresh, signIn]);
   useEffect(() => {
-    if (session?.screen.id !== "ready") return;
+    if (session?.screen.id !== "ready" || consentRequired) return;
     setStorageScope(session.profile.ownerId || session.profile.handle);
     void listProjects().then(setProjects);
     void api("projects")
@@ -374,12 +414,13 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       document.removeEventListener("pointerdown", event);
       document.removeEventListener("keydown", event);
     };
-  }, [session?.screen.id, fail]);
+  }, [session?.screen.id, consentRequired, fail]);
   useEffect(() => {
-    if (!project) return;
+    if (!project || project === persistedProject.current) return;
     const timer = setTimeout(async () => {
       const p = { ...project, updatedAt: Date.now() };
       await saveProject(p);
+      persistedProject.current = project;
       setProjects(await listProjects());
       if (session?.screen.id === "ready")
         api("projects", {
@@ -467,7 +508,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     },
     [],
   );
-  function change(d: Document) {
+  function change(d: Document, saved?: Project) {
     if (!projectRef.current) return;
     try {
       validate(d);
@@ -476,7 +517,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         structuredClone(projectRef.current!.document),
       ]);
       setFuture([]);
-      setProject((p) => (p ? { ...p, document: d } : p));
+      setProject((p) => saved || (p ? { ...p, document: d } : p));
     } catch (e) {
       fail(e);
     }
@@ -569,7 +610,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
           const r = await fetch("/api/assets/" + s.id);
           if (!r.ok)
             throw Error(
-              `The source “${s.name}” is missing. Reimport it on this device or enable cloud backup before switching devices.`,
+              `The source “${s.name}” is missing. Restore it on this device to reopen the project.`,
             );
           b = await r.blob();
           await saveMedia(s.id, b);
@@ -577,6 +618,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         next[s.id] = mediaURL(b);
       }
       setUrls(next);
+      persistedProject.current = p;
       setProject(p);
       setSelected(p.document.segments[0]?.id || "");
       setPlayhead(0);
@@ -597,7 +639,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       if (files.length > 50) throw Error("Choose up to 50 files.");
       const d = newDocument(),
         next = { ...urlsRef.current };
-      const backupFailures: string[] = [];
+      const media: { id: string; file: File; mime: string }[] = [];
       for (let i = 0; i < files.length; i++) {
         activeSignal?.throwIfAborted();
         const f = /^Take \d+\.webm$/.test(files[i].name)
@@ -608,20 +650,14 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
           throw Error(
             "Choose video files for the main timeline. Add images or audio from inside the editor.",
           );
-        await saveMedia(s.id, f);
+        await saveMedia(s.id, f, s.mime);
+        media.push({ id: s.id, file: f, mime: s.mime });
         d.sources.push(s);
         d.segments.push(newSegment(i, s.duration));
         next[s.id] = desktop()
           ? mediaURL((await loadMedia(s.id))!)
           : URL.createObjectURL(f);
         setProgress((i + 1) / files.length);
-        if (cloud)
-          try {
-            await backup(s.id, f);
-          } catch (e: any) {
-            if (e.name === "AbortError") throw e;
-            backupFailures.push(s.name + ": " + e.message);
-          }
       }
       const p = {
         id: crypto.randomUUID(),
@@ -630,8 +666,9 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         updatedAt: Date.now(),
       };
       setUrls(next);
-      setProject(p);
       await saveProject(p);
+      persistedProject.current = p;
+      setProject(p);
       setProjects(await listProjects());
       setSelected(d.segments[0].id);
       setPlayhead(0);
@@ -639,10 +676,6 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       setFuture([]);
       setSummary(null);
       setMessages([]);
-      if (backupFailures.length)
-        setError(
-          "Project saved locally. Cloud backup failed: " + backupFailures[0],
-        );
       setScreen(
         kind === "transcript"
           ? "transcript"
@@ -650,18 +683,43 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
             ? "analysis"
             : "editor",
       );
+      try {
+        await syncProject(p, media);
+      } catch (e: any) {
+        if (e.name !== "AbortError")
+          setError("Edit saved on this device. " + e.message);
+      }
     });
   }
-  async function backup(id: string, media: MediaResource) {
-    if (media.size > 100 * 1024 * 1024)
+  async function syncProject(
+    p: Project,
+    media: { id: string; file: File; mime: string }[],
+  ) {
+    await api("projects", { id: p.id, title: p.title, document: p.document });
+    if (desktop()) return;
+    const failures: string[] = [];
+    for (const { id, file, mime } of media) {
+      activeSignal?.throwIfAborted();
+      try {
+        await backup(id, file, mime);
+      } catch (e: any) {
+        if (e.name === "AbortError") throw e;
+        failures.push(`${file.name} · ${e.message}`);
+      }
+    }
+    if (failures.length)
       throw Error(
-        "Cloud backup supports files up to 100 MB. This source stays local.",
+        "Some sources could not be saved to your private cloud. " + failures[0],
       );
+  }
+  async function backup(id: string, media: MediaResource, mime = media.type) {
+    if (media.size > 100 * 1024 * 1024)
+      throw Error("The per-file cloud limit is 100 MB.");
     const f = await mediaBlob(media);
     const r = await fetch("/api/assets/" + id, {
       method: "PUT",
       headers: {
-        "content-type": f.type,
+        "content-type": mime || "video/mp4",
         "x-file-name": encodeURIComponent(f instanceof File ? f.name : "Media"),
       },
       body: f,
@@ -675,11 +733,13 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     await run("Adding media", async () => {
       const next = { ...urls },
         d = structuredClone(doc);
+      const media: { id: string; file: File; mime: string }[] = [];
       for (const f of files) {
         activeSignal?.throwIfAborted();
         const s = await probe(f);
         activeSignal?.throwIfAborted();
-        await saveMedia(s.id, f);
+        await saveMedia(s.id, f, s.mime);
+        media.push({ id: s.id, file: f, mime: s.mime });
         next[s.id] = desktop()
           ? mediaURL((await loadMedia(s.id))!)
           : URL.createObjectURL(f);
@@ -727,8 +787,18 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
             opacity: 1,
           });
       }
+      validate(d);
+      const current = {
+        ...projectRef.current!,
+        document: d,
+        updatedAt: Date.now(),
+      };
+      await saveProject(current);
       setUrls(next);
-      change(d);
+      persistedProject.current = current;
+      change(d, current);
+      setProjects(await listProjects());
+      await syncProject(current, media);
     });
   }
   async function ensureWords(
@@ -1042,19 +1112,91 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(u), 30000);
   }
+  async function chooseConsent(allow: boolean) {
+    setConsentSaving(true);
+    setConsentError("");
+    try {
+      await api("consent", { allow });
+      setConsent(allow);
+      setSession((current: any) => ({
+        ...current,
+        profile: { ...current.profile, consent: allow, consentDecided: true },
+      }));
+    } catch (e: any) {
+      setConsentError(e.message);
+    } finally {
+      setConsentSaving(false);
+    }
+  }
+  async function saveProfile() {
+    await run("Saving your profile", async () => {
+      await api("settings", {
+        displayName: profileName,
+        avatar,
+        avatarPreset,
+        appearance: theme,
+      });
+      await refresh();
+      setNotice("Profile saved.");
+    });
+  }
   async function saveSettings() {
     await run("Saving your preferences", async () => {
       await api("settings", {
         ownKey: ownKey || undefined,
-        displayName: profileName,
-        avatar,
-        consent,
+        consent: consent !== session.profile.consent ? consent : undefined,
         telemetry,
       });
       setOwnKey("");
       await refresh();
       setNotice("Preferences saved.");
     });
+  }
+  function startRename(p: Project) {
+    setRenameTitle(p.title);
+    setRenameError("");
+    setRenaming(p);
+  }
+  async function renameProject() {
+    if (!renaming || renameSaving || !renameTitle.trim()) return;
+    setRenameSaving(true);
+    setRenameError("");
+    const working =
+      projectRef.current?.id === renaming.id ? projectRef.current : null;
+    const updated = {
+      ...(working || renaming),
+      title: renameTitle.trim(),
+      updatedAt: Date.now(),
+    };
+    try {
+      const needsSync = working && working !== persistedProject.current;
+      if (!needsSync) {
+        try {
+          const result = await api(
+            "projects/" + updated.id,
+            { title: updated.title },
+            "PATCH",
+          );
+          updated.updatedAt = result.updatedAt;
+        } catch (e: any) {
+          if (e.status !== 404) throw e;
+          await syncProject(updated, []);
+        }
+      } else {
+        await syncProject(updated, []);
+      }
+      await saveProject(updated);
+      if (working) {
+        persistedProject.current = updated;
+        setProject(updated);
+      }
+      setProjects(await listProjects());
+      setRenaming(null);
+    } catch (e: any) {
+      setRenameError(e.message);
+    } finally {
+      setRenameSaving(false);
+    }
   }
   async function removeProject(p: Project) {
     if (
@@ -1063,9 +1205,14 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
       )
     )
       return;
-    await deleteProject(p.id);
-    await api("projects/" + p.id, undefined, "DELETE");
-    setProjects(await listProjects());
+    try {
+      await api("projects/" + p.id, undefined, "DELETE");
+      await deleteProject(p.id);
+      if (projectRef.current?.id === p.id) setProject(null);
+      setProjects(await listProjects());
+    } catch (e) {
+      fail(e);
+    }
   }
   const nav = (s: Screen) => {
     if (
@@ -1181,9 +1328,13 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         signIn || desktop() ? (
           <MarketingSignIn onPrivacy={() => setPrivacy(true)}>
             <section className="sign-in-card">
-              <div className="app-symbol">
-                <Clapperboard />
-              </div>
+              <img
+                className="sign-in-logo"
+                src="/brand/editai-icon-192.png"
+                width={56}
+                height={56}
+                alt=""
+              />
               <h2>
                 {pending
                   ? "Opening your studio…"
@@ -1240,18 +1391,63 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
         ) : (
           <MarketingLanding onPrivacy={() => setPrivacy(true)} />
         )
+      ) : consentRequired ? (
+        <main className="consent-page">
+          <section
+            className="settings-card consent-card"
+            aria-labelledby="consent-title"
+          >
+            <Wordmark />
+            <h1 id="consent-title">Allow AI processing?</h1>
+            <p>
+              When you use transcription, summaries or AI editing, EditAI sends
+              audio, transcripts and any attached reference frames to your
+              selected AI provider. Provider privacy and retention policies
+              apply.
+            </p>
+            <p>
+              {desktop()
+                ? "Imported clips are copied into project storage on this computer."
+                : "Imported clips are saved in this browser and automatically backed up to your private EditAI storage within its limits."}
+            </p>
+            <button className="text-button" onClick={() => setPrivacy(true)}>
+              Read Privacy & data
+            </button>
+            {consentError && <p role="alert">{consentError}</p>}
+            <div className="consent-actions">
+              <Button
+                disabled={consentSaving}
+                onClick={() => void chooseConsent(true)}
+              >
+                Allow
+              </Button>
+              <Button
+                secondary
+                disabled={consentSaving}
+                onClick={() => void chooseConsent(false)}
+              >
+                Continue without AI
+              </Button>
+            </div>
+          </section>
+        </main>
       ) : (
         <div className={`app-shell ${screen === "editor" ? "is-editor" : ""}`}>
           <aside className={`sidebar ${menu ? "open" : ""}`}>
-            <button className="logo-button" onClick={() => nav("home")}>
+            <button
+              className="logo-button"
+              aria-label="EditAI home"
+              onClick={() => nav("home")}
+            >
               <Wordmark />
             </button>
-            <div className="workspace-label">YOUR WORKSPACE</div>
+
             <nav>
               {[
                 { id: "home", label: "Home", icon: Home },
-                { id: "library", label: "My creations", icon: FolderOpen },
-                { id: "record", label: "Record", icon: Video },
+                { id: "library", label: "Edits", icon: FolderOpen },
+                { id: "settings", label: "Settings", icon: Settings },
+                { id: "profile", label: "Customize profile", icon: UserRound },
               ].map((n) => (
                 <button
                   key={n.id}
@@ -1261,40 +1457,31 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                   <n.icon size={19} />
                   {n.label}
                   {n.id === "library" && (
-                    <span className="nav-count">{projects.length}</span>
+                    <span className="nav-count" aria-hidden="true">
+                      {projects.length}
+                    </span>
                   )}
                 </button>
               ))}
             </nav>
-            <div className="sidebar-note">
-              <Sparkles size={20} />
-              <strong>A little less busywork.</strong>
-              <p>More room for your best ideas.</p>
-              <button onClick={() => nav("settings")}>
-                Manage AI connection <ArrowUpRight size={14} />
-              </button>
-            </div>
+            <p className="sidebar-note">iOS coming soon</p>
             <div className="sidebar-bottom">
               <button
-                className={screen === "settings" ? "active" : ""}
-                onClick={() => nav("settings")}
+                className="profile-row"
+                aria-label="Open profile customization"
+                onClick={() => nav("profile")}
               >
-                <Settings size={18} />
-                Settings
-              </button>
-              <button className="profile-row" onClick={() => nav("settings")}>
-                <span className="avatar">
-                  {(profileName ||
-                    session.profile.handle ||
-                    "E")[0].toUpperCase()}
-                </span>
+                <ProfileAvatar
+                  name={profileName || session.profile.handle || ""}
+                  photo={avatar}
+                  preset={avatarPreset}
+                />
                 <span>
                   <strong>
                     {profileName || session.profile.handle || "Your studio"}
                   </strong>
                   <small>{session.profile.plan}</small>
                 </span>
-                <ChevronDown size={15} />
               </button>
             </div>
           </aside>
@@ -1314,14 +1501,21 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                   {screen === "editor"
                     ? project?.title
                     : screen === "library"
-                      ? "My creations"
-                      : screen[0].toUpperCase() + screen.slice(1)}
+                      ? "Edits"
+                      : screen === "profile"
+                        ? "Customize profile"
+                        : screen[0].toUpperCase() + screen.slice(1)}
                 </strong>
               </div>
               <div className="topbar-right">
                 <span className="web-badge">
                   {desktop() ? "DESKTOP STUDIO" : "WEB STUDIO"}
                 </span>
+                {screen === "home" && (
+                  <Button secondary onClick={() => nav("record")}>
+                    <Video size={16} /> Record
+                  </Button>
+                )}
                 {screen === "editor" && (
                   <Button
                     onClick={() => {
@@ -1338,18 +1532,9 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
             </header>
             {screen === "home" && (
               <main className="dashboard">
-                <div className="page-heading">
-                  <div>
-                    <p className="eyebrow">
-                      A LITTLE LESS EDITING. A LOT MORE YOU.
-                    </p>
-                    <h1>
-                      What will you create today<span>?</span>
-                    </h1>
-                    <p>Your next great video starts with a first take.</p>
-                    {!desktop() && <DesktopDownloads />}
-                  </div>
-                  <span className="ios-badge compact">iOS — Coming Soon</span>
+                <div className="page-heading upload-heading">
+                  <h1>Upload your raw takes here</h1>
+                  {!desktop() && <DesktopDownloads />}
                 </div>
                 <div className="dashboard-grid">
                   <section
@@ -1360,14 +1545,6 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       void importFiles(Array.from(e.dataTransfer.files));
                     }}
                   >
-                    <div className="upload-card-top">
-                      <span className="pill">
-                        <Sparkles size={13} /> YOUR CREATIVE SHORTCUT
-                      </span>
-                      <span className="outlined-icon">
-                        <ArrowUpRight />
-                      </span>
-                    </div>
                     <div className="upload-illustration">
                       <div className="film-strip back" />
                       <div className="film-strip front">
@@ -1375,34 +1552,10 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       </div>
                       <div className="floating-spark">✦</div>
                     </div>
-                    <h2>
-                      Good footage.
-                      <br />
-                      Great possibilities.
-                    </h2>
-                    <p>
-                      Drop in your clips. Keep the good takes.
-                      <br />
-                      We’ll help with everything in between.
-                    </p>
                     <Button onClick={() => pick()}>
-                      <Plus size={18} />
-                      Create a video
-                      <ArrowRight size={18} />
+                      <Upload size={18} />
+                      Upload clips
                     </Button>
-                    <small>
-                      MP4, MOV, WebM · up to 50 clips · 1 GB per file
-                    </small>
-                    <label className="checkbox">
-                      <input
-                        type="checkbox"
-                        checked={cloud}
-                        onChange={(e) => setCloud(e.target.checked)}
-                      />
-                      {desktop()
-                        ? "Copy sources to local project storage (100 MB/file)"
-                        : "Back up sources to my private cloud (100 MB/file)"}
-                    </label>
                   </section>
                   <div className="quick-tools">
                     <button
@@ -1412,14 +1565,12 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       <div className="tool-card-icon">
                         <Video />
                       </div>
-                      <ArrowUpRight className="corner-arrow" size={18} />
-                      <h3>Record</h3>
+                      <h3>Record a take</h3>
                       <p>
                         Camera ready.
                         <br />
                         Ideas rolling.
                       </p>
-                      <span>Camera + teleprompter</span>
                     </button>
                     <button
                       className="tool-card lavender"
@@ -1428,14 +1579,12 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       <div className="tool-card-icon">
                         <Layers />
                       </div>
-                      <ArrowUpRight className="corner-arrow" size={18} />
                       <h3>Batch edit</h3>
                       <p>
                         More videos.
                         <br />
                         One smooth flow.
                       </p>
-                      <span>Separate projects, together</span>
                     </button>
                     <button
                       className="tool-card peach"
@@ -1444,14 +1593,12 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       <div className="tool-card-icon">
                         <Sparkles />
                       </div>
-                      <ArrowUpRight className="corner-arrow" size={18} />
                       <h3>Analyze</h3>
                       <p>
                         Find the story
                         <br />
                         in your footage.
                       </p>
-                      <span>Main point + highlights</span>
                     </button>
                     <button
                       className="tool-card mint"
@@ -1460,14 +1607,12 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       <div className="tool-card-icon">
                         <AudioLines />
                       </div>
-                      <ArrowUpRight className="corner-arrow" size={18} />
                       <h3>Transcribe</h3>
                       <p>
                         Every word.
                         <br />
                         Written down.
                       </p>
-                      <span>Speech to editable text</span>
                     </button>
                   </div>
                 </div>
@@ -1477,7 +1622,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                     className="text-button"
                     onClick={() => nav("library")}
                   >
-                    All creations <ArrowRight size={15} />
+                    All edits
                   </button>
                 </div>
                 {projects.length ? (
@@ -1494,13 +1639,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                 ) : (
                   <div className="empty-library">
                     <FolderOpen size={27} />
-                    <div>
-                      <strong>A blank canvas. A fresh start.</strong>
-                      <p>Your saved projects will be right here.</p>
-                    </div>
-                    <button className="text-button" onClick={() => pick()}>
-                      Make your first video <ArrowRight size={16} />
-                    </button>
+                    <p>No saved edits yet.</p>
                   </div>
                 )}
               </main>
@@ -1509,13 +1648,11 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
               <main className="dashboard">
                 <div className="page-heading">
                   <div>
-                    <p className="eyebrow">MADE BY YOU</p>
-                    <h1>My creations</h1>
-                    <p>Your ideas, saved and ready for the next cut.</p>
+                    <h1>Edits</h1>
                   </div>
                   <Button onClick={() => pick()}>
                     <Plus size={18} />
-                    New video
+                    Upload clips
                   </Button>
                 </div>
                 <div className="project-grid">
@@ -1525,14 +1662,14 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       p={p}
                       open={() => void openProject(p)}
                       remove={() => void removeProject(p)}
+                      rename={() => startRename(p)}
                     />
                   ))}
                 </div>
                 {!projects.length && (
                   <div className="empty-library">
                     <Film />
-                    <p>Your first creation is one upload away.</p>
-                    <Button onClick={() => pick()}>Upload video</Button>
+                    <p>No saved edits yet.</p>
                   </div>
                 )}
               </main>
@@ -2511,63 +2648,31 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                 )}
               </main>
             )}
+            {screen === "profile" && (
+              <ProfileCustomization
+                name={profileName}
+                handle={session.profile.handle}
+                photo={avatar}
+                preset={avatarPreset}
+                appearance={theme}
+                onName={setProfileName}
+                onPreset={setAvatarPreset}
+                onAppearance={setTheme}
+                choosePhoto={() => avatarInput.current?.click()}
+                removePhoto={() => setAvatar(null)}
+                save={() => void saveProfile()}
+              />
+            )}
             {screen === "settings" && (
               <main className="dashboard settings-page">
                 <div className="page-heading">
                   <div>
-                    <p className="eyebrow">MAKE YOURSELF AT HOME</p>
-                    <h1>Your studio, your way.</h1>
+                    <h1>Settings</h1>
                   </div>
                 </div>
                 <div className="settings-grid">
                   <section className="settings-card">
-                    <h2>
-                      <UserRound size={20} />
-                      Profile & appearance
-                    </h2>
-                    <div className="avatar-editor">
-                      <span className="avatar">
-                        {avatar ? (
-                          <img src={avatar} alt="Your avatar" />
-                        ) : (
-                          <UserRound size={22} />
-                        )}
-                      </span>
-                      <Button
-                        secondary
-                        onClick={() => avatarInput.current?.click()}
-                      >
-                        Change avatar
-                      </Button>
-                      {avatar && (
-                        <button
-                          className="text-button"
-                          onClick={() => setAvatar(null)}
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <label>
-                      Display name
-                      <input
-                        maxLength={80}
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        placeholder={session.profile.handle || "Your name"}
-                      />
-                    </label>
-                    <label>
-                      Appearance
-                      <select
-                        value={theme}
-                        onChange={(e) => setTheme(e.target.value)}
-                      >
-                        <option value="system">Use device setting</option>
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                      </select>
-                    </label>
+                    <h2>General</h2>
                     <label>
                       Spoken language
                       <select
@@ -2601,7 +2706,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       }
                     >
                       <LogOut size={16} />
-                      Sign out of this browser
+                      Sign out
                     </Button>
                   </section>
                   <section className="settings-card">
@@ -2678,8 +2783,10 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                     <p className="panel-note">
                       {desktop()
                         ? "Your key is encrypted locally with an encryption key protected by macOS Keychain or your OS credential vault."
-                        : "Your key is encrypted on the server and never returned to the browser."}
-                      {" "}OpenAI bills your API account directly. No Publik subscription is needed for this option; a ChatGPT subscription is separate.
+                        : "Your key is encrypted on the server and never returned to the browser."}{" "}
+                      OpenAI bills your API account directly. No Publik
+                      subscription is needed for this option; a ChatGPT
+                      subscription is separate.
                     </p>
                     <a
                       className="text-button"
@@ -2743,24 +2850,28 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                         ? "Projects autosave for this linked browser. Keep exported project metadata and source files when moving to another browser."
                         : "Projects autosave locally and sync their timeline to your account."}{" "}
                       {desktop()
-                        ? "Desktop media is read directly from its original disk location. Keep the original files in place; local backup copies stay on this computer."
-                        : "Source videos stay on this device unless you explicitly enable cloud backup."}
+                        ? "New imports are copied into EditAI storage on this computer. Older edits may still reference the original file location."
+                        : "New sources automatically back up to private storage, up to 100 MB per file and 500 MB per account. Sources that exceed those limits stay in this browser."}
                     </p>
-                    <Button
-                      secondary
-                      onClick={() =>
-                        void run("Backing up source media", async () => {
-                          for (const p of projects)
-                            for (const s of p.document.sources) {
-                              const f = await loadMedia(s.id);
-                              if (f) await backup(s.id, f);
+                    {!desktop() && (
+                      <Button
+                        secondary
+                        onClick={() =>
+                          void run("Backing up source media", async () => {
+                            for (const p of projects) {
+                              await syncProject(p, []);
+                              for (const s of p.document.sources) {
+                                const f = await loadMedia(s.id);
+                                if (f) await backup(s.id, f, s.mime);
+                              }
                             }
-                          setNotice("Available source media backed up.");
-                        })
-                      }
-                    >
-                      Back up source media
-                    </Button>
+                            setNotice("Available source media backed up.");
+                          })
+                        }
+                      >
+                        Back up existing sources
+                      </Button>
+                    )}
                     <Button
                       secondary
                       onClick={() =>
@@ -2818,16 +2929,24 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                 onDone={async (groups, useAI) => {
                   await run("Creating batch projects", async () => {
                     const saved: Project[] = [];
+                    const storageFailures: string[] = [];
                     for (let n = 0; n < groups.length; n++) {
                       activeSignal?.throwIfAborted();
                       if (groups[n].length > 50)
                         throw Error("Choose at most 50 clips per project.");
                       const d = newDocument();
+                      const media: { id: string; file: File; mime: string }[] =
+                        [];
                       for (const f of groups[n]) {
                         const source = await probe(f);
                         if (source.kind !== "video")
                           throw Error("Choose video clips.");
-                        await saveMedia(source.id, f);
+                        await saveMedia(source.id, f, source.mime);
+                        media.push({
+                          id: source.id,
+                          file: f,
+                          mime: source.mime,
+                        });
                         d.sources.push(source);
                         d.segments.push(
                           newSegment(d.sources.length - 1, source.duration),
@@ -2844,11 +2963,12 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                         updatedAt: Date.now(),
                       };
                       await saveProject(p);
-                      await api("projects", {
-                        id: p.id,
-                        title: p.title,
-                        document: d,
-                      });
+                      try {
+                        await syncProject(p, media);
+                      } catch (e: any) {
+                        if (e.name === "AbortError") throw e;
+                        storageFailures.push(e.message);
+                      }
                       saved.push(p);
                       setProgress(((n + 1) / groups.length) * 0.2);
                     }
@@ -2891,18 +3011,65 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                         ? `${saved.length} projects saved; ${completed} AI edits completed${failures.length ? `. ${failures.length} kept as original drafts.` : "."}`
                         : "Batch projects saved.",
                     );
-                    if (failures.length) setError(failures[0]);
+                    if (storageFailures.length || failures.length)
+                      setError(storageFailures[0] || failures[0]);
                   });
                 }}
               />
             )}
             <footer className="app-footer">
-              <span>Made for your next great idea.</span>
               <button onClick={() => setPrivacy(true)}>Privacy & data</button>
-              <span>EditAI for iOS — Coming Soon</span>
             </footer>
           </div>
         </div>
+      )}
+      {renaming && (
+        <dialog
+          ref={renameDialog}
+          className="modal rename-dialog"
+          aria-labelledby="rename-title"
+          onCancel={(e) => {
+            e.preventDefault();
+            if (!renameSaving) setRenaming(null);
+          }}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void renameProject();
+            }}
+          >
+            <h2 id="rename-title">Rename edit</h2>
+            <label>
+              Edit name
+              <input
+                ref={renameInput}
+                value={renameTitle}
+                maxLength={140}
+                required
+                onChange={(e) => setRenameTitle(e.target.value)}
+              />
+            </label>
+            {renameError && <p role="alert">{renameError}</p>}
+            <div className="consent-actions">
+              <button
+                className="button"
+                type="submit"
+                disabled={renameSaving || !renameTitle.trim()}
+              >
+                Save name
+              </button>
+              <button
+                className="button secondary"
+                type="button"
+                disabled={renameSaving}
+                onClick={() => setRenaming(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </dialog>
       )}
       {exportOpen && (
         <div className="modal-backdrop">
@@ -2970,17 +3137,19 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
             </div>
             <p>
               {desktop()
-                ? "EditAI Desktop reads selected source files from disk and renders with native FFmpeg. Projects and optional backup copies stay in this computer’s app storage. Keep originals in place. Credentials are encrypted with the OS credential vault."
-                : "EditAI Web keeps editing and rendering in your browser. Drafts and source files are stored in this browser’s IndexedDB. Clearing browser storage removes local files."}
+                ? "EditAI Desktop copies new imports into its local project storage and renders with native FFmpeg. Older projects may need their original files. Credentials are encrypted with the OS credential vault."
+                : "EditAI Web edits and renders in your browser. Drafts and source files are also stored in this browser’s IndexedDB. Clearing browser storage removes local files."}
             </p>
             <h3>Your account and cloud storage</h3>
             <p>
-              Publik provides sign-in and AI plan connection. EditAI stores
-              encrypted per-browser credentials and account-scoped project
-              timelines. Cloud source backup is optional, limited to 100 MB/file
-              and 500 MB/account. Delete EditAI data in Settings to remove
-              hosted projects, source files and encrypted credentials. Manage
-              your Publik account/plan separately on publikhq.com.
+              Publik provides sign-in and AI plan connection. EditAI stores your
+              project timelines and profile preferences.{" "}
+              {desktop()
+                ? "Desktop projects and source files are stored on this computer."
+                : "Web automatically backs up new sources to private cloud storage within 100 MB per file and 500 MB per account."}{" "}
+              Delete EditAI data in Settings to remove your projects, stored
+              sources and encrypted credentials. Manage your Publik account and
+              plan on publikhq.com.
             </p>
             <h3>AI processing</h3>
             <p>

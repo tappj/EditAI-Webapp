@@ -2041,7 +2041,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  font-size: clamp(160px, 20vw, 360px);
+  font-size: clamp(144px, 18vw, 320px);
   text-align: center;
   line-height: 0.72;
   letter-spacing: -8px;
@@ -3276,7 +3276,7 @@
     letter-spacing: 0.7px;
   }
   .footer-wordmark {
-    font-size: 20vw;
+    font-size: 18vw;
     letter-spacing: -3px;
     transform: translateY(72px);
   }

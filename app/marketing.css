@@ -1964,12 +1964,19 @@
   margin-top: 19px;
 }
 .m-footer {
+  position: relative;
+  isolation: isolate;
   background: #eef3f4;
   border-top: 1px solid #d0dce7;
   padding: 50px 0 0;
   overflow: hidden;
 }
+.m-footer > .m-container {
+  position: relative;
+}
 .footer-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 2fr 1fr 1.2fr 1.1fr;
   gap: 35px;
@@ -2014,6 +2021,8 @@
   text-decoration: underline;
 }
 .footer-baseline {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -2027,16 +2036,19 @@
   color: #6c8298;
 }
 .footer-wordmark {
-  font-size: clamp(88px, 15vw, 220px);
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  font-size: clamp(160px, 20vw, 360px);
   text-align: center;
   line-height: 0.72;
   letter-spacing: -8px;
   color: #dfe4e8;
   font-weight: 800;
   user-select: none;
-  padding-top: 6px;
-  /* The lower half of the wordmark intentionally extends beyond the footer. */
-  transform: translateY(24%);
+  pointer-events: none;
 }
 /* Same official authentication, adapted to the new site design. */
 .marketing.marketing-sign-in {
@@ -3264,7 +3276,6 @@
   .footer-wordmark {
     font-size: 20vw;
     letter-spacing: -3px;
-    padding-top: 8px;
   }
   .sign-in-header {
     padding: 19px 0;

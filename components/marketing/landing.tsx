@@ -921,7 +921,6 @@ function ClosingCtaFooter({ onPrivacy }: { onPrivacy: () => void }) {
           <div className="marketing-downloads">
             <DesktopDownloads />
           </div>
-          <small id="ios-coming-soon">{content.footer.note}</small>
         </div>
       </section>
       <footer className="m-footer">

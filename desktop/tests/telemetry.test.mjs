@@ -35,7 +35,7 @@ await test("official desktop telemetry schema, foreground activity and opt-out",
     assert.equal(calls.length, 1);
     assert.equal(calls[0].body.event, "app_opened");
     assert.equal(calls[0].body.app, "editai-desktop");
-    assert.equal(calls[0].body.app_version, "0.2.1");
+    assert.equal(calls[0].body.app_version, sdk.APP_VERSION);
     assert.equal(calls[0].body.v, 1);
     assert.match(calls[0].body.install_id, /^[a-f0-9-]{36}$/);
     await delay(1050);

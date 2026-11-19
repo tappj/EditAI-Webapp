@@ -15,7 +15,7 @@ try {
     );
   const dir = resolve("desktop/release"),
     arch = process.arch,
-    tag = "v0.2.1",
+    tag = "v0.2.2",
     app = resolve(
       dir,
       "mac" + (arch === "arm64" ? "-arm64" : "") + "/EditAI.app",
@@ -43,7 +43,7 @@ try {
     !accepted.runtime.sandbox ||
     !accepted.runtime.contextIsolation ||
     accepted.runtime.nodeIntegration ||
-    accepted.runtime.version !== "0.2.1"
+    accepted.runtime.version !== "0.2.2"
   )
     throw Error("Installed application acceptance has not passed.");
   const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -62,7 +62,7 @@ try {
   const names = (await readdir(dir)).filter(
     (n) =>
       n === "latest-mac.yml" ||
-      (n.startsWith(`EditAI-0.2.1-mac-${arch}.`) &&
+      (n.startsWith(`EditAI-0.2.2-mac-${arch}.`) &&
         /\.(dmg|zip|blockmap)$/.test(n) &&
         !n.endsWith(".dmg.blockmap")),
   );
@@ -98,7 +98,7 @@ try {
       signed.artifactSha256?.[name] !== sha(await readFile(resolve(dir, name)))
     )
       throw Error("Release artifacts changed after verification.");
-  const sourceName = "EditAI-0.2.1-native-corresponding-source.tar.xz";
+  const sourceName = "EditAI-0.2.2-native-corresponding-source.tar.xz";
   await copyFile(source, resolve(dir, sourceName));
   names.push(sourceName);
   const checksums = [];
@@ -109,9 +109,9 @@ try {
   const notes = resolve("outputs/desktop-release-notes.md");
   await writeFile(
     notes,
-    "EditAI Desktop 0.2.1 for macOS " +
+    "EditAI Desktop 0.2.2 for macOS " +
       arch +
-      ". Rounded macOS app icon and guided drag-to-Applications installer. Shared editor, local media and native FFmpeg. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai-web.givingarmadillo8.chatgpt.site. Windows is not included.\n",
+      ". Native-sized macOS icon, free editor with Publik or personal OpenAI API access, and secure own-key onboarding. Shared editor, local media and native FFmpeg. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai-web.givingarmadillo8.chatgpt.site. Windows is not included.\n",
   );
   // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
   // Keep it private until every release artifact and the installed app pass.
@@ -119,7 +119,7 @@ try {
     "release", "view", tag, "--repo", "tappj/EditAI-Webapp", "--json", "isDraft,assets",
   ]));
   if (!draft.isDraft) throw Error("Expected a private draft release before publication.");
-  const zipName = `EditAI-0.2.1-mac-${arch}.zip`;
+  const zipName = `EditAI-0.2.2-mac-${arch}.zip`;
   const remoteZip = draft.assets.find((asset) => asset.name === zipName);
   if (!remoteZip || remoteZip.size !== (await readFile(resolve(dir, zipName))).length)
     throw Error("Draft signed ZIP is missing or differs in size.");
@@ -135,7 +135,7 @@ try {
   ))) throw Error("Draft release is missing an uploaded artifact.");
   github([
     "release", "edit", tag, "--repo", "tappj/EditAI-Webapp",
-    "--title", "EditAI Desktop 0.2.1", "--notes-file", notes, "--draft=false",
+    "--title", "EditAI Desktop 0.2.2", "--notes-file", notes, "--draft=false",
   ]);
   const dmg = names.find((n) => n.endsWith(".dmg"));
   await writeFile(
@@ -145,7 +145,7 @@ try {
         {
           platform: "macos",
           arch,
-          version: "0.2.1",
+          version: "0.2.2",
           url: `https://github.com/tappj/EditAI-Webapp/releases/download/${tag}/${dmg}`,
           signed: true,
           notarized: true,

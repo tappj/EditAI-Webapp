@@ -426,7 +426,7 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
             secret(),
           );
           await db
-            .prepare("UPDATE sessions SET own_key=? WHERE id=?")
+            .prepare("UPDATE sessions SET own_key=?,choice='own_key' WHERE id=?")
             .bind(encrypted, s.id)
             .run();
         }

@@ -41,7 +41,11 @@ export type Plan = {
   description: string;
   benefits: string[];
   monthly: { price: string; checkoutUrl?: string } | null;
-  annual: { price: string; monthlyEquivalent?: string; checkoutUrl?: string } | null;
+  annual: {
+    price: string;
+    monthlyEquivalent?: string;
+    checkoutUrl?: string;
+  } | null;
   recommended?: boolean;
 };
 // Owner-supplied reviews; brand mentions updated to EditAI with owner permission.
@@ -49,59 +53,83 @@ const placeholderReviewCopy: Array<[string, string, string]> = [
   [
     "Time saver to the max",
     "EditAI has been a huge time saver for me as a new UGC creator. Editing used to be one of the biggest bottlenecks in my workflow, but now I can get through content much faster without sacrificing quality...",
-    "WesADT"
+    "WesADT",
   ],
   [
     "Best Auto Editing App",
     "I’ve used a few others and this one is by far the best, 99% of my videos only need one try and EditAI gets it perfect while still allowing me to quickly make the final touches to the video with their amazing UI design. 10/10",
-    "Collin_t90"
+    "Collin_t90",
   ],
   [
     "INSANELY EFFECTIVE",
     "I love how you can just put your vids in and it edits for you in a few minutes. I can put 10 vids in then leave not even be in the app go to the gym and it’ll edit them all for me, thank you so much!",
-    "keonifish123"
+    "keonifish123",
   ],
   [
     "I Love EditAI!",
     "This app has completely changed the way I create UGC. I can spend more time actually being creative instead of spending hours editing. I love everything about this app, and it has helped me so much. It does an amazing job...",
-    "Dre9898"
+    "Dre9898",
   ],
   [
     "A Must Have for UGC",
     "Genuinely the best ai editing app out there. Time is money. Saves me so much time and I can put out more videos without spending so much time editing",
-    "skyfindsthings"
+    "skyfindsthings",
   ],
   [
     "Choose EditAI",
     "I have been using this app before it was on the App Store and I have to say that it is amazing. Just create one video of whatever you choose and it perfectly cuts it for you without any hassle.",
-    "LaytoB05"
+    "LaytoB05",
   ],
   [
     "Increases output and earnings!",
     "I’ve been using this app since it was in testing, it has increased the amount of videos I can put out and saves so much time. The subscription is cheap for the value you get.",
-    "Camronbrown"
+    "Camronbrown",
   ],
   [
     "Fired my editor",
     "Big thanks to the guys at EditAI. This editing app has saved me so much time, and so much money. They also listen to our feedback and implement them as soon as they can. I’ve tried other ai editing apps and they are just not as...",
-    "SteveH05"
+    "SteveH05",
   ],
   [
     "Cuts my time in half",
     "I love this app. It cuts my editing time by 50% which I love because I can do more content versus spending more time editing and I can never do as much as I always want to, but this allows me to get more content out and less time editing amazing app.",
-    "Charcha212"
+    "Charcha212",
   ],
   [
     "Saves me so much time",
     "I was about to hire an editor, but I figured I’d try this out and it has saved me so much time especially with the new update where I can edit my videos in under or around a minute. Seriously so impressed with this the only thing I’d want to see is the ability to boost the audio levels and add color grading features like saturation or temperature changes",
-    "Chefryan1"
+    "Chefryan1",
   ],
-  ["I came back", "Once I realized it was so much easier for me and my workflow to film in clips and then put them all in and do the overlays I ended up loving it!", "TheTXHouseWife"],
-  ["For non techy people", "I’d say it’s about 80 to 90% spot on the only issue is sometimes it edits out the demo because I’m not talking I’m just showing but that’s OK that’s how it works and it’s a good product.", "Larrytreeton"],
-  ["This has made my life so much easier", "When I first got it, this was magic. I wasn’t having to edit. It would make the cuts. Everything was working beautifully.", "Evam1717"],
-  ["LIFE CHANGING!!", "I don’t mind editing, but it takes me forever and I’ve literally had this for two days and it has saved me hours!", "Tiff926"],
-  ["Amazing App", "This app is amazing! It has saved me so much time editing my videos. If you have not got it yet you are missing out!", "The Sacred Spiral"],
-  ["Time Saver!", "I’m a hairstylist of 30 years and never have had to use a computer for much of anything and now I’m having to learn editing and so many different things.", "Mesa Leon"]
+  [
+    "I came back",
+    "Once I realized it was so much easier for me and my workflow to film in clips and then put them all in and do the overlays I ended up loving it!",
+    "TheTXHouseWife",
+  ],
+  [
+    "For non techy people",
+    "I’d say it’s about 80 to 90% spot on the only issue is sometimes it edits out the demo because I’m not talking I’m just showing but that’s OK that’s how it works and it’s a good product.",
+    "Larrytreeton",
+  ],
+  [
+    "This has made my life so much easier",
+    "When I first got it, this was magic. I wasn’t having to edit. It would make the cuts. Everything was working beautifully.",
+    "Evam1717",
+  ],
+  [
+    "LIFE CHANGING!!",
+    "I don’t mind editing, but it takes me forever and I’ve literally had this for two days and it has saved me hours!",
+    "Tiff926",
+  ],
+  [
+    "Amazing App",
+    "This app is amazing! It has saved me so much time editing my videos. If you have not got it yet you are missing out!",
+    "The Sacred Spiral",
+  ],
+  [
+    "Time Saver!",
+    "I’m a hairstylist of 30 years and never have had to use a computer for much of anything and now I’m having to learn editing and so many different things.",
+    "Mesa Leon",
+  ],
 ];
 export const marketingContent = {
   hero: {
@@ -305,7 +333,7 @@ export const marketingContent = {
       values: [
         "Your tools — and your time",
         "Based on your editor",
-        "Pricing coming soon",
+        "Free editor; AI billed separately",
       ],
     },
     {
@@ -356,53 +384,49 @@ export const marketingContent = {
       description: "Your footage. Your final say.",
     },
   ] as VideoAsset[],
-  // U.S. iOS prices/benefits from OnboardingPlan and OnboardingPaywallView.
-  // App Store checkout remains in the iOS app; web/macOS AI access uses Publik.
+  // Web/desktop editor is free. AI uses the visitor's Publik plan or own key.
   pricing: {
-    approved: true,
-    usage: ["A few a week", "Every day", "Lots to create"],
     plans: [
       {
-        id: "starter",
-        name: "Starter",
-        description: "For your next creative beginning",
+        id: "editor",
+        name: "EditAI Editor",
+        description: "Create in your browser or on your Mac",
+        price: "Free",
+        cadence: "No EditAI subscription",
         benefits: [
-          "10 AI edit starts per month",
-          "Full editor suite",
-          "Transcribe and analyze videos",
+          "Full timeline editor",
+          "Local editing and MP4 export",
+          "Bring your own OpenAI API key for AI",
         ],
-        monthly: { price: "$9.99" },
-        annual: { price: "$79.90", monthlyEquivalent: "$6.65" },
+        action: "Open EditAI",
+      },
+      {
+        id: "basic",
+        name: "Publik Basic",
+        description: "Connect one AI plan across Publik apps",
+        price: "$8",
+        cadence: "per month, plus taxes and fees",
+        benefits: [
+          "$8 of AI usage each month",
+          "Shared across Publik apps",
+          "7-day trial for eligible new subscribers",
+        ],
+        action: "Connect Publik",
       },
       {
         id: "pro",
-        name: "Pro",
-        description: "For a regular creative rhythm",
+        name: "Publik Pro",
+        description: "More AI usage for your creative workflow",
+        price: "$20",
+        cadence: "per month, plus taxes and fees",
         benefits: [
-          "100 AI edit starts per month",
-          "Full editor suite",
-          "Transcribe and analyze videos",
-          "Auto captions for your videos",
-          "Batch edit up to 10 videos",
+          "$20 of AI usage each month",
+          "Shared across Publik apps",
+          "One-time packs available for extra usage",
         ],
-        monthly: { price: "$19.95" },
-        annual: { price: "$159.00", monthlyEquivalent: "$13.25" },
+        action: "Connect Publik",
       },
-      {
-        id: "ultimate",
-        name: "Ultimate",
-        description: "For a workspace full of ideas",
-        benefits: [
-          "Unlimited AI edits per month",
-          "Full editor suite",
-          "Transcribe and analyze videos",
-          "Auto captions for your videos",
-          "Batch edit up to 10 videos",
-        ],
-        monthly: { price: "$49.99" },
-        annual: { price: "$399.00", monthlyEquivalent: "$33.25" },
-      },
-    ] as Plan[],
+    ],
   },
   faqCategories: [
     { name: "The edit", indices: [1, 3, 4, 5] },
@@ -461,9 +485,9 @@ export const marketingContent = {
         "Automatic cross-device project sync is not currently available. Desktop projects and optional backup copies stay in the computer’s app storage.",
     },
     {
-      question: "Are EditAI subscription prices available?",
+      question: "Do I need an EditAI subscription?",
       answer:
-        "EditAI subscription prices have not been announced here. AI access is connected through Publik. Check your account there for your actual plan and usage.",
+        "No EditAI subscription is required for Web or Desktop. For AI, sign in with Publik and connect a plan or use your own OpenAI API key. OpenAI bills your API account directly when you use your own key. The iOS app has separate subscriptions.",
     },
     {
       question: "How can I manage my data?",

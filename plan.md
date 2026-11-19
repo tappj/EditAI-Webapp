@@ -72,3 +72,5 @@ The owner removed the previous metric/award/profile block and replaced the visua
 - Owner savings badge: four unchanged supplied portraits with circular framing/overlap and fixed “saved 250+ hours of editing” copy. Desktop/mobile visuals inspected; typecheck, 15 model/security tests, build and 17 marketing/media cases in each browser engine pass. Kept on codex/desktop-migration under the latest owner-supplied branch restriction; main and deployment unchanged. See docs/VERIFICATION.md.
 
 - Updated the hero to “edited videos in minutes.” and review-placeholder footers to “Reviews coming soon.” Required checks and targeted Chromium/WebKit layout/responsive checks pass; retained codex/desktop-migration only.
+
+- Web/desktop fellowship pricing now presents the free editor plus Publik plans or a personal OpenAI API key, separately from iOS subscriptions. Personal-key save selects and persists its provider; missing-key sessions open secure Settings. Typecheck, 15 web tests, 10 desktop tests, both builds and four targeted browser checks per engine pass. See docs/VERIFICATION.md and docs/desktop/PERSONAL-TESTING.md.

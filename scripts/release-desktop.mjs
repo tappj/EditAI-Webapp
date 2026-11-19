@@ -58,6 +58,7 @@ try {
     throw Error(
       "Native corresponding source does not match the build manifest.",
     );
+  run(process.execPath, ["scripts/build-mac-icon.mjs"], { stdio: "inherit" });
   run(process.execPath, ["scripts/build-desktop.mjs"], { stdio: "inherit" });
   const builder = spawnSync(
     process.execPath,
@@ -94,12 +95,12 @@ try {
     },
     timeout: 60000,
   });
-  if (!check.includes("publik self-test: ok editai-desktop 0.2.1"))
+  if (!check.includes("publik self-test: ok editai-desktop 0.2.2"))
     throw Error("Packaged Publik self-test failed.");
   const artifactNames = (await readdir("desktop/release")).filter(
     (n) =>
       n === "latest-mac.yml" ||
-      (n.startsWith(`EditAI-0.2.1-mac-${process.arch}.`) &&
+      (n.startsWith(`EditAI-0.2.2-mac-${process.arch}.`) &&
         /\.(dmg|zip|blockmap)$/.test(n) &&
         !n.endsWith(".dmg.blockmap")),
   );

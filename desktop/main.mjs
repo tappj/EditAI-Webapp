@@ -302,6 +302,10 @@ async function startDesktop() {
           req.method === "POST"
         ) {
           const b = mutation;
+          if (b.ownKey) {
+            sdk.setChoice("own_key");
+            await sdk.flushCredentialStore();
+          }
           process.env.PUBLIK_TELEMETRY = b.telemetry ? "true" : "false";
         }
         return new Response(response.body, {

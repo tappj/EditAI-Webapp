@@ -282,6 +282,7 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
     try {
       const s = await api("session");
       setSession(s);
+      if (s.screen.id === "ready" && s.profile.choice === "own_key" && !s.profile.hasOwnKey) setScreen("settings");
       setGateError("");
       setConsent(s.profile.consent);
       setTelemetry(s.profile.telemetry);
@@ -2675,8 +2676,10 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       />
                     </label>
                     <p className="panel-note">
-                      Keys are encrypted on the server and never returned to the
-                      browser.
+                      {desktop()
+                        ? "Your key is encrypted locally with an encryption key protected by macOS Keychain or your OS credential vault."
+                        : "Your key is encrypted on the server and never returned to the browser."}
+                      {" "}OpenAI bills your API account directly. No Publik subscription is needed for this option; a ChatGPT subscription is separate.
                     </p>
                     <a
                       className="text-button"
@@ -2705,9 +2708,9 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       Editing and export happen in your browser. AI features
                       send extracted audio, transcript text and attached
                       reference frames through your selected provider. Publik
-                      currently identifies these providers:{" "}
-                      {session.profile.aiProviders.join(", ") ||
-                        "available after connection"}
+                      {session.profile.choice === "own_key"
+                        ? "is not used for these AI requests. Your audio, transcripts and reference frames go to OpenAI."
+                        : `currently identifies these providers: ${session.profile.aiProviders.join(", ") || "available after connection"}`}
                       . No AI upload happens until you allow it.
                     </p>
                     <label className="checkbox">

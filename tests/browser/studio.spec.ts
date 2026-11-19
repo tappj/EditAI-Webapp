@@ -9,7 +9,7 @@ const session = {
     consent: true,
     telemetry: false,
     plan: "Test fixture",
-    hasOwnKey: false,
+    hasOwnKey: true,
     aiProviders: [],
   },
 };
@@ -651,3 +651,27 @@ for (const device of [
     }
   });
 }
+
+
+test("own-key onboarding opens secure settings without a Publik subscription", async ({ page }) => {
+  let saved = false;
+  await page.route("**/api/session", r => r.fulfill({ json: { ...session, profile: { ...session.profile, plan: "No plan", hasOwnKey: saved } } }));
+  await page.route("**/api/projects", r => r.fulfill({ json: { projects: [] } }));
+  await page.route("**/api/settings", async r => {
+    const body = r.request().postDataJSON();
+    expect(body.ownKey).toBe("fixture-only-openai-key");
+    saved = true;
+    await r.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/sign-in");
+  const input = page.getByLabel("Own OpenAI API key", { exact: true });
+  await expect(input).toBeVisible();
+  await expect(input).toHaveAttribute("type", "password");
+  await expect(page.locator("main")).toContainText("No Publik subscription is needed");
+  await input.fill("fixture-only-openai-key");
+  await page.getByRole("button", { name: "Save preferences", exact: true }).click();
+  await expect(input).toHaveValue("");
+  await expect(input).toHaveAttribute("placeholder", "A key is securely saved");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "What will you create today?" })).toBeVisible();
+});

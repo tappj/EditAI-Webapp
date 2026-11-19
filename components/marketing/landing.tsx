@@ -34,7 +34,6 @@ import {
 import { DesktopDownloads } from "@/components/desktop-downloads";
 import {
   marketingContent as content,
-  approvedReviews,
   type FeatureIcon,
   type Review,
 } from "@/lib/marketing/content";
@@ -254,7 +253,12 @@ function OmbreStars({
 function ReviewCard({ review }: { review: Review }) {
   return (
     <article className="review-card">
-      {review.rating && <OmbreStars rating={review.rating} />}
+      {review.rating && (
+        <OmbreStars
+          rating={review.rating}
+          decorative={Boolean(review.placeholder)}
+        />
+      )}
       <h3>{review.title}</h3>
       <p>{review.text}</p>
       <div className="review-credit">
@@ -275,19 +279,31 @@ function ReviewCard({ review }: { review: Review }) {
   );
 }
 export function ReviewMarquee({
-  reviews = approvedReviews,
+  reviews = content.reviews,
 }: { reviews?: Review[] } = {}) {
   const approved = reviews.filter((review) => review.approved);
-  const cards = approved.length ? approved : content.capabilities;
+  const placeholders = reviews.filter((review) => review.placeholder);
+  const displayReviews = approved.length ? approved : placeholders;
+  const cards = displayReviews.length ? displayReviews : content.capabilities;
   const items = Array.from(
     { length: Math.max(cards.length, 6) },
     (_, i) => cards[i % cards.length],
   );
   return (
+    <>
+      {!approved.length && placeholders.length > 0 && (
+        <p className="review-placeholder-notice">
+          SAMPLE REVIEWS · PLACEHOLDER COPY ONLY
+        </p>
+      )}
     <div
       className="hero-marquees"
       aria-label={
-        approved.length ? "Creator reviews" : "Explore the EditAI workflow"
+        approved.length
+          ? "Creator reviews"
+          : placeholders.length
+            ? "Sample review placeholders"
+            : "Explore the EditAI workflow"
       }
     >
       {[0, 1].map((row) => (
@@ -296,7 +312,7 @@ export function ReviewMarquee({
           key={row}
           tabIndex={0}
           role="region"
-          aria-label={`Workflow strip ${row + 1}`}
+          aria-label={`${displayReviews.length ? "Review" : "Workflow"} strip ${row + 1}`}
         >
           <div className="marquee-track">
             {[0, 1].map((copy) => (
@@ -313,7 +329,7 @@ export function ReviewMarquee({
                       key={i}
                       aria-hidden={i >= cards.length || undefined}
                     >
-                      {approved.length ? (
+                      {displayReviews.length ? (
                         <ReviewCard review={item as Review} />
                       ) : (
                         <article className="capability-card">
@@ -334,6 +350,7 @@ export function ReviewMarquee({
         </div>
       ))}
     </div>
+    </>
   );
 }
 function Hero() {

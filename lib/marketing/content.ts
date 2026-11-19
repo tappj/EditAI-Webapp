@@ -44,57 +44,58 @@ export type Plan = {
   annual: { price: string; checkoutUrl: string } | null;
   recommended?: boolean;
 };
-const placeholderReviewCopy: Array<[string, string]> = [
-  ["A better first cut", "It finds a clean starting point so I can spend my time shaping the story."],
-  ["Less time trimming", "I get through the pauses and retakes faster, then make the final choices myself."],
-  ["Made for my workflow", "I can record a few takes, review the cut, and keep everything moving."],
-  ["Captions, my way", "Getting captions started is quick, and I can still adjust the style myself."],
-  ["More time creating", "I spend less time hunting for the right take and more time planning the next video."],
-  ["A helpful first pass", "The suggested edit gets me moving. I can trim, reorder, and polish from there."],
-  ["My clips, organized", "Bringing separate clips together feels simple, and I can shape the sequence afterward."],
-  ["Editing feels lighter", "It handles the repetitive cleanup so I can focus on how the video should feel."],
-  ["Quick caption setup", "The captions give me a good base to refine before I export."],
-  ["A smoother recording", "Having my script nearby helps me stay on track while I record."],
-  ["A cut I can build on", "The first edit saves setup time and leaves room for my own finishing touches."],
-  ["Fewer retake headaches", "I can record multiple tries and spend less time sorting through each one."],
-  ["Simple to pick up", "I found the main tools quickly and could get straight to working on a video."],
-  ["A little more momentum", "Getting from raw clips to an editable cut feels much less daunting."],
-  ["Easy to make it mine", "I can start with an edit suggestion, then adjust the timing and captions myself."],
-  ["My words, on screen", "Transcription gives me text to work with, and the caption styling is easy to personalize."],
-  ["Less scrubbing around", "I can get to the useful parts of my footage without reviewing every pause."],
-  ["A tidy starting point", "The timeline gives me a clear place to make the final edits."],
-  ["A faster review", "I can scan the suggested cut and make small changes without starting over."],
-  ["Keeps me in control", "The edit is a suggestion, and I decide what stays in the final video."],
-  ["Batching feels easier", "I can bring in several clips together and handle each project on its own."],
-  ["A useful recording setup", "The in-app teleprompter helps me keep my delivery focused."],
-  ["Cuts down the busywork", "Getting a first pass done leaves me more room for the creative decisions."],
-  ["Captions without the slog", "I can get a caption draft quickly, then fix wording and punctuation myself."],
-  ["A cleaner timeline", "It is easier to see where I want to trim and how I want the clips to flow."],
-  ["From takes to a story", "I can focus on the message instead of sorting through every restart."],
-  ["Useful right away", "The first pass gives me something concrete to review and improve."],
-  ["Finally, a simple export", "Once the edit feels right, I can render the video and move on."],
-  ["My creative time back", "Less time on repetitive cuts means more time to plan what I want to say."],
-  ["A good place to start", "It gets the rough edit underway, and the rest is still up to me."],
-  ["A calmer editing session", "I can work through clips and captions without making the process feel complicated."],
-  ["Helpful with retakes", "The take selection gives me a shorter list to review before I make my choice."],
-  ["Made captions manageable", "I can start with generated text, then adjust the look to fit my video."],
-  ["My edit, my call", "I can undo changes and keep refining until the timeline feels right."],
-  ["Less time between ideas", "A quick first cut helps me turn a recording into something I can shape."],
-  ["Easy to refine", "I can trim a clip, rearrange the sequence, and keep working on the same timeline."],
-  ["A helpful editing partner", "The chat can help fine-tune an edit, while I stay in charge of the result."],
-  ["More focus, fewer pauses", "Cleaning up empty space makes it easier to keep the story moving."],
-  ["Simple from start to finish", "I can record, review the cut, style captions, and export in one workflow."],
-  ["A solid first draft", "The suggested edit is a useful draft, not a replacement for my own judgment."],
-  ["The small edits are easier", "Trimming and reordering clips feels straightforward once I see them together."],
-  ["A script within reach", "The teleprompter keeps my notes close while I focus on speaking naturally."],
-  ["Quick way to get unstuck", "When I have a lot of footage, a first pass helps me decide what to keep."],
-  ["Captions that fit my style", "I can adjust how the words look instead of settling for a default."],
-  ["More room for the good bits", "I can move past the pauses and focus on the moments I want to share."],
-  ["A practical starting point", "It helps organize the rough cut so I can spend time on the details that matter."],
-  ["I can keep polishing", "The tools make it easy to keep adjusting the cut after the first pass."],
-  ["Less repetitive work", "Getting help with the routine cleanup leaves the creative choices to me."],
-  ["Easy to pick up again", "My project stays editable, so I can come back and make another pass."],
-  ["A quicker path to finished", "I can get a draft together, personalize it, and export when it feels ready."],
+// Owner-supplied CutAI review excerpts for attributed layout placeholders.
+const placeholderReviewCopy: Array<[string, string, string]> = [
+  [
+    "Time saver to the max",
+    "Cut AI has been a huge time saver for me as a new UGC creator. Editing used to be one of the biggest bottlenecks in my workflow, but now I can get through content much faster without sacrificing quality...",
+    "WesADT"
+  ],
+  [
+    "Best Auto Editing App",
+    "I’ve used a few others and this one is by far the best, 99% of my videos only need one try and CutAI gets it perfect while still allowing me to quickly make the final touches to the video with their amazing UI design. 10/10",
+    "Collin_t90"
+  ],
+  [
+    "INSANELY EFFECTIVE",
+    "I love how you can just put your vids in and it edits for you in a few minutes. I can put 10 vids in then leave not even be in the app go to the gym and it’ll edit them all for me, thank you so much!",
+    "keonifish123"
+  ],
+  [
+    "I Love Cut AI!",
+    "This app has completely changed the way I create UGC. I can spend more time actually being creative instead of spending hours editing. I love everything about this app, and it has helped me so much. It does an amazing job...",
+    "Dre9898"
+  ],
+  [
+    "A Must Have for UGC",
+    "Genuinely the best ai editing app out there. Time is money. Saves me so much time and I can put out more videos without spending so much time editing",
+    "skyfindsthings"
+  ],
+  [
+    "Choose CutAi",
+    "I have been using this app before it was on the App Store and I have to say that it is amazing. Just create one video of whatever you choose and it perfectly cuts it for you without any hassle.",
+    "LaytoB05"
+  ],
+  [
+    "Increases output and earnings!",
+    "I’ve been using this app since it was in testing, it has increased the amount of videos I can put out and saves so much time. The subscription is cheap for the value you get.",
+    "Camronbrown"
+  ],
+  [
+    "Fired my editor",
+    "Big thanks to the guys at CutAI. This editing app has saved me so much time, and so much money. They also listen to our feedback and implement them as soon as they can. I’ve tried other ai editing apps and they are just not as...",
+    "SteveH05"
+  ],
+  [
+    "Cuts my time in half",
+    "I love this app. It cuts my editing time by 50% which I love because I can do more content versus spending more time editing and I can never do as much as I always want to, but this allows me to get more content out and less time editing amazing app.",
+    "Charcha212"
+  ],
+  [
+    "Saves me so much time",
+    "I was about to hire an editor, but I figured I’d try this out and it has saved me so much time especially with the new update where I can edit my videos in under or around a minute. Seriously so impressed with this the only thing I’d want to see is the ability to boost the audio levels and add color grading features like saturation or temperature changes",
+    "Chefryan1"
+  ]
 ];
 export const marketingContent = {
   hero: {
@@ -152,14 +153,14 @@ export const marketingContent = {
     { id: "faq", label: "FAQ" },
   ],
   // Temporary copy for layout preview. Replace with approved, authentic reviews.
-  reviews: placeholderReviewCopy.map(([title, text], index) => ({
+  reviews: placeholderReviewCopy.map(([title, text, author], index) => ({
     id: `sample-${String(index + 1).padStart(2, "0")}`,
     approved: false,
     placeholder: true,
     title,
     text,
-    author: `Sample creator ${String(index + 1).padStart(2, "0")}`,
-    source: "SAMPLE PLACEHOLDER",
+    author: "",
+    source: "CUTAI REVIEW · DESIGN REFERENCE",
     rating: 5,
   })) as Review[],
   capabilities: [

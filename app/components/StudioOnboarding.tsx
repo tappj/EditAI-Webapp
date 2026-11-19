@@ -310,12 +310,14 @@ export function StudioOnboarding({ children }: { children: ReactNode }) {
                       <Icon size={23} />
                     </span>
                     {option}
-                    <span
-                      className="studio-onboarding-check"
-                      aria-hidden="true"
-                    >
-                      {selected && <Check size={14} />}
-                    </span>
+                    {selected && (
+                      <span
+                        className="studio-onboarding-check"
+                        aria-hidden="true"
+                      >
+                        <Check size={14} />
+                      </span>
+                    )}
                   </button>
                 );
               })}

@@ -2019,7 +2019,7 @@
   gap: 20px;
   border-top: 1px solid #d0dce7;
   margin-top: 50px;
-  padding: 25px 0 12px;
+  padding: 25px 0 6px;
   font:
     8px "CourierPrime",
     monospace;
@@ -2034,9 +2034,9 @@
   color: #dfe4e8;
   font-weight: 800;
   user-select: none;
-  padding-top: 28px;
+  padding-top: 6px;
   /* The lower half of the wordmark intentionally extends beyond the footer. */
-  transform: translateY(36%);
+  transform: translateY(10%);
 }
 /* Same official authentication, adapted to the new site design. */
 .marketing.marketing-sign-in {
@@ -3264,7 +3264,7 @@
   .footer-wordmark {
     font-size: 20vw;
     letter-spacing: -3px;
-    padding-top: 28px;
+    padding-top: 8px;
   }
   .sign-in-header {
     padding: 19px 0;

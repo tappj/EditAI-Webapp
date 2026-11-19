@@ -1447,7 +1447,6 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                 { id: "home", label: "Home", icon: Home },
                 { id: "library", label: "Edits", icon: FolderOpen },
                 { id: "settings", label: "Settings", icon: Settings },
-                { id: "profile", label: "Customize profile", icon: UserRound },
               ].map((n) => (
                 <button
                   key={n.id}
@@ -1545,13 +1544,26 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                       void importFiles(Array.from(e.dataTransfer.files));
                     }}
                   >
-                    <div className="upload-illustration">
+                    <span className="upload-card-badge">
+                      <Sparkles size={13} /> YOUR CREATIVE SHORTCUT
+                    </span>
+                    <div className="upload-illustration" aria-hidden="true">
                       <div className="film-strip back" />
                       <div className="film-strip front">
                         <Play fill="currentColor" size={30} />
                       </div>
                       <div className="floating-spark">✦</div>
                     </div>
+                    <h2>
+                      Good footage.
+                      <br />
+                      Great possibilities.
+                    </h2>
+                    <p>
+                      Drop in your clips. Keep the good takes.
+                      <br />
+                      We’ll help with everything in between.
+                    </p>
                     <Button onClick={() => pick()}>
                       <Upload size={18} />
                       Upload clips
@@ -2673,6 +2685,10 @@ export default function App({ signIn = false }: { signIn?: boolean }) {
                 <div className="settings-grid">
                   <section className="settings-card">
                     <h2>General</h2>
+                    <Button secondary onClick={() => nav("profile")}>
+                      <UserRound size={16} />
+                      Customize profile
+                    </Button>
                     <label>
                       Spoken language
                       <select

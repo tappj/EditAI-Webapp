@@ -774,11 +774,46 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
   await expect(
     page.locator(".upload-card input[type=checkbox], .corner-arrow"),
   ).toHaveCount(0);
+  const uploadCard = page.locator(".upload-card");
+  await expect(uploadCard.getByText("YOUR CREATIVE SHORTCUT")).toBeVisible();
+  await expect(
+    uploadCard.getByRole("heading", {
+      name: /Good footage.*Great possibilities/,
+    }),
+  ).toBeVisible();
+  await expect(uploadCard).toContainText(
+    "Drop in your clips. Keep the good takes.",
+  );
+  await expect(uploadCard).toContainText(
+    "We’ll help with everything in between.",
+  );
+  await page.setViewportSize({ width: 1280, height: 900 });
+  expect((await uploadCard.boundingBox())?.height).toBe(460);
+  const toolCards = page.locator(".tool-card");
+  await expect(toolCards).toHaveCount(4);
+  for (const tile of await toolCards.all()) {
+    expect((await tile.boundingBox())?.height).toBe(222);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    uploadCard.getByRole("button", { name: "Upload clips" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 900 });
   await expect(
     page.locator(".topbar").getByRole("button", { name: "Record" }),
   ).toBeVisible();
   await expect(
     page.locator(".sidebar nav").getByRole("button", { name: "Record" }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .locator(".sidebar nav")
+      .getByRole("button", { name: "Customize profile" }),
   ).toHaveCount(0);
   await page.reload();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -789,6 +824,13 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
     page.getByRole("checkbox", { name: /Share official usage/ }),
   ).not.toBeChecked();
 
+  await page
+    .getByRole("button", { name: "Customize profile", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Customize profile" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Home", exact: true }).click();
   await page
     .getByRole("button", { name: "Open profile customization" })
     .click();

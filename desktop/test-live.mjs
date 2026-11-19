@@ -39,7 +39,9 @@ try {
     name: "Connect your plan",
     exact: true,
   });
-  await Promise.race([home.waitFor(), signIn.waitFor(), connect.waitFor()]);
+  const ownKeySetup = page.getByLabel("Own OpenAI API key", { exact: true });
+  await Promise.race([home.waitFor(), signIn.waitFor(), connect.waitFor(), ownKeySetup.waitFor()]);
+  if (await ownKeySetup.isVisible()) await page.getByRole("button", { name: "Home", exact: true }).click();
   if (await signIn.isVisible()) {
     await app.evaluate(({ shell }) => {
       const original = shell.openExternal;

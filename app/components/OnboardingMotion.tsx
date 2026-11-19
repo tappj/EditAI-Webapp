@@ -181,10 +181,6 @@ export function CutSimulation({
           Retakes & pauses
         </span>
       </div>
-      <p>
-        Illustrative cut placement using the app’s sample and its five retained
-        segments.
-      </p>
     </div>
   );
 }

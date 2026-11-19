@@ -171,6 +171,19 @@ function OnboardingDemo({
   const clipEdited = edited && !simulating;
 
   useEffect(() => {
+    if (!playing || simulating) return;
+    let frame = 0;
+    const updatePlayback = () => {
+      const player = video.current;
+      if (!player || player.paused || player.ended) return;
+      setElapsed(player.currentTime);
+      frame = requestAnimationFrame(updatePlayback);
+    };
+    frame = requestAnimationFrame(updatePlayback);
+    return () => cancelAnimationFrame(frame);
+  }, [playing, simulating, clipEdited]);
+
+  useEffect(() => {
     const player = video.current;
     if (
       !player ||

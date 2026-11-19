@@ -447,9 +447,9 @@
   color: #172d48;
 }
 .cut-piece.discarded {
-  background: #f6d7d6;
-  color: #703630;
-  border-color: #dba9a5;
+  background: #e6e0f4;
+  color: #4b426f;
+  border-color: #baadd5;
 }
 .cut-piece > span {
   font-size: 0.65rem;
@@ -498,13 +498,7 @@
   background: #c4e0ff;
 }
 .discard-swatch {
-  background: #f6d7d6;
-}
-.cut-simulation > p {
-  font-size: 0.7rem;
-  line-height: 1.4;
-  color: #606770;
-  margin-top: 0.7rem;
+  background: #e6e0f4;
 }
 .monthly-time {
   display: grid;

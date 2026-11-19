@@ -272,7 +272,7 @@ function ReviewCard({ review }: { review: Review }) {
           />
         )}
         <span>
-          {review.author} · {review.source}
+          {review.author ? `${review.author} · ` : ""}{review.source}
         </span>
       </div>
     </article>
@@ -291,13 +291,9 @@ export function ReviewMarquee({
   );
   return (
     <>
-      {!approved.length && placeholders.length > 0 && (
-        <p className="review-placeholder-notice">
-          SAMPLE REVIEWS · PLACEHOLDER COPY ONLY
-        </p>
-      )}
     <div
       className="hero-marquees"
+      style={{ "--marquee-factor": items.length / 6 } as CSSProperties}
       aria-label={
         approved.length
           ? "Creator reviews"

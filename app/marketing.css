@@ -466,13 +466,6 @@
     transparent
   );
 }
-.review-placeholder-notice {
-  margin: 12px 0 -7px;
-  color: #71849a;
-  font: 8px "CourierPrime", monospace;
-  letter-spacing: 1.3px;
-  text-align: center;
-}
 .marquee-viewport {
   overflow: hidden;
   padding: 1px 0;
@@ -480,11 +473,11 @@
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee-left 78s linear infinite;
+  animation: marquee-left calc(78s * var(--marquee-factor, 1)) linear infinite;
 }
 .row-1 .marquee-track {
   animation-direction: reverse;
-  animation-duration: 93s;
+  animation-duration: calc(93s * var(--marquee-factor, 1));
 }
 .marquee-group {
   display: flex;

@@ -278,7 +278,7 @@ export function validate(d: Document) {
       !finite(a.volume, 0, 1) ||
       !Number.isInteger(a.lane) ||
       a.lane < 0 ||
-      a.lane > 2 ||
+      a.lane >= LANE_LIMITS.audio ||
       !finite(a.fadeIn, 0, 10) ||
       !finite(a.fadeOut, 0, 10)
     )
@@ -785,7 +785,7 @@ export function applyOperations(d: Document, ops: any[]) {
         if (op.kind === "addAudio") {
           const lane =
             op.media?.lane ??
-            [0, 1, 2].find(
+            Array.from({ length: LANE_LIMITS.audio }, (_, i) => i).find(
               (l) =>
                 !out.audio.some(
                   (x) =>

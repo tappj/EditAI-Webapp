@@ -87,7 +87,7 @@ try {
   );
   await page.goto(baseURL);
   await page
-    .getByRole("button", { name: /^My creations/ })
+    .getByRole("button", { name: /^My Edits/ })
     .first()
     .click();
   await page

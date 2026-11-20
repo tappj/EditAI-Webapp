@@ -133,7 +133,7 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   ]);
   await file.saveAs("outputs/verified-export.mp4");
   await expect(page.getByRole("status")).toContainText("MP4 exported");
-  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
   await expect(page.locator(".project-card")).toHaveCount(1);
   await page.locator(".project-card-title").click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
@@ -191,7 +191,7 @@ test("large local media survives a browser reload and deletion removes its stora
       buffer: Buffer.concat([video, Buffer.alloc(5 * 1024 * 1024)]),
     });
   await expect(page.getByRole("button", { name: "Split" })).toBeVisible();
-  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
   await page.reload();
   await page
     .getByRole("button", { name: /^Edits/ })
@@ -205,7 +205,7 @@ test("large local media survives a browser reload and deletion removes its stora
       Number(await page.getByLabel("Timeline playhead").inputValue()),
     )
     .toBeGreaterThan(0.2);
-  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
   page.once("dialog", (d) => d.accept());
   await page
     .getByRole("button", { name: "Delete storage-recovery", exact: true })
@@ -918,7 +918,7 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
     buffer: fixture,
   });
   await expect.poll(() => backedUp).toBe(true);
-  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
   const card = page.locator(".project-card");
   await expect(card.locator("video.frame-ready")).toBeVisible();
   await expect(card.locator("small")).toContainText(/\d.+KB · /);
@@ -1406,9 +1406,7 @@ test("same account resumes consent and playable local footage after repeated sig
   await page.getByRole("button", { name: "Split" }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
   for (let i = 0; i < 2; i++) {
-    await page
-      .getByRole("button", { name: "My creations", exact: true })
-      .click();
+    await page.getByRole("button", { name: "My Edits", exact: true }).click();
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page.locator(".m-header")).toBeVisible();
@@ -1435,7 +1433,7 @@ test("same account resumes consent and playable local footage after repeated sig
       )
       .toBeGreaterThan(0.2);
   }
-  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.locator(".m-header .nav-sign-in").click();
@@ -1638,7 +1636,7 @@ test("clip audio extraction preserves trim and speed, undo redo, reload and real
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
   await page.keyboard.press("Control+Shift+Z");
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
-  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
   await page.locator(".project-card-title").click();
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -2231,7 +2229,12 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
   await page
     .getByRole("button", { name: "Crop on video", exact: true })
     .click();
-  await expect.poll(async () => (await page.locator(".crop-selection").boundingBox())?.width ?? 0).toBeGreaterThan(100);
+  await expect
+    .poll(
+      async () =>
+        (await page.locator(".crop-selection").boundingBox())?.width ?? 0,
+    )
+    .toBeGreaterThan(100);
   const before = (await page.locator(".crop-selection").boundingBox())!;
   const corner = (await page
     .getByRole("button", { name: "Crop nw edge", exact: true })
@@ -2289,6 +2292,115 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
   expect(after.height).toBeCloseTo(rect.height, 0);
   await page.screenshot({
     path: "outputs/editor-selected-inspector.png",
+    fullPage: true,
+  });
+});
+
+test("timeline toolbar, centered rename and inline microphone recording preserve real audio and current edits", async ({
+  page,
+}) => {
+  await authenticated(page);
+  let saved: any;
+  await page.route("**/api/projects", async (r) => {
+    if (r.request().method() === "POST") saved = r.request().postDataJSON();
+    await r.fulfill({
+      json: r.request().method() === "GET" ? { projects: [] } : { ok: true },
+    });
+  });
+  await page.addInitScript(() => {
+    let calls = 0;
+    const devices = navigator.mediaDevices;
+    Object.defineProperty(navigator, "mediaDevices", { value: devices });
+    Object.defineProperty(devices, "getUserMedia", {
+      value: async () => {
+        if (calls++ === 0) throw new DOMException("Denied", "NotAllowedError");
+        const c = new AudioContext();
+        await c.resume();
+        const oscillator = c.createOscillator();
+        oscillator.frequency.value = 440;
+        const target = c.createMediaStreamDestination();
+        oscillator.connect(target);
+        oscillator.start();
+        return target.stream;
+      },
+    });
+  });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(
+    page.getByRole("button", { name: "Add media", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .locator(".editor-top")
+      .getByRole("button", { name: "Undo", exact: true }),
+  ).toHaveCount(0);
+  const undo = (await page
+    .getByRole("button", { name: "Undo", exact: true })
+    .boundingBox())!;
+  const split = (await page
+    .getByRole("button", { name: "Split", exact: true })
+    .boundingBox())!;
+  expect(split.x).toBeGreaterThan(undo.x + 200);
+  const title = page.locator(".project-title-button");
+  const box = (await title.boundingBox())!;
+  const width = page.viewportSize()!.width;
+  expect(Math.abs(box.x + box.width / 2 - width / 2)).toBeLessThan(2);
+  await title.click();
+  await page
+    .getByRole("textbox", { name: "Project name" })
+    .fill("My voice edit");
+  await page.getByRole("textbox", { name: "Project name" }).press("Enter");
+  await expect(title).toHaveText("My voice edit");
+  await title.click();
+  await page.getByRole("textbox", { name: "Project name" }).fill("cancel me");
+  await page.getByRole("textbox", { name: "Project name" }).press("Escape");
+  await expect(title).toHaveText("My voice edit");
+  await page.getByLabel("Timeline playhead").fill("1");
+  await page.getByRole("button", { name: "Record voice", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Microphone access was denied",
+  );
+  await page.getByRole("button", { name: "Record voice", exact: true }).click();
+  await expect(page.locator(".voice-recorder")).toHaveClass(/is-recording/);
+  await page.waitForTimeout(1100);
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Caption text" })
+    .fill("Keep this edit while recording");
+  await page.waitForTimeout(1100);
+  await page
+    .getByRole("button", { name: "Stop recording", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Record voice", exact: true }),
+  ).toBeEnabled();
+  await expect.poll(() => saved?.document?.audio.length).toBe(1);
+  expect(saved.document.audio[0].start).toBeCloseTo(1, 1);
+  expect(saved.document.texts[0].text).toBe("Keep this edit while recording");
+  const source = saved.document.sources.at(-1);
+  expect(source.kind).toBe("audio");
+  expect(source.mime).toBe("audio/wav");
+  expect(source.duration).toBeGreaterThan(1);
+  await expect(page.locator(".audio-row .source-waveform")).toBeVisible();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".audio-row .layer-clip")).toHaveCount(0);
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect.poll(() => saved?.document?.audio.length).toBe(1);
+  for (const width of [390, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.screenshot({
+    path: "outputs/editor-voice-toolbar.png",
     fullPage: true,
   });
 });

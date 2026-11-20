@@ -171,3 +171,15 @@ only in Help. Account for the sticky tab height when navigating to section headi
 at every viewport. Crop media directly with edge/corner handles and pinch; preserve
 source crop coordinates through rotations/flips. Overlay corners scale and sides
 stretch independently, with matching preview/export geometry. Keep Home/Edits intact.
+
+## Inline voice recording and toolbar — November 20, 2026
+
+Remove redundant Add media action. Keep undo/redo and microphone at the left of the
+timeline toolbar, split/duplicate/delete at the right. Center the project title with
+a clickable pencil/title that opens a rename field; use My Edits for the back link.
+Record default-device microphone audio only on user request, display a red recording
+indicator, and stop/release tracks on stop, duration limit or editor exit. Decode the
+real recording into seekable mono PCM WAV and import at its starting cursor position
+through normal persistent source storage and undo. Use current edits when the take
+finishes. Raise audio lanes to seven consistently across UI, placement, validation,
+gestures and AI contracts, while preserving atomic rejection of an eighth lane.

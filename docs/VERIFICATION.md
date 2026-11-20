@@ -519,3 +519,29 @@ this change does not publish a replacement signed installer.
 All 32 studio scenarios pass in Chromium (59.4s) and WebKit (2.3m) against a freshly
 started production Worker. Changed-component lint has no errors; the existing
 Wordmark image optimization advisory remains. Home/Edits appearance is unchanged.
+
+## Inline microphone and editor toolbar — November 20, 2026
+
+My Edits replaces My creations in the studio. The title and pencil open a centered
+rename input; Enter/blur commit, Escape cancels. Timeline history and microphone sit
+at left, split/duplicate/delete at right; the redundant Add media action is removed.
+Microphone recording requests audio-only default-device access on click, shows a red
+indicator and saves a real mono WAV at the recording's starting cursor position.
+Stopping, leaving the editor and the bounded duration timer release capture tracks.
+The callback uses the current document so edits made during recording survive.
+Audio supports seven lanes across insertion, rendering, gestures, validation and AI.
+
+Typecheck, 27 unit/security/model tests, 18 desktop tests and web/desktop builds pass.
+The new browser case verifies denied permission/retry, real MediaRecorder encoding
+of a generated audio stream, WAV decode and waveforms, current text edits surviving,
+placement, undo/redo, title commit/cancel, centered title and responsive overflow.
+Unit checks cover WAV header/signed PCM and seven-lane acceptance/eighth rejection.
+Microphone input in automated tests is a generated stream; actual OS permission UI
+and a physical microphone remain device checks. Authentication and AI remain test
+fixtures and do not prove fresh Publik connectivity. Shared desktop source/build is
+updated; no replacement signed installer is published by this change.
+
+All 33 studio scenarios pass against the fresh production build in Chromium (1.1m)
+and WebKit (2.4m), including real existing media export and microphone-generated
+recording checks. Changed-component lint passes without errors. The deployment
+verification script now follows the renamed My Edits action.

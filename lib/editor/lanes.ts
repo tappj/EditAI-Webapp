@@ -1,4 +1,4 @@
-export const LANE_LIMITS = { audio: 3, texts: 7, overlays: 7 } as const;
+export const LANE_LIMITS = { audio: 7, texts: 7, overlays: 7 } as const;
 type Timed = { id: string; start: number; end: number; lane?: number };
 export function assignLanes(items: Timed[], limit: number) {
   const lanes: Timed[][] = Array.from({ length: limit }, () => []);

@@ -1702,3 +1702,132 @@ body:has(.is-editor) .toast a {
 .is-editor .inspector input {
   scroll-margin-top: 70px;
 }
+
+.is-editor .editor-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.editor-top-left,
+.editor-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.editor-top-right {
+  justify-content: flex-end;
+}
+.project-title-control {
+  min-width: 0;
+  justify-self: center;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.project-title-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.project-title-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-title-button svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.is-editor .project-title-control .project-title {
+  width: 100%;
+  max-width: 360px;
+  min-width: 0;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.is-editor .timeline-edit-actions {
+  margin-left: auto;
+}
+.is-editor .timeline-history {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.voice-recorder {
+  position: relative;
+  display: flex;
+}
+.mic-recording-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d83545;
+  top: 0;
+  right: 3px;
+  pointer-events: none;
+}
+.voice-recorder.is-recording .mic-recording-dot {
+  animation: recording-pulse 1s ease-in-out infinite;
+}
+.voice-recorder.is-recording .icon-button {
+  color: #d83545;
+}
+@keyframes recording-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-recorder.is-recording .mic-recording-dot {
+    animation: none;
+  }
+}
+@media (max-width: 1100px) {
+  .editor-top-right .autosave {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .is-editor .editor-top {
+    grid-template-columns: 78px minmax(0, 1fr) 108px;
+    gap: 4px;
+    padding: 0 8px;
+  }
+  .editor-top-left,
+  .editor-top-right {
+    gap: 4px;
+  }
+  .is-editor .editor-top .text-button {
+    font-size: 11px;
+    gap: 4px;
+  }
+  .is-editor .editor-top .button {
+    padding: 0 8px;
+  }
+  .project-title-button {
+    font-size: 12px;
+    padding: 6px 2px;
+    gap: 4px;
+  }
+}
+.voice-recorder .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

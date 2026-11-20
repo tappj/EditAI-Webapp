@@ -125,6 +125,9 @@ import {
 import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
 import { TextStyleEditor } from "./components/TextStyleEditor";
+import { EditableProjectTitle } from "./components/EditableProjectTitle";
+import { VoiceRecorder } from "./components/VoiceRecorder";
+import { LANE_LIMITS } from "@/lib/editor/lanes";
 import { SelectedMediaInspector } from "./components/SelectedMediaInspector";
 import { CropEditor } from "./components/CropEditor";
 import { PreviewHandles } from "./components/PreviewHandles";
@@ -186,6 +189,7 @@ export default function App({
   signIn?: boolean;
   signedOut?: boolean;
 }) {
+  const voiceStart = useRef(0);
   const [session, setSession] = useState<any>(null),
     [gateError, setGateError] = useState(""),
     [pending, setPending] = useState(true),
@@ -1116,7 +1120,10 @@ export default function App({
             );
             continue;
           }
-          const lane = [0, 1, 2].find(
+          const lane = Array.from(
+            { length: LANE_LIMITS.audio },
+            (_, i) => i,
+          ).find(
             (l) =>
               !d.audio.some(
                 (a) =>
@@ -1194,7 +1201,7 @@ export default function App({
         .slice(0, d.segments.indexOf(clip))
         .reduce((sum, s) => sum + segmentDuration(s), 0);
       const end = start + segmentDuration(clip);
-      const lane = [0, 1, 2].find(
+      const lane = Array.from({ length: LANE_LIMITS.audio }, (_, i) => i).find(
         (l) =>
           !d.audio.some((a) => a.lane === l && a.start < end && a.end > start),
       );
@@ -2150,61 +2157,46 @@ export default function App({
                 onDrop={(e) => e.preventDefault()}
               >
                 <div className="editor-top">
-                  <span className="studio-wordmark">
-                    <Wordmark />
-                  </span>
-                  <button
-                    className="text-button"
-                    onClick={() => nav("library")}
-                  >
-                    <ArrowLeft size={16} />
-                    My creations
-                  </button>
-                  <input
-                    className="project-title"
-                    aria-label="Project name"
-                    maxLength={140}
+                  <div className="editor-top-left">
+                    <span className="studio-wordmark">
+                      <Wordmark />
+                    </span>
+                    <button
+                      className="text-button"
+                      onClick={() => nav("library")}
+                    >
+                      <ArrowLeft size={16} />
+                      My Edits
+                    </button>
+                  </div>
+                  <EditableProjectTitle
                     value={project!.title}
-                    onChange={(e) =>
-                      setProject((p) =>
-                        p ? { ...p, title: e.target.value } : p,
-                      )
+                    onChange={(title) =>
+                      setProject((p) => (p ? { ...p, title } : p))
                     }
                   />
-                  <span className="autosave">
-                    <Check size={13} />
-                    Autosaved on this device
-                  </span>
-                  <IconButton
-                    label="Undo"
-                    onClick={undo}
-                    disabled={!history.length}
-                  >
-                    <Undo size={20} />
-                  </IconButton>
-                  <IconButton
-                    label="Redo"
-                    onClick={redo}
-                    disabled={!future.length}
-                  >
-                    <Redo size={20} />
-                  </IconButton>
-                  <IconButton
-                    label="Editor help and shortcuts"
-                    onClick={() => setHelpOpen(true)}
-                  >
-                    <CircleHelp size={18} />
-                  </IconButton>
-                  <Button
-                    onClick={() => {
-                      player.current?.pause();
-                      setPlaying(false);
-                      setExportOpen(true);
-                    }}
-                  >
-                    <Download size={16} />
-                    Export
-                  </Button>
+                  <div className="editor-top-right">
+                    <span className="autosave">
+                      <Check size={13} />
+                      Autosaved on this device
+                    </span>
+                    <IconButton
+                      label="Editor help and shortcuts"
+                      onClick={() => setHelpOpen(true)}
+                    >
+                      <CircleHelp size={18} />
+                    </IconButton>
+                    <Button
+                      onClick={() => {
+                        player.current?.pause();
+                        setPlaying(false);
+                        setExportOpen(true);
+                      }}
+                    >
+                      <Download size={16} />
+                      Export
+                    </Button>
+                  </div>
                 </div>
                 <div className="editor-workspace">
                   <div
@@ -2795,7 +2787,39 @@ export default function App({
                   aria-label="Editing timeline"
                 >
                   <div className="timeline-toolbar">
-                    <div>
+                    <div className="timeline-history">
+                      <IconButton
+                        label="Undo"
+                        onClick={undo}
+                        disabled={!history.length}
+                      >
+                        <Undo size={20} />
+                      </IconButton>
+                      <IconButton
+                        label="Redo"
+                        onClick={redo}
+                        disabled={!future.length}
+                      >
+                        <Redo size={20} />
+                      </IconButton>
+                      <VoiceRecorder
+                        key={project!.id}
+                        maxDuration={total - playhead}
+                        onStart={() => {
+                          voiceStart.current = playhead;
+                          player.current?.pause();
+                          setPlaying(false);
+                        }}
+                        onError={fail}
+                        onRecorded={async (file) => {
+                          await addMedia([file], {
+                            track: "audio",
+                            time: voiceStart.current,
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="timeline-edit-actions">
                       <IconButton
                         label="Split"
                         onClick={() => {
@@ -2863,16 +2887,6 @@ export default function App({
                         <Trash2 size={17} />
                       </IconButton>
                     </div>
-                    <button
-                      className="text-button"
-                      onClick={() => {
-                        mediaKind.current = "clip";
-                        extraInput.current?.click();
-                      }}
-                    >
-                      <Plus size={15} />
-                      Add media
-                    </button>
                   </div>
                   <EditorTimeline
                     urls={urls}
@@ -3545,7 +3559,9 @@ export default function App({
               <dd>
                 Import sound in Audio, or use Extract audio in Clip settings.
                 Extraction mutes the video and creates an independently editable
-                sound track. Undo restores it.
+                sound track. Undo restores it. Record voice with the microphone
+                beside Undo, then stop to add your take at its starting cursor
+                position. Up to seven audio tracks can overlap.
               </dd>
               <dt>Text / auto captions</dt>
               <dd>
@@ -3566,7 +3582,7 @@ export default function App({
               <dt>Save / export</dt>
               <dd>
                 Edits save automatically on this device. Export renders your
-                timeline as a video; My creations returns to your library.
+                timeline as a video; My Edits returns to your library.
               </dd>
             </dl>
           </section>

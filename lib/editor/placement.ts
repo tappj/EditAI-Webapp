@@ -1,3 +1,4 @@
+import { LANE_LIMITS } from "./lanes.ts";
 import {
   duration,
   newSegment,
@@ -25,13 +26,13 @@ export function placeSource(doc: Document, index: number, drop: MediaDrop) {
     if (source.kind === "image")
       throw Error("Choose a sound or video for an audio track.");
     const end = Math.min(total, start + source.duration);
-    const lane = [0, 1, 2].find(
+    const lane = Array.from({ length: LANE_LIMITS.audio }, (_, i) => i).find(
       (l) =>
         !doc.audio.some((a) => a.lane === l && a.start < end && a.end > start),
     );
     if (lane == null)
       throw Error(
-        "All three audio tracks are occupied here. Move or trim a sound first.",
+        "All seven audio tracks are occupied here. Move or trim a sound first.",
       );
     doc.audio.push({
       id: crypto.randomUUID(),

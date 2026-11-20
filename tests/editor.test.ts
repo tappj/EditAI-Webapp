@@ -394,7 +394,7 @@ test("layer collisions stop at neighbors then deliberate pull uses bounded track
   assert.equal(continued.audio[0].start, 2);
   assert.equal(continued.audio[0].lane, 1);
   d.audio.push(
-    ...[1, 2].map((lane) => ({
+    ...Array.from({ length: 6 }, (_, i) => i + 1).map((lane) => ({
       ...d.audio[1],
       id: "full" + lane,
       lane,
@@ -473,4 +473,17 @@ test("manual crop round-trips through rotation and flips without changing source
     displayCrop(rect, { ...fixture().segments[0].appearance, rotation: 1 }),
     { x: 0.30000000000000004, y: 0.1, width: 0.5, height: 0.6 },
   );
+});
+
+test("seven audio layers remain valid and an eighth is rejected atomically", async () => {
+  const { placeSource } = await import("../lib/editor/placement.ts");
+  const d = fixture();
+  for (let i = 0; i < 7; i++) placeSource(d, 0, { track: "audio", time: 0 });
+  assert.deepEqual(d.audio.map((a) => a.lane).sort(), [0, 1, 2, 3, 4, 5, 6]);
+  validate(d);
+  assert.throws(
+    () => placeSource(structuredClone(d), 0, { track: "audio", time: 0 }),
+    /occupied|limit|room|available/i,
+  );
+  assert.equal(d.audio.length, 7);
 });

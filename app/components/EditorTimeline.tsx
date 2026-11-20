@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { assignLanes } from "@/lib/editor/lanes";
+import { assignLanes, LANE_LIMITS } from "@/lib/editor/lanes";
 import { createPortal } from "react-dom";
 import { insertionIndex, type MediaDrop } from "@/lib/editor/placement";
 import { Music, Plus, Subtitles, Layers, Film } from "lucide-react";
@@ -599,7 +599,7 @@ export function EditorTimeline({
                 )}
               </div>
             ))}
-          {[0, 1, 2]
+          {Array.from({ length: LANE_LIMITS.audio }, (_, i) => i)
             .filter(
               (lane) => lane === 0 || shown.audio.some((a) => a.lane === lane),
             )

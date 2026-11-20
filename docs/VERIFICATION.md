@@ -674,3 +674,31 @@ AI responses are explicit fixtures, so no fresh real Publik connectivity or AI
 judgment quality is claimed. No production authentication bypass or fake AI was
 added. Shared desktop source is updated; no new signed installer or hosted site
 publication is performed as part of this main-branch push.
+
+## Live web and desktop publication — November 20, 2026
+
+Owner requested that all completed changes be committed/pushed and visible in the
+actual browser and desktop versions. Both GitHub main and codex/desktop-migration
+contain the completed shared editor. Sites public version 90 deploys runtime source
+8995cc151679b13ea6b54827ea8f655da296572b to the existing public Site/custom domain,
+https://editai.it.com, retaining its audience, runtime secrets, database and bucket.
+No new Site or account store was created. Follow-up publication updates the homepage
+Mac download metadata to the verified 0.2.6 installer.
+
+Five affected workflows pass on the actual public domain in Chromium (21.4s) and
+WebKit (25.4s): real generated-camera recording/import, inspector/crop/reset controls,
+editable/magnetic numeric controls, caption/reference/relaxed-cut/grid-list workflow,
+and edits surviving nonmodal source import. These hosted browser tests still use
+explicit authentication/AI fixtures and do not prove real provider inference.
+The genuine signed installed desktop session, new controls/source thumbnails and
+real native MP4 export pass separately without provider/auth fixtures or paid AI;
+see desktop/VERIFICATION.md for artifact identity, Apple checks and exact results.
+
+Desktop v0.2.6 is publicly released and installed in Applications, with the prior
+app preserved. Its signed/notarized DMG, ZIP, updater metadata/blockmap, complete
+matching native source and checksums are published. The public Mac download contract
+test reads the verified release manifest rather than pinning an old installer URL.
+All 31 web unit/model/security checks, 18 desktop checks, typecheck and production
+builds pass. Evidence remains ignored under outputs/release026-*.log, the signing/
+installed-acceptance JSON reports, and desktop026-editor-controls.png. No iOS or
+older marketing project was modified.

@@ -66,10 +66,7 @@ try {
       };
     });
     await signIn.click();
-    console.log(
-      "Desktop claim opened:",
-      await app.evaluate(() => globalThis.__testClaimURL),
-    );
+    console.log("Desktop sign-in opened in the official browser window.");
     await connect.waitFor({ timeout: 180000 });
   }
   if (await connect.isVisible()) await connect.click();
@@ -143,6 +140,78 @@ try {
         .digest("hex")
     : null;
   report.runtime = sources;
+  if (process.env.EDITAI_VERIFY_EDITOR_UI) {
+    await expect(
+      page.getByRole("button", { name: "Adjust workspace" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Filters workspace" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Precision trim", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("button", { name: "Overlays", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Crop", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("spinbutton", { name: "Volume value", exact: true }),
+    ).toHaveValue("100");
+    await expect(page.locator(".range-wedge")).toHaveCount(2);
+    await expect(page.locator(".preview-controls-top select")).toHaveCount(0);
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await expect(
+      page.getByRole("spinbutton", { name: "Opacity value", exact: true }),
+    ).toHaveValue("100");
+    await page.getByRole("button", { name: "Auto captions workspace" }).click();
+    await expect(page.locator(".caption-generate-card")).toHaveCSS(
+      "border-top-width",
+      "0px",
+    );
+    await expect(
+      page
+        .getByRole("combobox", { name: "Caption grouping" })
+        .locator("option"),
+    ).toHaveCount(3);
+    await expect(
+      page.locator(".inspector [aria-label='Caption grouping']"),
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: "Text", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Add text", exact: true }),
+    ).toHaveCSS("color", "rgb(17, 24, 32)");
+    await page.getByRole("button", { name: "Media workspace" }).click();
+    await expect
+      .poll(() => page.locator(".source-card .frame-samples > span").count(), {
+        timeout: 15000,
+      })
+      .toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Open EditAI chat" }).click();
+    for (const name of [
+      "Add captions",
+      "Give it a warmer look",
+      "Make the cuts more relaxed",
+    ])
+      await expect(
+        page.getByRole("button", { name, exact: true }),
+      ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Open EditAI chat" }),
+    ).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await page.getByRole("button", { name: "Clip", exact: true }).click();
+    await page.screenshot({
+      path: "outputs/desktop026-editor-controls.png",
+      fullPage: true,
+    });
+    report.editorUI = {
+      sharedControls: true,
+      captionGrouping: true,
+      quickPrompts: true,
+      referenceUpload: "UI only; no external AI request",
+    };
+  }
   if (!process.env.EDITAI_RESUME_TEST && !process.env.EDITAI_EXPORT_ONLY)
     await page
       .getByRole("button", { name: "Generate captions", exact: true })
@@ -190,7 +259,9 @@ try {
   const start = Date.now();
   await page.getByRole("button", { name: "Export video", exact: true }).click();
   await Promise.race([
-    expect(page.getByRole("status")).toContainText("MP4 exported", {
+    expect(
+      page.getByRole("status").filter({ hasText: "MP4 exported" }),
+    ).toContainText("MP4 exported", {
       timeout: 240000,
     }),
     page

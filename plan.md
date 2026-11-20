@@ -242,3 +242,15 @@ small temporary feedback. Media import resolves against the latest project docum
 after decoding so simultaneous manual edits survive. Release camera/capture tracks,
 frame loops and thumbnail URLs on completion/unmount. See docs/VERIFICATION.md for
 browser, native/build evidence and provider/release boundaries.
+
+## Live shared editor and desktop 0.2.6 — November 20, 2026
+
+Owner requests actual publication and installed updates, beyond source pushes.
+Publish the current shared editor to the existing public Site at editai.it.com;
+Chromium/WebKit hosted checks pass. Build/sign/notarize/staple the 0.2.6 app and
+matching guided DMG, verify archive/native-source/updater identity, install it with
+the prior app preserved, and pass real existing-session UI/thumbnail/export acceptance
+without inference or consent/telemetry changes. Guarded GitHub publication succeeds;
+update the homepage download manifest and publish it. Keep both main and the working
+branch pushed. Detailed evidence and remaining platform limits are recorded in
+both verification documents.

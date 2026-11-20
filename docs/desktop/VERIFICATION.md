@@ -132,3 +132,39 @@ all pass across the full WebKit run and Chromium run/reruns described in
 ../VERIFICATION.md. Generated camera/audio fixtures establish encoded dimensions,
 not physical camera permission acceptance or fresh Publik connectivity. This commit
 does not publish a replacement signed installer.
+
+## Current shared editor released as 0.2.6 — November 20, 2026
+
+Owner explicitly requested live browser and installed desktop updates, superseding
+the prior source-only publication boundary. Runtime source 8995cc151679b13ea6b54827ea8f655da296572b
+includes all inspector/slider, portrait media/recording, caption-panel, reference,
+notification and shared-header changes. Version-pinned build/release/self-test/CI
+contracts now agree on 0.2.6. Typecheck, 31 web tests, 18 desktop tests and both
+production builds pass.
+
+The app is Developer ID signed, Apple-notarized, stapled and Gatekeeper accepted.
+Mac CI run 44802417785 assembled the guided DMG from the exact draft signed ZIP
+SHA-256 31d407a7ec5f3026f37a585196b07911e413a166b04d22503eb1af58cf81d7a4.
+The resulting DMG is also signed, Apple-notarized, stapled and Gatekeeper accepted.
+The final verifier checks source provenance, app/ZIP/DMG archive identity, packaged
+Publik self-test and updater hashes. Installed /Applications/EditAI.app has the
+same archive; 0.2.5 is preserved under outputs/release026-backup/EditAI.app.
+
+After final disk-image verification, the installed 0.2.6 app passed genuine existing
+Publik session restoration, the actual new editor controls, real source thumbnails,
+and native H.264/AAC export: 854×480, 19.075 seconds, rendered in 1.33 seconds.
+The acceptance helper now waits specifically for the export notification because
+nonmodal progress and earlier status messages may coexist. It also has opt-in UI
+checks for this release, and does not print the official sign-in claim URL. No
+provider/auth fixture or inference request was used in installed acceptance. Privacy
+and telemetry preferences were preserved; DNT/disabled telemetry excludes automated
+engagement. Two final synthetic batch projects were removed through the real UI;
+prior acceptance's temporary projects were also cleaned up.
+
+The guarded publisher released v0.2.6 with the signed/notarized DMG, ZIP, ZIP blockmap,
+latest-mac.yml, matching native corresponding source and SHA256SUMS. Download metadata
+now targets that verified release. Public URL:
+https://github.com/tappj/EditAI-Webapp/releases/tag/v0.2.6.
+Existing supported macOS arm64 distribution is updated; no new Windows distribution
+is introduced. Updater metadata is published, but a prior-version auto-update
+installation is not claimed exercised here.

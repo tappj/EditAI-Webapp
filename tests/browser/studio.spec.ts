@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 const session = {
@@ -446,15 +447,21 @@ test("Publik Chirp upload flow creates one resumable word-timestamp job per sour
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
   await page
+    .getByRole("button", { name: "Auto captions workspace", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Generate captions", exact: true })
     .click();
-  await expect(page.locator(".text-layer-list>button")).toHaveCount(1);
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(1);
   expect(jobs).toBe(1);
   expect(uploads).toBe(1);
   await page
-    .getByRole("button", { name: "Generate speech captions", exact: true })
+    .getByRole("button", { name: "Auto captions workspace", exact: true })
     .click();
-  await expect(page.locator(".text-layer-list>button")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Generate captions", exact: true })
+    .click();
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(1);
   expect(jobs).toBe(1);
 });
 
@@ -482,7 +489,9 @@ test("visual style references attach actual browser-decoded image frames to chat
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await page.getByRole("button", { name: "EditAI", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Open EditAI chat", exact: true })
+    .click();
   await page.getByRole("button", { name: "Add a style reference" }).click();
   await page
     .locator("input[type=file]")
@@ -1207,7 +1216,9 @@ test("upload creates an automatic first cut before editor entry, preserves origi
   await expect(page.locator(".timeline-clip")).toHaveCount(1);
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
-  await page.getByRole("button", { name: "Overlay", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move to overlay", exact: true })
+    .click();
   await expect(page.locator(".overlay-row .sequence-item")).toHaveCount(1);
   await page.route("**/api/ai/chat", async (r) => {
     const body = r.request().postDataJSON();
@@ -1227,8 +1238,7 @@ test("upload creates an automatic first cut before editor entry, preserves origi
     });
   });
   await page
-    .locator(".suite-tools")
-    .getByRole("button", { name: "EditAI", exact: true })
+    .getByRole("button", { name: "Open EditAI chat", exact: true })
     .click();
   await page.getByLabel("Message EditAI").fill("Move the overlay to the left");
   await page.getByRole("button", { name: "Send message" }).click();
@@ -1290,7 +1300,9 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await page.getByRole("button", { name: "Split clip at playhead" }).click();
   await page.locator(".timeline-clip").first().click();
-  await page.getByRole("button", { name: "Overlay", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move to overlay", exact: true })
+    .click();
   const overlay = page.locator(".overlay-row .sequence-item");
   await overlay.click();
   await page.getByLabel("Timeline playhead").fill("1.3");
@@ -1317,17 +1329,17 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   await expect(page.locator(".sequence-playhead")).toBeVisible();
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("button", { name: "Add text", exact: true }).click();
-  await page.getByRole("button", { name: "Font", exact: true }).click();
+  await page.getByLabel("Search fonts").fill("Montserrat");
   await page
-    .getByLabel("Project font", { exact: true })
-    .selectOption("Montserrat");
-  await expect(page.getByLabel("Font", { exact: true })).toHaveValue(
-    "Montserrat",
-  );
+    .getByRole("button", { name: "Use Montserrat font", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Use Montserrat font", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Add text", exact: true }).click();
-  await expect(page.getByLabel("Font", { exact: true })).toHaveValue(
-    "Montserrat",
-  );
+  await expect(
+    page.getByRole("button", { name: "Use Montserrat font", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({
     path: "outputs/editor-drag-layers.png",
     fullPage: true,
@@ -1472,9 +1484,12 @@ test("reference studio layout keeps monitor, source cards, caption lanes and aud
   await expect(page.locator(".source-card")).toHaveCount(1);
   await page.getByLabel("Search source media").fill("");
   await page
+    .getByRole("button", { name: "Auto captions workspace", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Generate captions", exact: true })
     .click();
-  await expect(page.locator(".text-layer-list>button")).toHaveCount(6);
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(6);
   await expect(page.locator(".text-row")).toHaveCount(1);
   await page.getByRole("button", { name: "Audio workspace" }).click();
   await page
@@ -1499,7 +1514,7 @@ test("reference studio layout keeps monitor, source cards, caption lanes and aud
   await expect(page.locator(".overlay-row")).toHaveCount(1);
   await page.getByRole("button", { name: "Media workspace" }).click();
   await page.getByRole("button", { name: "Text", exact: true }).click();
-  await page.locator(".text-layer-list>button").first().click();
+  await page.locator(".text-row .sequence-item").first().click();
   for (const [width, height] of [
     [1440, 900],
     [1280, 720],
@@ -1538,7 +1553,7 @@ test("reference studio layout keeps monitor, source cards, caption lanes and aud
       fullPage: true,
     });
   }
-  await page.getByRole("button", { name: "Text workspace" }).click();
+  await page.getByRole("button", { name: "Auto captions workspace" }).click();
   await expect(
     page.getByRole("heading", { name: "Auto captions", exact: true }),
   ).toBeVisible();
@@ -1550,6 +1565,171 @@ test("reference studio layout keeps monitor, source cards, caption lanes and aud
   ).toBe(true);
   await page.screenshot({
     path: "outputs/studio-reference-mobile.png",
+    fullPage: true,
+  });
+});
+
+test("clip audio extraction preserves trim and speed, undo redo, reload and real export; pinch and help work", async ({
+  page,
+}) => {
+  await authenticated(page);
+  let saved: any;
+  await page.route("**/api/projects", async (r) => {
+    if (r.request().method() === "POST") saved = r.request().postDataJSON();
+    await r.fulfill({
+      json: r.request().method() === "GET" ? { projects: [] } : { ok: true },
+    });
+  });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await expect(page.locator(".timeline-clip .source-waveform")).toHaveCount(0);
+  await expect(page.getByLabel("Timeline zoom", { exact: true })).toHaveCount(
+    0,
+  );
+  const before = await page
+    .locator(".timeline-clip")
+    .evaluate((el) => el.getBoundingClientRect().width);
+  await page.locator(".sequence-viewport").dispatchEvent("wheel", {
+    deltaY: 30,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+  });
+  await expect
+    .poll(() =>
+      page
+        .locator(".timeline-clip")
+        .evaluate((el) => el.getBoundingClientRect().width),
+    )
+    .toBeLessThan(before);
+  await page.getByRole("button", { name: "Editor help and shortcuts" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Split at the playhead");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByText("Precision trim", { exact: true }).click();
+  await page.getByLabel("Clip in point").fill("0.5");
+  await page.getByLabel("Clip out point").fill("3");
+  await page.getByRole("slider", { name: /^Speed/ }).fill("1.5");
+  await page
+    .getByRole("button", { name: "Extract audio", exact: true })
+    .click();
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1, {
+    timeout: 30000,
+  });
+  await expect(
+    page.locator(".audio-row .source-waveform path"),
+  ).toHaveAttribute("d", /^M1 28v-/, { timeout: 10000 });
+  await expect.poll(() => saved?.document?.audio?.length).toBe(1);
+  const document = saved.document;
+  expect(document.segments[0].volume).toBe(0);
+  expect(document.audio[0].speed).toBe(1.5);
+  expect(document.audio[0].sourceStart).toBe(0);
+  expect(document.audio[0].end).toBeCloseTo(2.5 / 1.5, 2);
+  expect(document.sources[document.audio[0].sourceIndex].kind).toBe("audio");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await page.keyboard.press("Control+z");
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
+  await page.keyboard.press("Control+Shift+Z");
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await page.getByRole("button", { name: "My creations", exact: true }).click();
+  await page.locator(".project-card-title").click();
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page.getByLabel("Export resolution").selectOption("854");
+  const download = page.waitForEvent("download", { timeout: 120000 });
+  await page.getByRole("button", { name: "Export video", exact: true }).click();
+  await (await download).saveAs("outputs/extracted-audio-export.mp4");
+  await expect(page.getByRole("status")).toContainText("MP4 exported");
+});
+
+test("portrait thumbnails retain their aspect ratio and fill video clips; playback is centered and tools have hover descriptions", async ({
+  page,
+}) => {
+  execFileSync("ffmpeg", [
+    "-v",
+    "error",
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    "testsrc2=size=180x320:rate=24",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=440",
+    "-t",
+    "2",
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "outputs/portrait-fixture.mp4",
+  ]);
+  await authenticated(page);
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/portrait-fixture.mp4"));
+  for (const selector of [
+    ".source-card .clip-frames span",
+    ".timeline-clip .clip-frames span",
+  ]) {
+    await expect(page.locator(selector).first()).toBeVisible();
+    const ratio = await page
+      .locator(selector)
+      .first()
+      .evaluate(async (el) => {
+        const image = new Image();
+        image.src = getComputedStyle(el).backgroundImage.slice(5, -2);
+        await image.decode();
+        return image.naturalWidth / image.naturalHeight;
+      });
+    expect(ratio).toBeCloseTo(180 / 320, 1);
+  }
+  const clip = (await page.locator(".timeline-clip").boundingBox())!;
+  const frames = (await page
+    .locator(".timeline-clip .clip-frames")
+    .boundingBox())!;
+  expect(Math.abs(frames.height - clip.height)).toBeLessThanOrEqual(4);
+  const monitor = (await page
+    .getByRole("region", { name: "Video monitor" })
+    .boundingBox())!;
+  const play = (await page
+    .getByRole("button", { name: "Play", exact: true })
+    .boundingBox())!;
+  expect(
+    Math.abs(play.x + play.width / 2 - monitor.x - monitor.width / 2),
+  ).toBeLessThan(2);
+  await expect(
+    page.getByRole("button", {
+      name: /Back 5 seconds|Forward 5 seconds|Move clip left|Move clip right/,
+    }),
+  ).toHaveCount(0);
+  await expect(page.locator(".suite-tools")).toHaveCount(0);
+  const rail = (await page.locator(".studio-tool-rail").boundingBox())!;
+  const aiTool = (await page
+    .getByRole("button", { name: "Open EditAI chat" })
+    .boundingBox())!;
+  expect(aiTool.x + aiTool.width).toBeLessThanOrEqual(rail.x + rail.width);
+
+  await page
+    .getByRole("button", { name: "Duplicate selected clip", exact: true })
+    .hover();
+  await expect(page.getByRole("tooltip")).toHaveText("Duplicate selected clip");
+  await page.mouse.move(600, 400);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await page.screenshot({
+    path: "outputs/editor-refined-portrait.png",
     fullPage: true,
   });
 });

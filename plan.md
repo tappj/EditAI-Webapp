@@ -121,3 +121,16 @@ with numbered inspector rows and expandable typography controls. Add track label
 zoom controls and real decoded waveforms without changing source anchors or AI
 validation. Shared web/desktop source builds include this workspace; a new signed
 desktop installer is outside this publication. See docs/VERIFICATION.md.
+
+## Editor surface corrections — November 19, 2026
+
+Preserve portrait thumbnail proportions during frame encoding and fill video/overlay
+strips with media. Remove video waveforms, duplicated tool actions, jump/reorder
+arrows, timeline zoom controls, redundant caption rows/timestamps and the AI recut
+button. Keep pinch zoom, separate Auto captions from manual Text, add real font and
+style previews, curved undo/redo, hover descriptions and a compact help guide.
+Extract audio creates a saved WAV source for the selected trimmed clip, preserving
+speed/placement/volume on a separate audio lane while muting its video. Audio peaks
+extend upward from a single baseline. Flush project state before leaving the editor
+so returning immediately to My creations cannot reopen an older edit. Normalize
+Shift+Z for keyboard redo. Home and Edits appearance remain unchanged.

@@ -1,5 +1,7 @@
 "use client";
 import type React from "react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 export function Button({
   children,
   onClick,
@@ -37,16 +39,45 @@ export function IconButton({
   label: string;
   disabled?: boolean;
 }) {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null);
+  function show(button: HTMLButtonElement) {
+    if (!button.closest(".is-editor")) return;
+    const rect = button.getBoundingClientRect();
+    setTooltip({
+      x: Math.min(innerWidth - 100, Math.max(100, rect.left + rect.width / 2)),
+      y: rect.top < 70 ? rect.bottom + 8 : rect.top - 32,
+    });
+  }
   return (
-    <button
-      className="icon-button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
+    <>
+      <button
+        className="icon-button"
+        aria-label={label}
+        title={label}
+        onClick={() => {
+          setTooltip(null);
+          onClick?.();
+        }}
+        onPointerEnter={(e) => show(e.currentTarget)}
+        onPointerLeave={() => setTooltip(null)}
+        onFocus={(e) => show(e.currentTarget)}
+        onBlur={() => setTooltip(null)}
+        disabled={disabled}
+      >
+        {children}
+      </button>
+      {tooltip &&
+        createPortal(
+          <span
+            className="editor-control-tooltip"
+            role="tooltip"
+            style={{ left: tooltip.x, top: tooltip.y }}
+          >
+            {label}
+          </span>,
+          document.body,
+        )}
+    </>
   );
 }
 export function Range({

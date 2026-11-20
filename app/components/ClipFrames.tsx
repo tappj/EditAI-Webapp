@@ -54,7 +54,10 @@ export function ClipFrames({
         try {
           if (video.readyState < 2) await event("loadeddata");
           const canvas = document.createElement("canvas");
-          canvas.width = 120;
+          canvas.width = Math.max(
+            1,
+            Math.round((68 * video.videoWidth) / video.videoHeight),
+          );
           canvas.height = 68;
           const ctx = canvas.getContext("2d")!;
           const result: string[] = [];

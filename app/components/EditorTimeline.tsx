@@ -1,14 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import {
-  Music,
-  Plus,
-  Subtitles,
-  Layers,
-  Film,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { Music, Plus, Subtitles, Layers, Film } from "lucide-react";
 import {
   duration,
   segmentDuration,
@@ -18,7 +10,6 @@ import {
 import { gestureEdit, type Track } from "@/lib/editor/timeline";
 
 import { SourceWaveform } from "./SourceWaveform";
-import { IconButton } from "./ui";
 import { ClipFrames } from "./ClipFrames";
 const TRACK_HEADER = 112;
 function captionTracks(doc: Document) {
@@ -76,6 +67,10 @@ export function EditorTimeline({
   onError,
 }: Props) {
   const [zoom, setZoom] = useState(48);
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
   const [draft, setDraft] = useState<Document | null>(null);
   const [trimPreview, setTrimPreview] = useState<{
     base: Document;
@@ -114,17 +109,57 @@ export function EditorTimeline({
       }
     });
     observer.observe(el);
+    let frame = 0;
+    let gestureScale = 1;
+    let nativeGesture = false;
+    function zoomAt(ratio: number, clientX: number) {
+      const old = zoomRef.current;
+      const next = Math.min(160, Math.max(8, old * ratio));
+      const localX = Math.max(
+        TRACK_HEADER,
+        clientX - el!.getBoundingClientRect().left,
+      );
+      const time = (el!.scrollLeft + localX - TRACK_HEADER) / old;
+      zoomRef.current = next;
+      setZoom(next);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        el!.scrollLeft = Math.max(0, TRACK_HEADER + time * next - localX);
+      });
+    }
     const wheel = (event: WheelEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
-      setZoom((z) =>
-        Math.min(160, Math.max(8, z * Math.exp(-event.deltaY * 0.008))),
-      );
+      if (!nativeGesture)
+        zoomAt(Math.exp(-event.deltaY * 0.008), event.clientX);
+    };
+    const startGesture = (event: Event) => {
+      event.preventDefault();
+      gestureScale = 1;
+      nativeGesture = true;
+    };
+    const changeGesture = (event: Event) => {
+      event.preventDefault();
+      const gesture = event as Event & { scale: number; clientX: number };
+      if (gesture.scale > 0) {
+        zoomAt(gesture.scale / gestureScale, gesture.clientX);
+        gestureScale = gesture.scale;
+      }
+    };
+    const endGesture = () => {
+      nativeGesture = false;
     };
     el.addEventListener("wheel", wheel, { passive: false });
+    el.addEventListener("gesturestart", startGesture, { passive: false });
+    el.addEventListener("gesturechange", changeGesture, { passive: false });
+    el.addEventListener("gestureend", endGesture);
     return () => {
       observer.disconnect();
+      cancelAnimationFrame(frame);
       el.removeEventListener("wheel", wheel);
+      el.removeEventListener("gesturestart", startGesture);
+      el.removeEventListener("gesturechange", changeGesture);
+      el.removeEventListener("gestureend", endGesture);
     };
   }, []);
   const pixels = zoom,
@@ -241,25 +276,29 @@ export function EditorTimeline({
           }
         }}
       >
-        {track === "segments" &&
+        {(track === "segments" || track === "overlays") &&
           (() => {
-            const s = shown.segments.find((x) => x.id === id)!;
+            const s =
+              track === "segments"
+                ? shown.segments.find((x) => x.id === id)!
+                : shown.overlays.find((x) => x.id === id)!;
             const source = shown.sources[s.sourceIndex];
             return (
               <ClipFrames
                 url={urls[source.id]}
-                start={s.start}
-                end={s.end}
+                start={"sourceStart" in s ? s.sourceStart : s.start}
+                end={
+                  "sourceStart" in s
+                    ? s.sourceStart + (s.end - s.start) * (s.speed ?? 1)
+                    : s.end
+                }
                 image={source.kind === "image"}
               />
             );
           })()}
-        {(track === "segments" || track === "audio") &&
+        {track === "audio" &&
           (() => {
-            const item =
-              track === "segments"
-                ? shown.segments.find((x) => x.id === id)!
-                : shown.audio.find((x) => x.id === id)!;
+            const item = shown.audio.find((x) => x.id === id)!;
             const source = shown.sources[item.sourceIndex];
             if (source.kind === "image") return null;
             return (
@@ -267,12 +306,9 @@ export function EditorTimeline({
                 url={urls[source.id]}
                 duration={source.duration}
                 bytes={source.bytes}
-                start={"sourceStart" in item ? item.sourceStart : item.start}
+                start={item.sourceStart}
                 end={
-                  "sourceStart" in item
-                    ? item.sourceStart +
-                      (item.end - item.start) * (item.speed ?? 1)
-                    : item.end
+                  item.sourceStart + (item.end - item.start) * (item.speed ?? 1)
                 }
               />
             );
@@ -330,36 +366,19 @@ export function EditorTimeline({
           Add overlay
         </button>
         <span>
-          Drag to move · drag edges to trim <kbd>S</kbd> Split
+          Pinch to zoom · drag edges to trim <kbd>S</kbd> Split
         </span>
-        <label>
-          <IconButton
-            label="Zoom timeline out"
-            onClick={() => setZoom((z) => Math.max(8, z / 1.25))}
-          >
-            <ZoomOut size={15} />
-          </IconButton>
-          <input
-            aria-label="Timeline zoom"
-            type="range"
-            min="8"
-            max="160"
-            value={zoom}
-            onChange={(e) => setZoom(+e.target.value)}
-          />
-          <IconButton
-            label="Zoom timeline in"
-            onClick={() => setZoom((z) => Math.min(160, z * 1.25))}
-          >
-            <ZoomIn size={15} />
-          </IconButton>
-        </label>
       </div>
       <div className="sequence-viewport" ref={viewport}>
         <div
           className="sequence-content"
           ref={content}
-          style={{ width: width + TRACK_HEADER + 54 }}
+          style={
+            {
+              width: width + TRACK_HEADER + 54,
+              "--track-width": `${total * pixels}px`,
+            } as React.CSSProperties
+          }
         >
           <div
             className="sequence-ruler"
@@ -433,6 +452,7 @@ export function EditorTimeline({
             <button
               className="sequence-add"
               aria-label="Append media"
+              title="Append media"
               style={{ left: TRACK_HEADER + total * pixels + 6 }}
               onClick={onAdd}
             >

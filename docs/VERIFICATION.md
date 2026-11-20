@@ -350,3 +350,46 @@ inspector and timeline to fit the desktop viewport and prevent mobile horizontal
 overflow. Authentication and AI use test fixtures; these checks do not establish
 fresh real Publik connectivity. The shared desktop source is updated; the public
 signed installer remains 0.2.2.
+
+## Editor surface corrections — November 19, 2026
+
+Corrected encoded thumbnail proportions, including portrait video, and removed the
+blue padding around clip filmstrips. Video/overlay media fills the strip. Video
+waveforms are removed; audio waveforms use actual decoded peaks extending upward
+from a baseline. Occupied timeline rows alone have a faint backdrop ending at the
+video duration, before the append button. Removed the track gutter border bump,
+zoom slider/buttons, duplicate tool strip, clip count, jump/reorder arrows and
+Rebuild automatic cut. That action reran the initial AI selection; automatic first
+cut on import and request-based EditAI chat remain available. Centered playback
+uses a plain triangle. Timeline supports trackpad ctrl-wheel pinch and Safari
+gesture events, with the zoom anchored under the gesture.
+
+Manual Text and Auto captions now have separate tools. The text inspector has a
+blue add button and editable text, with searchable real font samples and style
+previews rather than font-name dropdowns or numbered timestamp boxes. Font samples
+start with 12 choices and expand on request. Curved undo/redo controls have explicit
+hover descriptions, as do split/duplicate/delete. Fixed uppercase Shift+Z handling
+for keyboard redo. A top-corner help dialog documents supported tools/shortcuts
+with keyboard focus trapping and Escape dismissal.
+
+Extract audio uses the existing real web/native FFmpeg pipeline to create a WAV
+source for the selected source interval. It preserves clip speed, project position
+and volume on an available audio lane and mutes the video atomically. The original
+file stays intact. Saved media is retained through undo/redo and project reopening.
+Returning to My creations now flushes edits and refreshes its project snapshot,
+fixing a stale card that could reopen the pre-extraction version immediately after
+an edit. No provider/authentication or editorial word-ID contract changed.
+
+Typecheck, 21 web tests, 12 desktop tests and web/desktop production builds pass.
+Browser coverage includes real extraction/export, source trim/speed alignment,
+button and keyboard undo/redo, pinch zoom, help, persistence, portrait thumbnail
+aspect ratio, full-height filmstrips, centered playback and hover descriptions.
+The extracted-audio export is H.264/AAC and non-silent. Provider/authentication
+fixtures remain explicit; this does not establish fresh real Publik connectivity.
+Shared desktop source is updated; the signed downloadable installer remains 0.2.2.
+
+All 27 studio cases pass in Chromium (45.6s) and WebKit (1.6m). The final rail-width
+and fallback-copy refinement passes all three targeted layout, extraction and
+portrait checks in each browser after a fresh build/server restart. Portrait/source-strip and text-style
+screenshots are inspected under ignored outputs/. UI component lint has no errors;
+the pre-existing Wordmark img performance advisory remains.

@@ -1143,3 +1143,212 @@ body:has(.is-editor) .toast a {
   inset: 0;
   pointer-events: none;
 }
+
+/* Refined editing surface: preserve media proportions and keep controls quiet. */
+.is-editor .transport {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+.is-editor .transport > :last-child {
+  justify-self: end;
+}
+.is-editor .play-button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+}
+.is-editor .play-button svg {
+  stroke-linejoin: miter;
+}
+.is-editor .studio-tool-rail .editai-tool span {
+  background: var(--action-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-weight: 750;
+}
+.is-editor .studio-tool-rail .editai-tool svg {
+  color: var(--control);
+}
+.is-editor .section-heading > .icon-button {
+  background: var(--action-gradient);
+  color: var(--control);
+  border-radius: 9px;
+  width: 34px;
+  height: 34px;
+}
+.is-editor .caption-style-panel {
+  margin-top: 12px;
+}
+.is-editor .font-preview-picker h4 {
+  margin: 16px 0 10px;
+  font-size: 12px;
+}
+.is-editor .font-preview-picker > input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.is-editor .font-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.is-editor .font-preview-grid > button {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 12px 8px;
+  text-align: center;
+  background: var(--bg);
+}
+.is-editor .font-preview-grid > button[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: var(--ice);
+}
+.is-editor .font-preview-grid span {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+}
+.is-editor .font-preview-grid small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.is-editor .style-preview-grid > button {
+  background: #59616d;
+}
+.is-editor .style-preview-grid small {
+  color: white;
+}
+.is-editor .sequence-ruler,
+.is-editor .sequence-ruler:before,
+.is-editor .track-label {
+  border: 0;
+}
+.is-editor .sequence-ruler:before {
+  box-sizing: border-box;
+  height: 27px;
+}
+.is-editor .sequence-row {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.is-editor .sequence-row:has(.sequence-item):before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 112px;
+  width: var(--track-width);
+  background: color-mix(in srgb, var(--canvas) 65%, transparent);
+  border-radius: 5px;
+}
+.is-editor .sequence-item.timeline-clip,
+.is-editor .overlay-row .sequence-item {
+  padding: 0;
+  background: transparent;
+}
+.is-editor .sequence-item .clip-frames {
+  inset: 0;
+  opacity: 1;
+}
+.is-editor .sequence-item .clip-frames span {
+  background-size: auto 100%;
+  background-repeat: repeat-x;
+}
+.is-editor .sequence-item.timeline-clip strong,
+.is-editor .overlay-row .sequence-item strong {
+  position: absolute;
+  left: 12px;
+  top: 4px;
+  max-width: calc(100% - 24px);
+  padding: 2px 4px;
+  background: #101216b8;
+  color: white;
+  border-radius: 3px;
+  z-index: 1;
+}
+.is-editor .sequence-item.timeline-clip small,
+.is-editor .overlay-row .sequence-item small {
+  display: none;
+}
+.is-editor .sequence-item.selected {
+  box-shadow: none;
+}
+.is-editor .sequence-playhead {
+  box-shadow: none;
+}
+.is-editor .audio-row .source-waveform {
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 25px;
+}
+.is-editor .source-preview .clip-frames span {
+  background-size: cover;
+}
+.editor-help {
+  max-height: 80vh;
+  overflow: auto;
+  width: min(620px, 95vw);
+}
+.editor-help h2 {
+  font-size: 21px;
+}
+.editor-help p,
+.editor-help dd {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.editor-help dl {
+  display: grid;
+  grid-template-columns: 145px 1fr;
+  gap: 14px;
+  margin-top: 24px;
+}
+.editor-help dt {
+  font-size: 13px;
+  font-weight: 600;
+}
+.editor-help dd {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .editor-help dl {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .editor-help dd {
+    margin-bottom: 12px;
+  }
+}
+.editor-control-tooltip {
+  position: fixed;
+  z-index: 10000;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: 6px;
+  background: #25354b;
+  color: white;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px #0002;
+}
+.is-editor .studio-tool-rail button {
+  min-width: 0;
+  flex: 1 1 0;
+}
+.is-editor .studio-tool-rail button span {
+  max-width: 100%;
+}

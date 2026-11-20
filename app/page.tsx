@@ -13,8 +13,6 @@ import {
   ArrowUpRight,
   AudioLines,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Copy,
   Download,
   Film,
@@ -31,7 +29,8 @@ import {
   Pause,
   Play,
   Plus,
-  Redo2,
+  Redo,
+  CircleHelp,
   Scissors,
   Settings,
   ShieldCheck,
@@ -42,7 +41,7 @@ import {
   Subtitles,
   Trash2,
   Type,
-  Undo2,
+  Undo,
   Upload,
   UserRound,
   Video,
@@ -100,7 +99,7 @@ import {
   mediaBlob,
   type MediaResource,
 } from "@/lib/editor/desktop";
-import { FONTS } from "@/lib/editor/fonts";
+import { FontPreviewPicker } from "./components/FontPreviewPicker";
 import { makeReference, type Reference } from "@/lib/editor/reference";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
 import { Button, IconButton, Range, Wordmark } from "./components/ui";
@@ -202,7 +201,8 @@ export default function App({
     } | null>(null),
     [selectedText, setSelectedText] = useState(""),
     [onlySelectedText, setOnlySelectedText] = useState(false),
-    [captionStyleOpen, setCaptionStyleOpen] = useState(false),
+    [captionStyleOpen, setCaptionStyleOpen] = useState(true),
+    [helpOpen, setHelpOpen] = useState(false),
     [exportOpen, setExportOpen] = useState(false),
     [resolution, setResolution] = useState(1280),
     [fps, setFps] = useState(30),
@@ -263,7 +263,7 @@ export default function App({
     segment = doc?.segments.find((s) => s.id === selected) || doc?.segments[0],
     textLayer = doc?.texts.find((t) => t.id === selectedText);
   useEffect(() => {
-    if (!privacy && !exportOpen && !busy) return;
+    if (!privacy && !exportOpen && !helpOpen && !busy) return;
     const previous = document.activeElement as HTMLElement | null;
     const timer = setTimeout(() => {
       const el = document.querySelector(".modal") as HTMLElement | null;
@@ -278,6 +278,7 @@ export default function App({
       if (e.key === "Escape" && !busy) {
         setPrivacy(false);
         setExportOpen(false);
+        setHelpOpen(false);
       }
       if (e.key === "Tab") {
         const el = document.querySelector(".modal");
@@ -307,7 +308,7 @@ export default function App({
       document.removeEventListener("keydown", key);
       previous?.focus();
     };
-  }, [privacy, exportOpen, !!busy]);
+  }, [privacy, exportOpen, helpOpen, !!busy]);
   const fail = useCallback((e: any) => {
     setError(e.message || String(e));
     setErrorURL(e.url || "");
@@ -530,14 +531,18 @@ export default function App({
         (e.target as HTMLElement).closest(
           "input,textarea,select,[contenteditable]",
         ) ||
-        screen !== "editor"
+        screen !== "editor" ||
+        helpOpen ||
+        exportOpen ||
+        !!busy ||
+        privacy
       )
         return;
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         e.shiftKey ? redo() : undo();
       }
@@ -908,7 +913,7 @@ export default function App({
             else {
               fail(e);
               setNotice(
-                "Automatic editing could not finish. Your original footage is ready to edit; retry from EditAI.",
+                "Automatic editing could not finish. Your original footage is ready to edit; ask EditAI for changes.",
               );
             }
           }
@@ -1064,6 +1069,79 @@ export default function App({
       await syncProject(current, media);
     });
     replacingAudio.current = null;
+  }
+  async function detachClipAudio() {
+    if (!doc || !segment || doc.sources[segment.sourceIndex].kind !== "video")
+      return;
+    await run("Extracting clip audio", async () => {
+      const d = structuredClone(doc),
+        clip = d.segments.find((s) => s.id === segment.id)!;
+      const start = d.segments
+        .slice(0, d.segments.indexOf(clip))
+        .reduce((sum, s) => sum + segmentDuration(s), 0);
+      const end = start + segmentDuration(clip);
+      const lane = [0, 1, 2].find(
+        (l) =>
+          !d.audio.some((a) => a.lane === l && a.start < end && a.end > start),
+      );
+      if (lane == null)
+        throw Error(
+          "All audio tracks are occupied here. Move or trim a sound first.",
+        );
+      const original = await loadMedia(d.sources[clip.sourceIndex].id);
+      if (!original)
+        throw Error(
+          "Original media is unavailable. Reopen the project and try again.",
+        );
+      const wav = await extractAudio(
+        original,
+        clip.start,
+        clip.end - clip.start,
+      );
+      activeSignal?.throwIfAborted();
+      const file = new File(
+        [wav],
+        d.sources[clip.sourceIndex].name.replace(/\.[^.]+$/, "") + " audio.wav",
+        { type: "audio/wav" },
+      );
+      const source = await probe(file);
+      activeSignal?.throwIfAborted();
+      const audio = {
+        id: crypto.randomUUID(),
+        sourceIndex: d.sources.length,
+        sourceStart: 0,
+        start,
+        end,
+        speed: clip.speed,
+        lane,
+        volume: clip.volume,
+        fadeIn: 0,
+        fadeOut: 0,
+      };
+      d.sources.push(source);
+      d.audio.push(audio);
+      clip.volume = 0;
+      validate(d);
+      await saveMedia(source.id, file, source.mime);
+      const current = {
+        ...projectRef.current!,
+        document: d,
+        updatedAt: Date.now(),
+      };
+      await saveProject(current);
+      const url = desktop()
+        ? mediaURL((await loadMedia(source.id))!)
+        : URL.createObjectURL(file);
+      setUrls((u) => ({ ...u, [source.id]: url }));
+      persistedProject.current = current;
+      change(d, current);
+      setSelectedLayer({ track: "audio", id: audio.id });
+      setTool("layers");
+      setNotice(
+        "Audio extracted. The video’s sound is muted; edit the sound on its own track.",
+      );
+      await syncProject(current, [{ id: source.id, file, mime: source.mime }]);
+    });
   }
   async function ensureWords(
     d: Document,
@@ -1274,22 +1352,6 @@ export default function App({
       const d = await ensureWords(doc);
       change(d);
       setNotice("Transcript ready.");
-    });
-  }
-  async function aiEdit() {
-    if (!doc) return;
-    await run("Preparing AI edit", async () => {
-      let d = await ensureWords(doc);
-      setBusy("Choosing the best takes · full-recording review");
-      activeSignal?.throwIfAborted();
-      const plan = await api("ai/edit", { words: d.words });
-      activeSignal?.throwIfAborted();
-      d = applyCuts(d, [...planCuts(d, plan), ...(d.quietCuts || [])]);
-      change(d);
-      setScreen("editor");
-      setNotice(
-        "AI edit applied. Review the timeline; Undo restores your footage.",
-      );
     });
   }
   async function analyze() {
@@ -1509,7 +1571,7 @@ export default function App({
       fail(e);
     }
   }
-  const nav = (s: Screen) => {
+  const nav = async (s: Screen) => {
     if (
       screen === "record" &&
       recordingDirty.current &&
@@ -1519,6 +1581,23 @@ export default function App({
       return;
     player.current?.pause();
     setPlaying(false);
+    if (screen === "editor" && s !== "editor" && projectRef.current) {
+      const current = projectRef.current;
+      const saved = { ...current, updatedAt: Date.now() };
+      try {
+        await saveProject(saved);
+        persistedProject.current = current;
+        setProjects(await listProjects());
+        void api("projects", {
+          id: saved.id,
+          title: saved.title,
+          document: saved.document,
+        }).catch(() => {});
+      } catch (e) {
+        fail(e);
+        return;
+      }
+    }
     setScreen(s);
     if (s === "settings") void refresh();
     setMenu(false);
@@ -2013,14 +2092,20 @@ export default function App({
                     onClick={undo}
                     disabled={!history.length}
                   >
-                    <Undo2 size={18} />
+                    <Undo size={20} />
                   </IconButton>
                   <IconButton
                     label="Redo"
                     onClick={redo}
                     disabled={!future.length}
                   >
-                    <Redo2 size={18} />
+                    <Redo size={20} />
+                  </IconButton>
+                  <IconButton
+                    label="Editor help and shortcuts"
+                    onClick={() => setHelpOpen(true)}
+                  >
+                    <CircleHelp size={18} />
                   </IconButton>
                   <Button
                     onClick={() => {
@@ -2044,6 +2129,11 @@ export default function App({
                         { id: "media", label: "Media", icon: Film },
                         { id: "audio", label: "Audio", icon: Music },
                         { id: "text", label: "Text", icon: Type },
+                        {
+                          id: "captions",
+                          label: "Auto captions",
+                          icon: Subtitles,
+                        },
                         { id: "overlays", label: "Overlays", icon: Layers },
                         { id: "filters", label: "Filters", icon: ImageIcon },
                         {
@@ -2060,12 +2150,19 @@ export default function App({
                               ? "Open EditAI chat"
                               : item.label + " workspace"
                           }
-                          className={editorPanel === item.id ? "selected" : ""}
+                          title={
+                            item.label === "EditAI"
+                              ? "Ask EditAI to edit your video"
+                              : item.label
+                          }
+                          className={`${editorPanel === item.id ? "selected" : ""} ${item.id === "chat" ? "editai-tool" : ""}`}
                           aria-pressed={editorPanel === item.id}
                           onClick={() => {
                             setEditorPanel(item.id);
-                            if (item.id === "text") setTool("captions");
-                            else if (
+                            if (item.id === "text" || item.id === "captions") {
+                              setTool("captions");
+                              setCaptionStyleOpen(true);
+                            } else if (
                               item.id === "overlays" ||
                               item.id === "audio"
                             )
@@ -2114,9 +2211,6 @@ export default function App({
                     {editorPanel === "chat" ? (
                       <div className="chat-panel">
                         <h3>Edit with EditAI</h3>
-                        <Button secondary onClick={() => void aiEdit()}>
-                          Rebuild automatic cut
-                        </Button>
                         <p>Tell EditAI what you’d like to change.</p>
                         <div className="chat-messages">
                           {messages.map((m, i) => (
@@ -2180,61 +2274,68 @@ export default function App({
                           </button>
                         </form>
                       </div>
-                    ) : editorPanel === "text" ? (
+                    ) : editorPanel === "text" || editorPanel === "captions" ? (
                       <div className="editor-tool-panel">
-                        <span className="tool-eyebrow">TEXT & CAPTIONS</span>
-                        <h3>Let every word land.</h3>
-                        <p>
-                          Add your own text or generate editable captions from
-                          the speech in your video.
-                        </p>
-                        <Button secondary onClick={addTextLayer}>
-                          <Type size={17} />
-                          Add text
-                        </Button>
-                        <div className="caption-generate-card">
-                          <span className="caption-generate-icon">
-                            <Subtitles size={26} />
-                          </span>
-                          <h3>Auto captions</h3>
-                          <p>
-                            Recognize speech and place captions on your edited
-                            timeline.
-                          </p>
-                          <label>
-                            Spoken language
-                            <select
-                              aria-label="Caption spoken language"
-                              value={language}
-                              onChange={(e) => setLanguage(e.target.value)}
-                            >
-                              {Object.entries({
-                                auto: "Detect automatically",
-                                en: "English",
-                                es: "Spanish",
-                                fr: "French",
-                                de: "German",
-                                it: "Italian",
-                                pt: "Portuguese",
-                                ja: "Japanese",
-                                ko: "Korean",
-                                zh: "Chinese",
-                              }).map(([id, name]) => (
-                                <option key={id} value={id}>
-                                  {name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <Button onClick={() => void generateCaptions()}>
-                            <Subtitles size={16} />
-                            Generate captions
-                          </Button>
-                          <small>
-                            Manual text stays in place when speech captions are
-                            regenerated.
-                          </small>
-                        </div>
+                        {editorPanel === "text" ? (
+                          <>
+                            <span className="tool-eyebrow">TEXT</span>
+                            <h3>Make it your own.</h3>
+                            <p>
+                              Add text, then choose its font and style in the
+                              inspector. Select text on the timeline to edit it.
+                            </p>
+                            <Button secondary onClick={addTextLayer}>
+                              <Type size={17} />
+                              Add text
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="caption-generate-card">
+                              <span className="caption-generate-icon">
+                                <Subtitles size={26} />
+                              </span>
+                              <h3>Auto captions</h3>
+                              <p>
+                                Recognize speech and place captions on your
+                                edited timeline.
+                              </p>
+                              <label>
+                                Spoken language
+                                <select
+                                  aria-label="Caption spoken language"
+                                  value={language}
+                                  onChange={(e) => setLanguage(e.target.value)}
+                                >
+                                  {Object.entries({
+                                    auto: "Detect automatically",
+                                    en: "English",
+                                    es: "Spanish",
+                                    fr: "French",
+                                    de: "German",
+                                    it: "Italian",
+                                    pt: "Portuguese",
+                                    ja: "Japanese",
+                                    ko: "Korean",
+                                    zh: "Chinese",
+                                  }).map(([id, name]) => (
+                                    <option key={id} value={id}>
+                                      {name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <Button onClick={() => void generateCaptions()}>
+                                <Subtitles size={16} />
+                                Generate captions
+                              </Button>
+                              <small>
+                                Manual text stays in place when speech captions
+                                are regenerated.
+                              </small>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -2267,17 +2368,6 @@ export default function App({
                           }}
                           onAdd={addLibrarySource}
                         />
-                        {editorPanel === "media" && (
-                          <div className="library-caption-action">
-                            <Button
-                              secondary
-                              onClick={() => void generateCaptions()}
-                            >
-                              <Subtitles size={16} />
-                              Generate captions
-                            </Button>
-                          </div>
-                        )}
                       </>
                     )}
                   </div>
@@ -2356,29 +2446,22 @@ export default function App({
                         <small> / {time(total)}</small>
                       </span>
                       <div>
-                        <IconButton
-                          label="Back 5 seconds"
-                          onClick={() => player.current?.seek(playhead - 5)}
-                        >
-                          <ChevronLeft size={20} />
-                        </IconButton>
                         <button
                           className="play-button"
                           onClick={togglePlay}
                           aria-label={playing ? "Pause" : "Play"}
+                          title={playing ? "Pause (Space)" : "Play (Space)"}
                         >
                           {playing ? (
                             <Pause size={19} fill="currentColor" />
                           ) : (
-                            <Play size={19} fill="currentColor" />
+                            <Play
+                              size={24}
+                              strokeWidth={0}
+                              fill="currentColor"
+                            />
                           )}
                         </button>
-                        <IconButton
-                          label="Forward 5 seconds"
-                          onClick={() => player.current?.seek(playhead + 5)}
-                        >
-                          <ChevronRight size={20} />
-                        </IconButton>
                       </div>
                       <span className="preview-quality">
                         {resolution === 1920 ? "1080" : "720"}p · {fps} fps
@@ -2401,7 +2484,7 @@ export default function App({
                           key={t.id}
                           onClick={() => {
                             setTool(t.id);
-                            if (t.id === "captions") setCaptionStyleOpen(false);
+                            if (t.id === "captions") setCaptionStyleOpen(true);
                           }}
                         >
                           <t.icon size={16} />
@@ -2416,40 +2499,6 @@ export default function App({
                           <IconButton label="Add text" onClick={addTextLayer}>
                             <Plus size={17} />
                           </IconButton>
-                        </div>
-                        <Button
-                          secondary
-                          onClick={() => void generateCaptions()}
-                        >
-                          Generate speech captions
-                        </Button>
-                        <div className="text-layer-list">
-                          {doc.texts.map((t, i) => (
-                            <button
-                              className={
-                                selectedText === t.id ? "selected" : ""
-                              }
-                              key={t.id}
-                              onClick={() => {
-                                setSelectedText(t.id);
-                                player.current?.seek(textTiming(doc, t).start);
-                              }}
-                            >
-                              <span
-                                className="caption-row-number"
-                                aria-hidden="true"
-                              >
-                                {i + 1}
-                              </span>
-                              <span className="caption-row-copy">
-                                {t.text}
-                                <small>
-                                  {time(textTiming(doc, t).start)} –{" "}
-                                  {time(textTiming(doc, t).end)}
-                                </small>
-                              </span>
-                            </button>
-                          ))}
                         </div>
                         {textLayer && (
                           <textarea
@@ -2499,33 +2548,18 @@ export default function App({
                             />
                             Only apply style to this caption
                           </label>
-                          <label>
-                            Project font
-                            <select
-                              aria-label="Project font"
-                              value={doc.captionStyle?.font || "TikTok Sans"}
-                              onChange={(e) =>
-                                updateTextStyle({ font: e.target.value })
-                              }
-                            >
-                              {FONTS.map((f) => (
-                                <option key={f}>{f}</option>
-                              ))}
-                            </select>
-                          </label>
+                          <FontPreviewPicker
+                            font={
+                              (onlySelectedText && textLayer
+                                ? textLayer.font
+                                : doc.captionStyle?.font) || "TikTok Sans"
+                            }
+                            sample={textLayer?.text || "Your story"}
+                            onFont={(font) => updateTextStyle({ font })}
+                            onStyle={updateTextStyle}
+                          />
                           {textLayer && (
                             <>
-                              <select
-                                aria-label="Font"
-                                value={textLayer.font}
-                                onChange={(e) =>
-                                  updateTextStyle({ font: e.target.value })
-                                }
-                              >
-                                {FONTS.map((f) => (
-                                  <option key={f}>{f}</option>
-                                ))}
-                              </select>
                               {[
                                 ["Size", "size", 0.02, 0.2],
                                 ["Horizontal", "x", 0.07, 0.93],
@@ -2844,6 +2878,30 @@ export default function App({
                       segment && (
                         <>
                           <h3>Clip settings</h3>
+                          <Button
+                            secondary
+                            disabled={doc.segments.length < 2}
+                            title="Place this clip above the video track; keep another clip below"
+                            onClick={() => {
+                              try {
+                                change(makeOverlay(doc, segment.id, playhead));
+                                setSelectedLayer({
+                                  track: "overlays",
+                                  id: segment.id,
+                                });
+                                setSelected(
+                                  doc.segments.find((s) => s.id !== segment.id)
+                                    ?.id || "",
+                                );
+                                setTool("layers");
+                              } catch (e) {
+                                fail(e);
+                              }
+                            }}
+                          >
+                            <Layers size={16} />
+                            Move to overlay
+                          </Button>
                           <p className="clip-name">
                             {doc.sources[segment.sourceIndex].name}
                           </p>
@@ -2902,6 +2960,17 @@ export default function App({
                               })
                             }
                           />
+                          {doc.sources[segment.sourceIndex].kind ===
+                            "video" && (
+                            <Button
+                              secondary
+                              onClick={() => void detachClipAudio()}
+                              title="Move this clip’s sound to a separate audio track"
+                            >
+                              <AudioLines size={16} />
+                              Extract audio
+                            </Button>
+                          )}
                           <Range
                             label="Volume"
                             min={0}
@@ -3020,122 +3089,7 @@ export default function App({
                       >
                         <Trash2 size={17} />
                       </IconButton>
-                      <span className="toolbar-divider" />
-                      <IconButton
-                        label="Move clip left"
-                        onClick={() =>
-                          patch((d) => {
-                            const i = d.segments.findIndex(
-                              (s) => s.id === segment?.id,
-                            );
-                            if (i > 0)
-                              [d.segments[i - 1], d.segments[i]] = [
-                                d.segments[i],
-                                d.segments[i - 1],
-                              ];
-                          })
-                        }
-                      >
-                        <ChevronLeft size={18} />
-                      </IconButton>
-                      <IconButton
-                        label="Move clip right"
-                        onClick={() =>
-                          patch((d) => {
-                            const i = d.segments.findIndex(
-                              (s) => s.id === segment?.id,
-                            );
-                            if (i >= 0 && i < d.segments.length - 1)
-                              [d.segments[i + 1], d.segments[i]] = [
-                                d.segments[i],
-                                d.segments[i + 1],
-                              ];
-                          })
-                        }
-                      >
-                        <ChevronRight size={18} />
-                      </IconButton>
                     </div>
-                    <div className="suite-tools">
-                      <button
-                        className="text-button editai-action"
-                        onClick={() => setEditorPanel("chat")}
-                      >
-                        <Sparkles size={16} />
-                        EditAI
-                      </button>
-                      <button
-                        className="text-button"
-                        aria-label="Open text tools"
-                        onClick={() => setTool("captions")}
-                      >
-                        <Type size={16} />
-                        Text
-                      </button>
-                      <button
-                        className="text-button"
-                        onClick={() => {
-                          setTool("captions");
-                          setCaptionStyleOpen(true);
-                          requestAnimationFrame(() =>
-                            document
-                              .querySelector(".is-editor .caption-style-panel")
-                              ?.scrollIntoView({ block: "nearest" }),
-                          );
-                          if (!selectedText)
-                            setSelectedText(doc.texts[0]?.id || "");
-                        }}
-                      >
-                        <Type size={16} />
-                        Font
-                      </button>
-                      <button
-                        className="text-button"
-                        onClick={() => void generateCaptions()}
-                      >
-                        <Subtitles size={16} />
-                        Auto captions
-                      </button>
-                      <button
-                        className="text-button"
-                        onClick={() => {
-                          mediaKind.current = "audio";
-                          replacingAudio.current = null;
-                          extraInput.current?.click();
-                        }}
-                      >
-                        <Music size={16} />
-                        Audio
-                      </button>
-                      <button
-                        className="text-button"
-                        disabled={!segment || doc.segments.length < 2}
-                        title="Move the selected clip above the main track; keep another clip below"
-                        onClick={() => {
-                          if (!segment) return;
-                          try {
-                            change(makeOverlay(doc, segment.id, playhead));
-                            setSelectedLayer({
-                              track: "overlays",
-                              id: segment.id,
-                            });
-                            setSelected(
-                              doc.segments.find((s) => s.id !== segment.id)
-                                ?.id || "",
-                            );
-                            setTool("layers");
-                          } catch (e) {
-                            fail(e);
-                          }
-                        }}
-                      >
-                        <Layers size={16} />
-                        Overlay
-                      </button>
-                    </div>
-                    <span>
-                      {doc.segments.length} clips · {time(total)}
-                    </span>
                     <button
                       className="text-button"
                       onClick={() => {
@@ -3756,6 +3710,82 @@ export default function App({
             </div>
           </form>
         </dialog>
+      )}
+      {helpOpen && (
+        <div className="modal-backdrop">
+          <section
+            className="modal editor-help"
+            aria-labelledby="editor-help-title"
+          >
+            <div className="section-heading">
+              <h2 id="editor-help-title">Editor help & shortcuts</h2>
+              <IconButton label="Close help" onClick={() => setHelpOpen(false)}>
+                <X size={20} />
+              </IconButton>
+            </div>
+            <p>
+              Select clips or text on the timeline to edit them in the
+              inspector. Your original media stays intact.
+            </p>
+            <dl>
+              <dt>Play / pause</dt>
+              <dd>
+                <kbd>Space</kbd>
+              </dd>
+              <dt>Split at the playhead</dt>
+              <dd>
+                <kbd>S</kbd>
+              </dd>
+              <dt>Undo / redo</dt>
+              <dd>
+                <kbd>⌘ / Ctrl Z</kbd> / <kbd>⌘ / Ctrl Shift Z</kbd>
+              </dd>
+              <dt>Zoom timeline</dt>
+              <dd>
+                Pinch on your trackpad. Scroll sideways to move through the
+                edit.
+              </dd>
+              <dt>Move / trim</dt>
+              <dd>
+                Drag a clip to move it; drag its edges to shorten or restore
+                footage. Use arrow keys on an edge for precise trims; Alt +
+                arrow moves a focused layer.
+              </dd>
+              <dt>Duplicate / delete</dt>
+              <dd>
+                Select a clip or layer, then use the timeline toolbar. The final
+                video clip is protected.
+              </dd>
+              <dt>Audio</dt>
+              <dd>
+                Import sound in Audio, or use Extract audio in Clip settings.
+                Extraction mutes the video and creates an independently editable
+                sound track. Undo restores it.
+              </dd>
+              <dt>Text / auto captions</dt>
+              <dd>
+                Text adds your own words. Auto captions recognizes speech.
+                Select text on the timeline to change its words, font, style or
+                timing.
+              </dd>
+              <dt>Overlays / filters / adjustments</dt>
+              <dd>
+                Import overlay media; drag and resize it in the preview. Select
+                a clip to change its look, speed and volume.
+              </dd>
+              <dt>EditAI</dt>
+              <dd>
+                Ask for changes in the EditAI tool. Review the result and Undo
+                when needed.
+              </dd>
+              <dt>Save / export</dt>
+              <dd>
+                Edits save automatically on this device. Export renders your
+                timeline as a video; My creations returns to your library.
+              </dd>
+            </dl>
+          </section>
+        </div>
       )}
       {exportOpen && (
         <div className="modal-backdrop">

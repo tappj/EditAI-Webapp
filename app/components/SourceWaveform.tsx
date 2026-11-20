@@ -107,10 +107,7 @@ export const SourceWaveform = memo(function SourceWaveform({
         >
           <path
             d={values
-              .map(
-                (p, i) =>
-                  `M${i * 4 + 1} ${14 - p * 12}v${Math.max(0.5, p * 24)}`,
-              )
+              .map((p, i) => `M${i * 4 + 1} 28v-${Math.max(0.5, p * 27)}`)
               .join(" ")}
             fill="none"
             stroke="currentColor"

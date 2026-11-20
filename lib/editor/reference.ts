@@ -4,6 +4,8 @@ export type Reference = {
   frames: { base64JPEG: string; timeSeconds: number | null }[];
 };
 export async function makeReference(file: File): Promise<Reference> {
+  if (!/^(image|video)\//.test(file.type))
+    throw Error("Choose an image or video reference.");
   if (file.size > 100 * 1024 * 1024)
     throw Error("Choose a reference smaller than 100 MB.");
   const url = URL.createObjectURL(file),

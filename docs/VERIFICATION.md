@@ -622,3 +622,55 @@ prove fresh Publik connectivity. No production auth bypass or fake AI response w
 added. The shared desktop build is updated; this task does not publish a new signed
 installer or hosted deployment. The owner's newer standing instruction authorizes
 committing/pushing completed work to main, superseding the older branch restriction.
+
+## Portrait media, caption settings and nonmodal feedback — November 20, 2026
+
+Moved six/four/single-word grouping exclusively into Auto captions and use the saved
+format when generating captions. Auto uses one panel surface. The text-add plus is
+black inside its pastel button; reset icons retain their theme contrast. EditAI's
+pastel tool fills the entire rail cell with a dark icon/label and no blue selection
+border. Style-reference upload validates image/video MIME types and displays an
+actual decoded JPEG frame for either kind. Quick prompts are Add captions, Give it
+a warmer look, and Make the cuts more relaxed. Source-bound chat instructions
+explicitly restore natural pauses/fillers/lead-ins using trim/addClip, preserving
+unrelated edits and rejecting fabricated footage through existing atomic validation.
+
+Source and project previews are 4:5 with full media visible. Image-first projects
+also render an actual image. Read the native CreationsView grid/list implementation
+without modifying iOS; the shared Edits page now has a persistent grid/list toggle
+with thumbnail, metadata and actions in each row. Recording defaults to 9:16 and
+supports 1:1, 16:9 and 4:5. Canvas capture crops the actual recording, keeping original
+microphone audio; the preview uses the same centered crop. Recorded takes have real
+thumbnails. Camera/capture tracks, frame loops and thumbnail URLs are released.
+Canvas aspect ratio/framing are in Clip settings; monitor expansion is at the left.
+
+Only AI operations use the progress dialog. Import/open/export/profile/preferences/
+reference preparation/backups use compact bottom-left status, progress and cancel
+controls, followed by temporary notifications. Simplified errors omit the redundant
+heading. Routine operations do not capture modal focus. Serialize asynchronous jobs;
+media additions merge into the latest document after decoding and avoid overwriting
+another project's state. A browser regression adds text in the same event as import
+and confirms both the new source and text survive.
+
+Validation on the final shared production builds: typecheck, all 31 web unit/model/
+security tests, all 18 desktop tests and web/desktop builds pass. Changed Recorder,
+ProjectCard, SelectedMediaInspector and reference helper lint has no errors, with
+one framework img advisory. Final fresh Worker runs on port 5192. WebKit passes all
+37 studio cases (1.6m), including real recording/import/export and the two new
+workflows. Chromium passes 36 in the full run (1.3m); the existing export test still
+looked for canvas controls while Filter was selected. Updating it to open Clip
+passes the real export/reopen case in a focused rerun. The final five affected
+Chromium cases pass again after the last dark-theme CSS fixes (13.7s). All 37
+Chromium scenarios have passed across those runs. The new model test restores a
+removed source-word range, retains original word/source/segment IDs and appearance,
+regenerates its captions, and verifies atomic rejection beyond source duration.
+
+Inspected final dark editor/reference/notification and portrait-grid captures:
+outputs/editor-ai-reference-polish.png and outputs/portrait-edits-grid.png.
+Logs: outputs/media-polish-*.log (ignored). Browser MediaRecorder dimensions are
+verified as 9:16 from real encoded frames using a generated camera/audio stream;
+physical camera permission/device acceptance is still manual. Authentication and
+AI responses are explicit fixtures, so no fresh real Publik connectivity or AI
+judgment quality is claimed. No production authentication bypass or fake AI was
+added. Shared desktop source is updated; no new signed installer or hosted site
+publication is performed as part of this main-branch push.

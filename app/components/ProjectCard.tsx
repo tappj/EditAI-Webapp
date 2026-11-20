@@ -38,6 +38,7 @@ export function ProjectCard({
   const { sources, segments } = p.document;
   const first = segments[0];
   const firstId = sources[first?.sourceIndex]?.id;
+  const image = sources[first?.sourceIndex]?.kind === "image";
   const start = first
     ? first.start + Math.min(0.15, (first.end - first.start) / 2)
     : 0;
@@ -65,7 +66,6 @@ export function ProjectCard({
 
   useEffect(() => {
     if (!visible || !firstId) return;
-    setFrameReady(false);
     let disposed = false;
     let url = "";
     void loadMedia(firstId)
@@ -77,6 +77,7 @@ export function ProjectCard({
           : desktop()
             ? ""
             : "/api/assets/" + firstId;
+        setFrameReady(false);
         setPreview(url);
       });
     return () => {
@@ -124,7 +125,15 @@ export function ProjectCard({
         aria-label={`Open ${p.title}`}
       >
         {!frameReady && <Film size={38} aria-hidden="true" />}
-        {preview && (
+        {preview && image && (
+          <img
+            className="frame-ready"
+            src={preview}
+            alt=""
+            onLoad={() => setFrameReady(true)}
+          />
+        )}
+        {preview && !image && (
           <video
             key={preview + start}
             className={frameReady ? "frame-ready" : ""}

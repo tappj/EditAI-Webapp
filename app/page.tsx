@@ -20,6 +20,8 @@ import {
   Home,
   ImageIcon,
   Layers,
+  LayoutGrid,
+  List,
   LoaderCircle,
   LogOut,
   Menu,
@@ -31,6 +33,7 @@ import {
   Plus,
   Redo,
   CircleHelp,
+  CircleAlert,
   Scissors,
   Settings,
   ShieldCheck,
@@ -203,6 +206,7 @@ export default function App({
     [screen, setScreen] = useState<Screen>("home"),
     [project, setProject] = useState<Project | null>(null),
     [projects, setProjects] = useState<Project[]>([]),
+    [editsLayout, setEditsLayout] = useState("grid"),
     [urls, setUrls] = useState<Record<string, string>>({}),
     [busy, setBusy] = useState(""),
     [progress, setProgress] = useState(0),
@@ -249,6 +253,19 @@ export default function App({
     [renameTitle, setRenameTitle] = useState(""),
     [renameSaving, setRenameSaving] = useState(false),
     [renameError, setRenameError] = useState("");
+  const aiBusy =
+    !!busy &&
+    /EditAI|speech|captions|analysis|main point|highlights|Transcrib|Preparing audio|Editing batch video/i.test(
+      busy,
+    );
+  useEffect(() => {
+    setEditsLayout(
+      localStorage.getItem("editai.library.layout") === "list"
+        ? "list"
+        : "grid",
+    );
+  }, []);
+  const operationActive = useRef(false);
   const persistedProject = useRef<Project | null>(null);
   const renameInput = useRef<HTMLInputElement>(null);
   const renameDialog = useRef<HTMLDialogElement>(null);
@@ -327,7 +344,7 @@ export default function App({
     );
   }
   useEffect(() => {
-    if (!privacy && !exportOpen && !helpOpen && !busy) return;
+    if (!privacy && !exportOpen && !helpOpen && !aiBusy) return;
     const previous = document.activeElement as HTMLElement | null;
     const timer = setTimeout(() => {
       const el = document.querySelector(".modal") as HTMLElement | null;
@@ -339,7 +356,7 @@ export default function App({
       }
     }, 0);
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) {
+      if (e.key === "Escape" && !aiBusy) {
         setPrivacy(false);
         setExportOpen(false);
         setHelpOpen(false);
@@ -372,7 +389,7 @@ export default function App({
       document.removeEventListener("keydown", key);
       previous?.focus();
     };
-  }, [privacy, exportOpen, helpOpen, !!busy]);
+  }, [privacy, exportOpen, helpOpen, aiBusy]);
   const fail = useCallback((e: any) => {
     setError(e.message || String(e));
     setErrorURL(e.url || "");
@@ -903,6 +920,11 @@ export default function App({
     }
   }
   async function run(label: string, fn: () => Promise<void>) {
+    if (operationActive.current) {
+      setNotice("Finish or cancel the current operation first.");
+      return;
+    }
+    operationActive.current = true;
     abort.current = new AbortController();
     activeSignal = abort.current.signal;
     setBusy(label);
@@ -915,6 +937,7 @@ export default function App({
       if (e.name !== "AbortError") fail(e);
     } finally {
       activeSignal = undefined;
+      operationActive.current = false;
       setBusy("");
       setProgress(0);
     }
@@ -1117,6 +1140,8 @@ export default function App({
   }
   async function addMedia(files: File[], drop?: MediaDrop) {
     if (!doc) return;
+    const projectId = project!.id;
+    const kind = mediaKind.current;
     const replacement = drop ? null : replacingAudio.current;
     if (replacement && files.length !== 1) {
       replacingAudio.current = null;
@@ -1124,20 +1149,36 @@ export default function App({
       return;
     }
     await run("Adding media", async () => {
-      const placement = Math.min(playhead, total - 0.1);
-      let dropTime = drop?.time || 0;
-      const next = { ...urls },
-        d = structuredClone(doc);
-      const media: { id: string; file: File; mime: string }[] = [];
+      const imported: { source: Source; file: File; url: string }[] = [];
       for (const f of files) {
         activeSignal?.throwIfAborted();
-        const s = await probe(f);
+        const source = await probe(f);
+        await saveMedia(source.id, f, source.mime);
         activeSignal?.throwIfAborted();
-        await saveMedia(s.id, f, s.mime);
+        imported.push({
+          source,
+          file: f,
+          url: desktop()
+            ? mediaURL((await loadMedia(source.id))!)
+            : URL.createObjectURL(f),
+        });
+      }
+      const latest = projectRef.current;
+      if (!latest || latest.id !== projectId) {
+        imported.forEach(({ url }) => {
+          if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+        });
+        return;
+      }
+      const d = structuredClone(latest.document);
+      const total = duration(d);
+      const placement = Math.min(playhead, total - 0.1);
+      let dropTime = drop?.time || 0;
+      const next = { ...urlsRef.current };
+      const media: { id: string; file: File; mime: string }[] = [];
+      for (const { source: s, file: f, url } of imported) {
         media.push({ id: s.id, file: f, mime: s.mime });
-        next[s.id] = desktop()
-          ? mediaURL((await loadMedia(s.id))!)
-          : URL.createObjectURL(f);
+        next[s.id] = url;
         const i = d.sources.length;
         d.sources.push(s);
         if (drop) {
@@ -1152,15 +1193,15 @@ export default function App({
           }
           continue;
         }
-        if (mediaKind.current === "clip") {
+        if (kind === "clip") {
           if (s.kind === "audio")
             throw Error(
               "Choose a video or image for the main track. Use Audio to add sound.",
             );
           d.segments.push(newSegment(i, s.kind === "image" ? 3 : s.duration));
-        } else if (mediaKind.current === "audio") {
-          if (replacingAudio.current) {
-            const clip = d.audio.find((a) => a.id === replacingAudio.current);
+        } else if (kind === "audio") {
+          if (replacement) {
+            const clip = d.audio.find((a) => a.id === replacement);
             if (!clip || s.kind === "image")
               throw Error("Choose playable audio to replace this sound.");
             clip.sourceIndex = i;
@@ -1218,10 +1259,10 @@ export default function App({
         document: d,
         updatedAt: Date.now(),
       };
-      await saveProject(current);
       setUrls(next);
       persistedProject.current = current;
       change(d, current);
+      await saveProject(current);
       const addedIndex = d.sources.length - 1;
       const addedAudio = d.audio.findLast((x) => x.sourceIndex === addedIndex),
         addedOverlay = d.overlays.findLast((x) => x.sourceIndex === addedIndex),
@@ -1505,7 +1546,7 @@ export default function App({
   async function generateCaptions() {
     if (!doc) return;
     await run("Preparing captions", async () => {
-      change(captions(await ensureWords(doc)));
+      change(captions(await ensureWords(doc), doc.captionFormat));
       setTool("captions");
     });
   }
@@ -1806,7 +1847,7 @@ export default function App({
       )}
     </StudioAccount>
   );
-  const busyUI = busy && (
+  const busyUI = aiBusy && (
     <div className="modal-backdrop">
       <div className="modal progress-modal">
         <div className="loading-orbit">
@@ -2174,12 +2215,41 @@ export default function App({
                   <div>
                     <h1>Edits</h1>
                   </div>
-                  <Button onClick={() => pick()}>
-                    <Plus size={18} />
-                    Upload clips
-                  </Button>
+                  <div className="library-actions">
+                    <div
+                      className="edits-layout-toggle"
+                      role="group"
+                      aria-label="Edits layout"
+                    >
+                      {[
+                        { id: "grid", label: "Grid view", icon: LayoutGrid },
+                        { id: "list", label: "List view", icon: List },
+                      ].map((view) => (
+                        <button
+                          key={view.id}
+                          aria-label={view.label}
+                          aria-pressed={editsLayout === view.id}
+                          onClick={() => {
+                            setEditsLayout(view.id);
+                            localStorage.setItem(
+                              "editai.library.layout",
+                              view.id,
+                            );
+                          }}
+                        >
+                          <view.icon size={18} />
+                        </button>
+                      ))}
+                    </div>
+                    <Button onClick={() => pick()}>
+                      <Plus size={18} />
+                      Upload clips
+                    </Button>
+                  </div>
                 </div>
-                <div className="project-grid">
+                <div
+                  className={`project-grid ${editsLayout === "list" ? "project-list" : ""}`}
+                >
                   {projects.map((p) => (
                     <ProjectCard
                       key={p.id}
@@ -2312,9 +2382,9 @@ export default function App({
                           ))}
                           {!messages.length &&
                             [
-                              "Make this a vertical video",
+                              "Add captions",
                               "Give it a warmer look",
-                              "Add readable captions",
+                              "Make the cuts more relaxed",
                             ].map((s) => (
                               <button
                                 className="suggestion"
@@ -2327,6 +2397,13 @@ export default function App({
                             ))}
                         </div>
                         <div className="reference-picker">
+                          {reference?.frames[0] && (
+                            <img
+                              className="reference-thumbnail"
+                              src={`data:image/jpeg;base64,${reference.frames[0].base64JPEG}`}
+                              alt={`${reference.name} preview`}
+                            />
+                          )}
                           <button
                             className="text-button"
                             onClick={() => referenceInput.current?.click()}
@@ -2417,6 +2494,28 @@ export default function App({
                                   ))}
                                 </select>
                               </label>
+                              <label>
+                                Words per caption
+                                <select
+                                  aria-label="Caption grouping"
+                                  value={doc.captionFormat}
+                                  onChange={(e) =>
+                                    change(
+                                      captions(
+                                        doc,
+                                        e.target
+                                          .value as Document["captionFormat"],
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <option value="standard">
+                                    Standard · 6 words
+                                  </option>
+                                  <option value="boxed">Boxed · 4 words</option>
+                                  <option value="single">One word</option>
+                                </select>
+                              </label>
                               <Button onClick={() => void generateCaptions()}>
                                 <Subtitles size={16} />
                                 Generate captions
@@ -2469,32 +2568,6 @@ export default function App({
                     aria-label="Video monitor"
                   >
                     <div className="preview-controls-top">
-                      <select
-                        aria-label="Canvas aspect ratio"
-                        value={doc.canvas}
-                        onChange={(e) =>
-                          patch((d) => {
-                            d.canvas = e.target.value as Document["canvas"];
-                          })
-                        }
-                      >
-                        <option value="original">Original ratio</option>
-                        <option value="9:16">9:16 Portrait</option>
-                        <option value="16:9">16:9 Landscape</option>
-                        <option value="1:1">1:1 Square</option>
-                      </select>
-                      <select
-                        aria-label="Framing"
-                        value={doc.framing}
-                        onChange={(e) =>
-                          patch((d) => {
-                            d.framing = e.target.value as "fit" | "fill";
-                          })
-                        }
-                      >
-                        <option value="fit">Fit</option>
-                        <option value="fill">Fill</option>
-                      </select>
                       <IconButton
                         label="Expand video preview"
                         onClick={() => {
@@ -2644,22 +2717,6 @@ export default function App({
                           }
                         >
                           <summary>Text style</summary>
-                          <select
-                            aria-label="Caption grouping"
-                            value={doc.captionFormat}
-                            onChange={(e) =>
-                              change(
-                                captions(
-                                  doc,
-                                  e.target.value as Document["captionFormat"],
-                                ),
-                              )
-                            }
-                          >
-                            <option value="standard">Standard · 6 words</option>
-                            <option value="boxed">Boxed · 4 words</option>
-                            <option value="single">One word</option>
-                          </select>
                           <label className="checkbox">
                             <input
                               type="checkbox"
@@ -2768,6 +2825,38 @@ export default function App({
                           closeCrop();
                           change(next);
                         }}
+                        canvasSettings={
+                          <div className="canvas-settings">
+                            <h3>Canvas</h3>{" "}
+                            <select
+                              aria-label="Canvas aspect ratio"
+                              value={doc.canvas}
+                              onChange={(e) =>
+                                patch((d) => {
+                                  d.canvas = e.target
+                                    .value as Document["canvas"];
+                                })
+                              }
+                            >
+                              <option value="original">Original ratio</option>
+                              <option value="9:16">9:16 Portrait</option>
+                              <option value="16:9">16:9 Landscape</option>
+                              <option value="1:1">1:1 Square</option>
+                            </select>
+                            <select
+                              aria-label="Framing"
+                              value={doc.framing}
+                              onChange={(e) =>
+                                patch((d) => {
+                                  d.framing = e.target.value as "fit" | "fill";
+                                })
+                              }
+                            >
+                              <option value="fit">Fit</option>
+                              <option value="fill">Fill</option>
+                            </select>
+                          </div>
+                        }
                         onCrop={() => {
                           player.current?.pause();
                           setPlaying(false);
@@ -3748,34 +3837,59 @@ export default function App({
         </div>
       )}
       {busyUI}
-      {error && (
-        <div className="toast error" role="alert">
-          <div>
-            <strong>That didn’t finish.</strong>
-            <p>{error}</p>
-            {errorURL && (
-              <a href={errorURL} target="_blank" rel="noreferrer">
-                Continue on publik ↗
-              </a>
-            )}
+      <div className="notification-stack">
+        {busy && !aiBusy && (
+          <div className="toast operation-status" role="status">
+            <LoaderCircle size={16} className="spin" />
+            <div>
+              <p>
+                {busy}
+                {progress > 0 ? ` · ${Math.round(progress * 100)}%` : "…"}
+              </p>
+              {progress > 0 && (
+                <progress value={progress} max={1} aria-label={busy} />
+              )}
+            </div>
+            <IconButton
+              label="Cancel current operation"
+              onClick={() => {
+                abort.current?.abort();
+                cancelFFmpeg();
+              }}
+            >
+              <X size={14} />
+            </IconButton>
           </div>
-          <IconButton label="Dismiss error" onClick={() => setError("")}>
-            <X size={17} />
-          </IconButton>
-        </div>
-      )}
-      {notice && (
-        <div className="toast" role="status">
-          <Check size={20} />
-          <p>{notice}</p>
-          <IconButton
-            label="Dismiss notification"
-            onClick={() => setNotice("")}
-          >
-            <X size={17} />
-          </IconButton>
-        </div>
-      )}
+        )}
+        {error && (
+          <div className="toast error" role="alert">
+            <CircleAlert size={16} />
+            <div>
+              <p>{error}</p>
+              {errorURL && (
+                <a href={errorURL} target="_blank" rel="noreferrer">
+                  Continue on publik ↗
+                </a>
+              )}
+            </div>
+            <IconButton label="Dismiss error" onClick={() => setError("")}>
+              <X size={17} />
+            </IconButton>
+          </div>
+        )}
+        {notice && (
+          <div className="toast" role="status">
+            <Check size={20} />
+            <p>{notice}</p>
+            <IconButton
+              label="Dismiss notification"
+              onClick={() => setNotice("")}
+            >
+              <X size={17} />
+            </IconButton>
+          </div>
+        )}
+      </div>
     </>
   );
 }

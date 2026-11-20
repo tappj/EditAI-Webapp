@@ -566,3 +566,27 @@ test("audio and overlay paste retain media settings and find available bounded t
   assert.equal(item.opacity, 0.6);
   assert.equal(item.sourceStart, 1);
 });
+
+test("relaxed source trims restore removed words without replacing IDs or appearance", () => {
+  const original = captions(fixture());
+  const cut = applyCuts(original, [{ clip: 0, start: 0.75, end: 1.3 }]);
+  cut.segments[0].appearance!.filter = "Warm";
+  const before = structuredClone(cut);
+  const restored = applyOperations(cut, [
+    { kind: "trim", target: cut.segments[0].id, start: 0, end: 1.3 },
+  ]);
+  assert.equal(duration(restored), duration(original));
+  assert.deepEqual(restored.words, original.words);
+  assert.deepEqual(restored.sources, original.sources);
+  assert.equal(restored.segments[0].id, cut.segments[0].id);
+  assert.equal(restored.segments[0].appearance!.filter, "Warm");
+  assert.ok(
+    captions(restored).texts.some((text) => text.text.includes("world.")),
+  );
+  assert.throws(() =>
+    applyOperations(cut, [
+      { kind: "trim", target: cut.segments[0].id, start: 0, end: 11 },
+    ]),
+  );
+  assert.deepEqual(cut, before);
+});

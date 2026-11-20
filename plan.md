@@ -218,3 +218,27 @@ nine pixels, with Alt bypass. Speed/volume use tapered symmetric wedge tracks.
 Suppress the inner search focus ring while retaining whole-field border feedback.
 Shared web/Electron code and builds are updated; installer/public deployment status
 and verification evidence are recorded in docs/VERIFICATION.md.
+
+## Portrait media and focused editor panels — November 20, 2026
+
+Keep six/four/single-word grouping exclusively in Auto captions and preserve the
+selected grouping during generation. Remove the nested Auto card surface, darken
+only the text-add plus, and fill the entire EditAI rail cell with its native pastel
+gradient without a blue selected border. Style references accept images/videos
+only and display an actual decoded frame thumbnail. Quick prompts are Add captions,
+Give it a warmer look, and Make the cuts more relaxed; chat instructions explicitly
+restore natural pacing from original source ranges through existing atomic tools.
+
+Use 4:5 source/project previews with the full media frame visible. Match the native
+Edits grid/list toggle and retain the choice locally. Recording defaults to 9:16;
+its selector also offers square, landscape and 4:5. A canvas crops the actual saved
+recording to the chosen shape and preserves microphone audio; completed takes have
+real previews. Move aspect ratio/framing into Clip's Canvas settings and leave
+preview expansion at the left of the monitor controls.
+
+Reserve progress dialogs for AI work. Other operations expose compact cancellable
+status/progress in the bottom-left notification stack; profile saves use the same
+small temporary feedback. Media import resolves against the latest project document
+after decoding so simultaneous manual edits survive. Release camera/capture tracks,
+frame loops and thumbnail URLs on completion/unmount. See docs/VERIFICATION.md for
+browser, native/build evidence and provider/release boundaries.

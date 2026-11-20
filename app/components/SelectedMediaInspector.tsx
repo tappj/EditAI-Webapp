@@ -20,7 +20,9 @@ export function SelectedMediaInspector({
   onExtract,
   onOverlay,
   onReplace,
+  canvasSettings,
 }: {
+  canvasSettings?: React.ReactNode;
   doc: Document;
   selection: { track: Track; id: string };
   urls: Record<string, string>;
@@ -228,6 +230,7 @@ export function SelectedMediaInspector({
           </>
         )}
       </section>
+      {canvasSettings}
       {!audio && (
         <AppearanceEditor
           value={a}

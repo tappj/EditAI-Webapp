@@ -2144,3 +2144,67 @@ body:has(.is-editor) .toast a {
 .is-editor .range-wedge .range-ticks {
   top: 21px;
 }
+
+/* Shared editor polish: a single surface for generation and full-cell AI tool. */
+.is-editor .caption-generate-card {
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.is-editor .inspector .section-heading > .icon-button[aria-label="Add text"] {
+  color: #111820;
+}
+.is-editor .studio-tool-rail .editai-tool,
+.is-editor .studio-tool-rail .editai-tool.selected {
+  margin: 0;
+  border-radius: 0;
+  background: var(
+    --premium-gradient,
+    linear-gradient(135deg, #d5f1fa, #e8ddff 55%, #fae2de)
+  );
+  border-color: transparent;
+  box-shadow: none;
+  outline: none;
+  color: #4b4266;
+}
+.is-editor .studio-tool-rail .editai-tool.selected::after {
+  display: none;
+}
+.is-editor .studio-tool-rail .editai-tool svg {
+  color: #4b4266;
+  stroke: currentColor;
+}
+.is-editor .studio-tool-rail .editai-tool:focus-visible {
+  outline: 1px solid #4b4266;
+  outline-offset: -4px;
+}
+.is-editor .source-preview {
+  aspect-ratio: 4 / 5;
+}
+.is-editor .source-preview .clip-frames .frame-samples > span {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: var(--canvas);
+}
+.is-editor .preview-controls-top {
+  justify-content: flex-start;
+}
+.is-editor .canvas-settings {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+.is-editor .reference-thumbnail {
+  width: 48px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--canvas);
+  flex: none;
+}
+
+.is-editor .studio-tool-rail {
+  padding-inline: 0;
+}

@@ -2852,3 +2852,142 @@ html[data-desktop-platform="darwin"]
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
+
+/* Portrait-friendly edits, with the native library's alternate row layout. */
+.project-preview {
+  height: auto;
+  aspect-ratio: 4 / 5;
+}
+.project-preview video {
+  object-fit: contain;
+}
+.library-actions,
+.edits-layout-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.edits-layout-toggle {
+  border: 1px solid var(--border);
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--canvas);
+}
+.edits-layout-toggle button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  color: var(--muted);
+  border-radius: 7px;
+}
+.edits-layout-toggle button[aria-pressed="true"] {
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 1px 4px #0001;
+}
+.project-grid.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.project-list .project-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+}
+.project-list .project-preview {
+  width: 76px;
+  flex: none;
+  border-radius: 8px;
+}
+.project-list .project-card-meta {
+  flex: 1;
+  align-items: center;
+}
+.recorder-grid .camera-card {
+  min-height: 0;
+  width: min(100%, calc(72vh * var(--record-ratio)));
+  justify-self: center;
+  align-self: start;
+}
+.recorder-grid .camera-card > video {
+  object-fit: cover;
+}
+.recorded-take {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+.recorded-take video {
+  width: 54px;
+  height: 68px;
+  object-fit: contain;
+  background: var(--canvas);
+  border-radius: 6px;
+}
+/* One compact, nonblocking notification stack across all screens. */
+.notification-stack {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.notification-stack .toast,
+body:has(.is-editor) .notification-stack .toast,
+body:has(.is-editor) .notification-stack .toast.error,
+body:has(.is-editor) .notification-stack .toast.error + .toast {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  padding: 10px 12px;
+  gap: 9px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 18px #0002;
+  background: var(--bg);
+}
+.notification-stack .toast p {
+  margin: 0;
+}
+.notification-stack .toast > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.notification-stack .toast .icon-button {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 3px;
+  pointer-events: auto;
+}
+.notification-stack .toast a {
+  pointer-events: auto;
+}
+.notification-stack .operation-status > div {
+  flex: 1;
+}
+.notification-stack progress {
+  width: 100%;
+  height: 3px;
+  display: block;
+  margin-top: 5px;
+}
+.project-preview > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

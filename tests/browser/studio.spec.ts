@@ -106,6 +106,7 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await page.getByRole("slider", { name: /^Exposure/ }).fill("0.25");
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
   await page.getByLabel("Canvas aspect ratio").selectOption("1:1");
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("button", { name: "Add text", exact: true }).click();
@@ -266,6 +267,20 @@ test("MediaRecorder takes with generated camera source, teleprompter and playabl
   });
   await openStudio(page);
   await page.getByRole("button", { name: /^Record a take/ }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Recording shape" }),
+  ).toHaveValue("9:16");
+  await expect(page.locator(".camera-card")).toHaveCSS(
+    "aspect-ratio",
+    "9 / 16",
+  );
+  await page
+    .getByRole("combobox", { name: "Recording shape" })
+    .selectOption("1:1");
+  await expect(page.locator(".camera-card")).toHaveCSS("aspect-ratio", "1 / 1");
+  await page
+    .getByRole("combobox", { name: "Recording shape" })
+    .selectOption("9:16");
   await page
     .getByRole("button", { name: "Enable camera & microphone" })
     .click();
@@ -281,6 +296,14 @@ test("MediaRecorder takes with generated camera source, teleprompter and playabl
   await expect(
     page.getByRole("heading", { name: "1 recorded takes" }),
   ).toBeVisible();
+  await expect(page.locator(".recorded-take video")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator(".recorded-take video")
+        .evaluate((v: HTMLVideoElement) => v.videoWidth / v.videoHeight),
+    )
+    .toBeCloseTo(9 / 16, 2);
   await page.getByRole("button", { name: "Use these takes" }).click();
   await expect(page.getByRole("button", { name: "Split" })).toBeVisible({
     timeout: 120000,
@@ -893,6 +916,10 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
   await page.getByRole("radio", { name: "Dark", exact: true }).check();
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page.getByRole("status")).toContainText("Profile saved");
+  await expect(page.locator(".progress-modal")).toHaveCount(0);
+  const notification = (await page.getByRole("status").boundingBox())!;
+  expect(notification.x).toBe(16);
+  expect(notification.height).toBeLessThan(80);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const profileButton = page.getByRole("button", {
@@ -2627,4 +2654,181 @@ test("editable numeric drafts, percentage units, magnetic sliders and independen
   });
   await page.getByRole("button", { name: "Crop", exact: true }).click();
   await expect(page.locator(".crop-selection")).toBeVisible();
+});
+
+test("caption-only grouping, source reference previews, relaxed-cut restoration and persistent Edits layouts", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  let saved: any;
+  await page.route("**/api/projects", (r) => {
+    if (r.request().method() === "POST") saved = r.request().postDataJSON();
+    return r.fulfill({
+      json: r.request().method() === "GET" ? { projects: [] } : { ok: true },
+    });
+  });
+  await page.route("**/api/ai/chat", (r) => {
+    const request = r.request().postDataJSON();
+    expect(request.prompt).toBe("Make the cuts more relaxed");
+    return r.fulfill({
+      json: {
+        message: "Fixture: restored the source range.",
+        generateCaptions: false,
+        captionFormat: null,
+        operations: [
+          {
+            kind: "trim",
+            target: request.selectedClipID,
+            start: 0,
+            end: request.sourceDurations[0],
+          },
+        ],
+      },
+    });
+  });
+  await openStudio(page);
+  await page.evaluate(() => {
+    (window as any).loadingTitles = [];
+    new MutationObserver(() => {
+      const title = document.querySelector(".progress-modal h2")?.textContent;
+      if (title) (window as any).loadingTitles.push(title);
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await page.evaluate(() =>
+    document.documentElement.setAttribute("data-theme", "dark"),
+  );
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Caption grouping" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Add text", exact: true }),
+  ).toHaveCSS("color", "rgb(17, 24, 32)");
+  await page.getByRole("button", { name: "Auto captions workspace" }).click();
+  await expect(page.locator(".caption-generate-card")).toHaveCSS(
+    "border-top-width",
+    "0px",
+  );
+  await page
+    .getByRole("combobox", { name: "Caption grouping" })
+    .selectOption("single");
+  await expect.poll(() => saved?.document?.captionFormat).toBe("single");
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Canvas aspect ratio" }),
+  ).toBeVisible();
+  await expect(page.locator(".preview-controls-top select")).toHaveCount(0);
+  const startGrip = page.getByRole("button", { name: /^Trim start of/ });
+  for (let i = 0; i < 5; i++) await startGrip.press("ArrowRight");
+  await expect.poll(() => saved?.document?.segments[0].start).toBeCloseTo(0.5);
+  await page.getByRole("button", { name: "Open EditAI chat" }).click();
+  const ai = page.getByRole("button", { name: "Open EditAI chat" });
+  await expect(ai).toHaveCSS("margin-left", "0px");
+  await expect(ai).toHaveCSS("box-shadow", "none");
+  await expect(
+    page.getByRole("button", { name: "Add captions", exact: true }),
+  ).toBeVisible();
+  await page
+    .locator("input[type=file]")
+    .nth(2)
+    .setInputFiles({
+      name: "notes.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("unsupported"),
+    });
+  await expect(page.getByRole("alert")).toContainText(
+    "Choose an image or video reference",
+  );
+  await page
+    .locator("input[type=file]")
+    .nth(2)
+    .setInputFiles(join(process.cwd(), "outputs/overlay.png"));
+  await expect(
+    page.getByRole("img", { name: "overlay.png preview" }),
+  ).toBeVisible();
+  await page
+    .locator("input[type=file]")
+    .nth(2)
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(
+    page.getByRole("img", { name: "fixture.mp4 preview" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Make the cuts more relaxed", exact: true })
+    .click();
+  await page.screenshot({
+    path: "outputs/editor-ai-reference-polish.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Send message", exact: true }).click();
+  await expect(page.locator(".message.assistant")).toContainText(
+    "restored the source range",
+  );
+  await expect.poll(() => saved?.document?.segments[0].start).toBe(0);
+  const loadingTitles = await page.evaluate(
+    () => (window as any).loadingTitles as string[],
+  );
+  expect(
+    loadingTitles.some((title) =>
+      /Adding media|Opening|Importing|Saving|style reference/.test(title),
+    ),
+  ).toBe(false);
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
+  await expect(page.locator(".project-preview").first()).toHaveCSS(
+    "aspect-ratio",
+    "4 / 5",
+  );
+  await page.getByRole("button", { name: "List view", exact: true }).click();
+  await expect(page.locator(".project-grid")).toHaveClass(/project-list/);
+  await page.reload();
+  await page.getByRole("button", { name: "Edits", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "List view", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Grid view", exact: true }).click();
+  await expect(page.locator(".project-grid")).not.toHaveClass(/project-list/);
+  await page.screenshot({
+    path: "outputs/portrait-edits-grid.png",
+    fullPage: true,
+  });
+});
+
+test("nonmodal media import preserves text added while the source is decoding", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Media workspace" }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Import", exact: true }).click();
+  await chooser;
+  const bytes = [
+    ...(await readFile(join(process.cwd(), "outputs/fixture.mp4"))),
+  ];
+  await page.evaluate((bytes) => {
+    const input =
+      document.querySelectorAll<HTMLInputElement>("input[type=file]")[1];
+    const data = new DataTransfer();
+    data.items.add(
+      new File([new Uint8Array(bytes)], "second.mp4", { type: "video/mp4" }),
+    );
+    input.files = data.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Add text"]')!
+      .click();
+  }, bytes);
+  await expect(page.locator(".progress-modal")).toHaveCount(0);
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(1);
 });

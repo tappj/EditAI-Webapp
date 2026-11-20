@@ -1,42 +1,78 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, Square, Video } from "lucide-react";
+import { ArrowRight, Square, Video } from "lucide-react";
 import { Button, Range } from "./ui";
 import { formatTime as time } from "@/lib/editor/time";
+function TakePreview({ file }: { file: File }) {
+  const target = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const next = URL.createObjectURL(file);
+    const node = target.current;
+    if (node) node.src = next;
+    return () => {
+      if (node) {
+        node.removeAttribute("src");
+        node.load();
+      }
+      URL.revokeObjectURL(next);
+    };
+  }, [file]);
+  return (
+    <div className="recorded-take">
+      <video
+        ref={target}
+        muted
+        playsInline
+        preload="metadata"
+        onLoadedMetadata={(e) => {
+          e.currentTarget.currentTime = 0.1;
+        }}
+      />
+      <span>{file.name}</span>
+    </div>
+  );
+}
 export function Recorder({
   onDone,
   onError,
   onDirty,
 }: {
   onDone: (files: File[]) => void;
-  onError: (e: any) => void;
+  onError: (e: unknown) => void;
   onDirty: (dirty: boolean) => void;
 }) {
   const [stream, setStream] = useState<MediaStream | null>(null),
     [recording, setRecording] = useState(false),
+    [cameraReady, setCameraReady] = useState(false),
     [takes, setTakes] = useState<File[]>([]),
     [elapsed, setElapsed] = useState(0),
     [cap, setCap] = useState(60),
     [facing, setFacing] = useState("user"),
+    [shape, setShape] = useState("9:16"),
     [script, setScript] = useState(""),
     [scrolling, setScrolling] = useState(false),
     [speed, setSpeed] = useState(30);
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  useEffect(() => {
-    onDirty(recording || takes.length > 0);
-  }, [recording, takes.length]);
   const video = useRef<HTMLVideoElement>(null),
     recorder = useRef<MediaRecorder | null>(null),
     chunks = useRef<Blob[]>([]),
     prompter = useRef<HTMLDivElement>(null),
     start = useRef(0),
     total = useRef(0);
+  const mounted = useRef(true);
+  const renderFrame = useRef(0);
+  const capture = useRef<MediaStream | null>(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (recorder.current?.state === "recording") recorder.current.stop();
+      cancelAnimationFrame(renderFrame.current);
+      capture.current?.getVideoTracks().forEach((t) => t.stop());
+    };
+  }, []);
+  useEffect(() => {
+    onDirty(recording || takes.length > 0);
+  }, [recording, takes.length, onDirty]);
   useEffect(
     () => () => {
       stream?.getTracks().forEach((t) => t.stop());
@@ -65,6 +101,7 @@ export function Recorder({
   }, [scrolling, speed]);
   async function camera(next = facing) {
     try {
+      setCameraReady(false);
       stream?.getTracks().forEach((t) => t.stop());
       let timedOut = false;
       const request = navigator.mediaDevices
@@ -112,10 +149,47 @@ export function Recorder({
     const mime = ["video/webm;codecs=vp8,opus", "video/mp4"].find((m) =>
       MediaRecorder.isTypeSupported(m),
     );
-    const r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const source = video.current;
+    if (!source || !source.videoWidth || !source.videoHeight) {
+      onError(Error("Wait for the camera preview before recording."));
+      return;
+    }
+    const [w, h] = shape.split(":").map(Number);
+    const surface = document.createElement("canvas");
+    surface.width = w === h ? 1080 : w > h ? 1280 : 720;
+    surface.height = Math.round((surface.width * h) / w);
+    const context = surface.getContext("2d")!;
+    const draw = () => {
+      const scale = Math.max(
+        surface.width / source.videoWidth,
+        surface.height / source.videoHeight,
+      );
+      const sw = surface.width / scale,
+        sh = surface.height / scale;
+      context.drawImage(
+        source,
+        (source.videoWidth - sw) / 2,
+        (source.videoHeight - sh) / 2,
+        sw,
+        sh,
+        0,
+        0,
+        surface.width,
+        surface.height,
+      );
+      renderFrame.current = requestAnimationFrame(draw);
+    };
+    draw();
+    const framed = surface.captureStream(24);
+    stream.getAudioTracks().forEach((track) => framed.addTrack(track));
+    capture.current = framed;
+    const r = new MediaRecorder(framed, mime ? { mimeType: mime } : undefined);
     chunks.current = [];
     r.ondataavailable = (e) => chunks.current.push(e.data);
     r.onstop = () => {
+      cancelAnimationFrame(renderFrame.current);
+      framed.getVideoTracks().forEach((track) => track.stop());
+      if (!mounted.current) return;
       total.current += (performance.now() - start.current) / 1000;
       setElapsed(total.current);
       setRecording(false);
@@ -144,8 +218,23 @@ export function Recorder({
         </div>
       </div>
       <div className="recorder-grid">
-        <section className="camera-card">
-          <video ref={video} autoPlay muted playsInline />
+        <section
+          className="camera-card"
+          style={
+            {
+              aspectRatio: shape.replace(":", " / "),
+              "--record-ratio":
+                Number(shape.split(":")[0]) / Number(shape.split(":")[1]),
+            } as React.CSSProperties
+          }
+        >
+          <video
+            ref={video}
+            autoPlay
+            muted
+            playsInline
+            onLoadedData={() => setCameraReady(true)}
+          />
           {script && (
             <div ref={prompter} className="teleprompter">
               {script}
@@ -165,7 +254,9 @@ export function Recorder({
             </span>
             <button
               className={"record-button " + (recording ? "recording" : "")}
-              disabled={!stream || (elapsed >= cap && !recording)}
+              disabled={
+                !stream || !cameraReady || (elapsed >= cap && !recording)
+              }
               onClick={record}
               aria-label={recording ? "Stop recording" : "Start recording"}
             >
@@ -182,6 +273,20 @@ export function Recorder({
           </div>
         </section>
         <section className="settings-card">
+          <label>
+            Recording shape
+            <select
+              aria-label="Recording shape"
+              value={shape}
+              disabled={recording}
+              onChange={(e) => setShape(e.target.value)}
+            >
+              <option value="9:16">9:16 Portrait</option>
+              <option value="1:1">1:1 Square</option>
+              <option value="16:9">16:9 Landscape</option>
+              <option value="4:5">4:5 Portrait</option>
+            </select>
+          </label>
           <h2>Teleprompter</h2>
           <textarea
             maxLength={100000}
@@ -226,10 +331,7 @@ export function Recorder({
           </label>
           <h3>{takes.length} recorded takes</h3>
           {takes.map((f, i) => (
-            <p key={i}>
-              <Check size={13} />
-              {f.name}
-            </p>
+            <TakePreview key={i} file={f} />
           ))}
           <Button
             disabled={!takes.length || recording}

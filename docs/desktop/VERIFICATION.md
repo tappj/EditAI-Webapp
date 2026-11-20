@@ -118,3 +118,17 @@ security tests, 18 desktop tests and both builds pass. All 35 shared studio brow
 scenarios pass across the full runs plus the corrected Chromium trim/export rerun;
 see docs/VERIFICATION.md for exact evidence and fixture boundaries. Existing native
 FFmpeg extraction/export tests pass. No new signed installer is published here.
+
+## Portrait capture and focused shared panels — November 20, 2026
+
+The shared renderer now includes Auto-only word grouping, full-cell EditAI styling,
+image/video reference thumbnails, relaxed-cut source-restoration instructions,
+portrait media cards, persistent Edits grid/list views, Clip canvas controls and
+compact nonmodal progress/notifications. Recording defaults to 9:16; its 1:1, 16:9
+and 4:5 alternatives crop the actual canvas capture and preserve microphone audio.
+Cleanup releases camera/capture tracks and animation frames. Desktop source/build,
+all 18 native contracts, 31 web tests and typecheck pass. Shared browser scenarios
+all pass across the full WebKit run and Chromium run/reruns described in
+../VERIFICATION.md. Generated camera/audio fixtures establish encoded dimensions,
+not physical camera permission acceptance or fresh Publik connectivity. This commit
+does not publish a replacement signed installer.

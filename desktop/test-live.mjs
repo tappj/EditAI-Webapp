@@ -76,14 +76,18 @@ try {
   await expect(home).toBeVisible({ timeout: 30000 });
   report.authentication = true;
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("checkbox", { name: /Allow AI processing/ }).check();
-  await page
-    .getByRole("checkbox", { name: /Share official usage events/ })
-    .uncheck();
-  await page
-    .getByRole("button", { name: "Save preferences", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toContainText("Preferences saved");
+  // Export-only release checks must preserve the person’s AI privacy choice.
+  if (!process.env.EDITAI_EXPORT_ONLY)
+    await page.getByRole("checkbox", { name: /Allow AI processing/ }).check();
+  if (!process.env.EDITAI_EXPORT_ONLY) {
+    await page
+      .getByRole("checkbox", { name: /Share official usage events/ })
+      .uncheck();
+    await page
+      .getByRole("button", { name: "Save preferences", exact: true })
+      .click();
+    await expect(page.getByRole("status")).toContainText("Preferences saved");
+  }
   await page.getByRole("button", { name: "Home", exact: true }).click();
   if (process.env.EDITAI_RESUME_TEST)
     await page

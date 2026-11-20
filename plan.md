@@ -159,3 +159,4 @@ is needed. Increase waveform resolution and adapt its detail to zoom. Clicking t
 timeline moves the playhead, while only its cap captures dragging. Notifications
 expire automatically. Enforce bounded concurrent track allocation (audio 3, text 7,
 video overlays 7), retaining collision stops and deliberate continued-drag behavior.
+- November 20: implemented and pushed guided Mac Install and Open with native relaunch, explicit existing-app handling and optional matching-DMG eject/Trash cleanup. Isolated required checks and signed/notarized 0.2.3 app/image verification pass; installed app is open for the owner's first-run privacy choice. Private release staged; public download stays 0.2.2 until installed-app export acceptance passes. See docs/desktop/VERIFICATION.md.

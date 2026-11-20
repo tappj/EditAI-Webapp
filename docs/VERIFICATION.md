@@ -489,3 +489,7 @@ model tests cover collision/continued movement, full-track behavior, seven-track
 acceptance and eighth-track rejection. Authentication and AI remain explicit test
 fixtures; these checks do not prove fresh real Publik connectivity. Shared desktop
 source is updated; the downloadable signed installer remains 0.2.2.
+
+## Guided desktop installation — November 20, 2026
+
+Added the packaged-Mac Install and Open/relaunch flow, existing-install confirmation, optional disk-image eject/Trash cleanup and clearer installer instructions. Validated in an isolated checkout: typecheck, 24 web tests, 18 desktop tests and both builds pass. App/DMG signing, Apple notarization, Gatekeeper, packaged self-test, exact CI image identity and native mounted-image discovery pass. Installed 0.2.3 and preserved the prior app. Public release remains 0.2.2 pending the owner's actual first-run privacy choice and the release script's installed-app export acceptance. No consent was chosen for the owner. Detailed evidence and limits are in docs/desktop/VERIFICATION.md.

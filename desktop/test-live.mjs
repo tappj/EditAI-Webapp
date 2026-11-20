@@ -26,18 +26,6 @@ app.process().stderr.on("data", (b) => {
 });
 try {
   const page = await app.firstWindow();
-  const testProjects = new Set();
-  page.on("request", (request) => {
-    if (
-      process.env.EDITAI_EXPORT_ONLY &&
-      !process.env.EDITAI_RESUME_TEST &&
-      request.method() === "POST" &&
-      new URL(request.url()).pathname === "/api/projects"
-    ) {
-      const body = request.postDataJSON();
-      if (body?.title?.includes("synthetic-speech")) testProjects.add(body.id);
-    }
-  });
   page.setDefaultTimeout(30000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   const home = page.getByRole("heading", {
@@ -128,7 +116,7 @@ try {
       .first()
       .setInputFiles(resolve("outputs/synthetic-speech.mp4"));
   await expect(
-    page.getByRole("button", { name: "Split clip at playhead" }),
+    page.getByRole("button", { name: /^(Split|Split clip at playhead)$/ }),
   ).toBeVisible();
   const { archivePath, ...sources } = await app.evaluate(
     ({ app, BrowserWindow }) => ({
@@ -159,7 +147,8 @@ try {
     await page
       .getByRole("button", { name: "Generate captions", exact: true })
       .click();
-  else await page.getByRole("button", { name: "Text", exact: true }).click();
+  else if (!process.env.EDITAI_EXPORT_ONLY)
+    await page.getByRole("button", { name: "Text", exact: true }).click();
   if (!process.env.EDITAI_EXPORT_ONLY) {
     await page
       .locator(".text-layer-list>button")
@@ -218,16 +207,52 @@ try {
     fullPage: true,
   });
   console.log("Desktop real export passed:", report.exportSeconds, "seconds");
-  for (const id of testProjects) {
-    const status = await page.evaluate(
-      async (id) =>
-        (await fetch("/api/projects/" + id, { method: "DELETE" })).status,
-      id,
-    );
-    if (status !== 200)
-      throw Error("Could not remove an acceptance-test project.");
+  // Remove these synthetic QA projects through the UI so both account storage
+  // and the local IndexedDB library/media are cleaned up.
+  let removed = 0;
+  if (process.env.EDITAI_EXPORT_ONLY && !process.env.EDITAI_RESUME_TEST) {
+    page.on("dialog", (dialog) => {
+      if (
+        dialog.type() === "confirm" &&
+        /^Delete “Batch [12] — synthetic-speech”/.test(dialog.message())
+      )
+        void dialog.accept();
+      else void dialog.dismiss();
+    });
+    const back = page.getByRole("button", {
+      name: /^My (creations|Edits)$/,
+      exact: true,
+    });
+    if (await back.isVisible()) await back.click();
+    else
+      await page
+        .getByRole("button", { name: "Edits", exact: true })
+        .filter({ visible: true })
+        .first()
+        .click();
+    await expect(
+      page.getByRole("heading", { name: "Edits", exact: true }),
+    ).toBeVisible();
+    const deletes = page.getByRole("button", {
+      name: /^Delete Batch [12] — synthetic-speech$/,
+    });
+    while (await deletes.count()) {
+      const previous = await deletes.count();
+      await deletes.first().click();
+      await expect(deletes).toHaveCount(previous - 1);
+      removed++;
+    }
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: "Upload your raw takes here" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator(".project-card-title")
+        .filter({ hasText: /^Batch [12] — synthetic-speech$/ }),
+    ).toHaveCount(0);
   }
-  report.testProjectsRemoved = testProjects.size;
+  report.testProjectsRemoved = removed;
   report.aiExercised = !process.env.EDITAI_EXPORT_ONLY;
 } catch (error) {
   report.error = error.message;

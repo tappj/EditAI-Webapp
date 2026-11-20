@@ -66,3 +66,7 @@ Homepage metadata lives in lib/desktop-releases.json. Add only real versioned Gi
 Open the downloaded disk image and double-click EditAI. Choose **Install and Open** to move it into Applications and relaunch the installed copy automatically. If an older copy exists, EditAI asks before replacing it. Cancelling or a failed copy leaves manual installation available.
 
 Dragging into Applications still works, but Finder copying an app cannot trigger its code. After dragging, open EditAI from Applications. The disk-image background explains both paths. On the first installed launch with its matching disk image mounted, EditAI offers **Eject Installer**, plus an unchecked option to move the downloaded DMG to Trash. It only cleans up a uniquely identified mounted EditAI image with the same bundle identifier/version, rechecks it after the dialog, and never trashes the download if ejecting fails. Keeping the disk open suppresses repeat prompts for that app version. This is independent of sign-in, AI consent and project data.
+
+## macOS window appearance (0.2.4)
+
+The native grey title strip is replaced by EditAI's own light/dark header surface. The standard Mac close, minimize and fullscreen buttons remain native. Drag the header to move the window; normal header buttons, project-title editing and inputs remain interactive. The editor reserves the same control space as Home and Settings. Browser, Windows and Linux window frames are unchanged.

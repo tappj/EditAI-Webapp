@@ -1,3 +1,4 @@
+import { assignLanes, LANE_LIMITS } from "./lanes.ts";
 import { FONTS } from "./fonts.ts";
 export type Word = {
   id: string;
@@ -41,6 +42,8 @@ export type Segment = {
   appearance: Appearance;
 };
 export type TextLayer = {
+  lane?: number;
+  boxHeight?: number;
   id: string;
   text: string;
   start: number;
@@ -72,6 +75,7 @@ export type TextLayer = {
   anchor?: { segmentId: string; start: number; end: number };
 };
 export type Overlay = {
+  lane?: number;
   speed?: number;
   volume?: number;
   appearance?: Appearance;
@@ -234,6 +238,8 @@ export function validate(d: Document) {
       !finite(t.start, 0, 7200) ||
       !finite(t.end, 0, 7200) ||
       t.end <= t.start ||
+      (t.boxHeight != null && !finite(t.boxHeight, 0.03, 1)) ||
+      (t.boxWidth != null && !finite(t.boxWidth, 0.05, 1)) ||
       !/^#[a-f0-9]{6}$/i.test(t.color)
     )
       throw Error("Invalid text layer.");
@@ -286,6 +292,11 @@ export function validate(d: Document) {
     )
       throw Error("Audio clips on the same lane cannot overlap.");
   }
+  assignLanes(
+    d.texts.map((t) => ({ ...t, ...textTiming(d, t) })),
+    LANE_LIMITS.texts,
+  );
+  assignLanes(d.overlays, LANE_LIMITS.overlays);
   return d;
 }
 export function split(d: Document, id: string, sourceTime: number) {

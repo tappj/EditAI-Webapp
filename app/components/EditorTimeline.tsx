@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { assignLanes } from "@/lib/editor/lanes";
 import { createPortal } from "react-dom";
 import { insertionIndex, type MediaDrop } from "@/lib/editor/placement";
 import { Music, Plus, Subtitles, Layers, Film } from "lucide-react";
@@ -11,32 +12,19 @@ import {
 } from "@/lib/editor/model";
 import { gestureEdit, type Track } from "@/lib/editor/timeline";
 
-import { SourceWaveform } from "./SourceWaveform";
+import { TimelineItem } from "./TimelineItem";
 import { ClipFrames } from "./ClipFrames";
 const TRACK_HEADER = 112;
 function captionTracks(doc: Document) {
-  const rows: {
-    name: string;
-    items: { id: string; text: string; start: number; end: number }[];
-  }[] = [];
-  for (const automatic of [true, false]) {
-    const lanes: typeof rows = [];
-    const items = doc.texts
-      .filter((t) => !!t.anchor === automatic)
-      .map((t) => ({ ...textTiming(doc, t), id: t.id, text: t.text }))
-      .filter((t) => t.start >= 0 && t.end > t.start)
-      .sort((a, b) => a.start - b.start);
-    for (const item of items) {
-      let lane = lanes.find((row) => row.items.at(-1)!.end <= item.start);
-      if (!lane) {
-        lane = { name: automatic ? "Captions" : "Text", items: [] };
-        lanes.push(lane);
-      }
-      lane.items.push(item);
-    }
-    rows.push(...lanes);
-  }
-  return rows;
+  const items = doc.texts
+    .map((t) => ({ ...t, ...textTiming(doc, t) }))
+    .filter((t) => t.start >= 0 && t.end > t.start);
+  const lanes = assignLanes(items, 7);
+  return Array.from({ length: 7 }, (_, i) => ({
+    name: "Text",
+    lane: i,
+    items: items.filter((t) => lanes.get(t.id) === i),
+  })).filter((row) => row.items.length);
 }
 const stamp = (s: number) =>
   `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
@@ -132,6 +120,10 @@ export function EditorTimeline({
   const shown = draft || doc,
     total = duration(draft && trimPreview ? trimPreview.base : shown);
   const textTracks = useMemo(() => captionTracks(shown), [shown]);
+  const overlayLanes = useMemo(
+    () => assignLanes(shown.overlays, 7),
+    [shown.overlays],
+  );
   const firstDuration = useRef(duration(doc));
   useEffect(() => {
     const el = viewport.current;
@@ -282,6 +274,7 @@ export function EditorTimeline({
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     onSelect(track, id);
+    if (mode === "move") seek(e);
     setTrimPreview(
       track === "segments" && mode !== "move" ? { base: doc, id } : null,
     );
@@ -313,6 +306,30 @@ export function EditorTimeline({
     if (Math.hypot(dx, e.clientY - g.y) < 3) return;
     try {
       g.latest = gestureEdit(g.base, g.track, g.id, g.mode, dx / pixels);
+      if (g.track !== "segments") {
+        const baseLayer = g.base[g.track].find((x) => x.id === g.id)!;
+        const timing =
+          g.track === "texts"
+            ? textTiming(g.base, baseLayer as Document["texts"][number])
+            : baseLayer;
+        const moved = g.latest[g.track].find((x) => x.id === g.id)!;
+        const applied =
+          g.mode === "end"
+            ? moved.end - timing.end
+            : moved.start - timing.start;
+        if (
+          Math.abs(dx / pixels - applied) * pixels > 24 ||
+          Math.abs(e.clientY - g.y) > 28
+        )
+          g.latest = gestureEdit(
+            g.base,
+            g.track,
+            g.id,
+            g.mode,
+            dx / pixels,
+            true,
+          );
+      }
       if (g.mode === "move") {
         let marker = 0;
         if (g.track === "segments") {
@@ -375,6 +392,12 @@ export function EditorTimeline({
     )
       onChange(g.latest);
   }
+  function cancelGesture() {
+    gesture.current = null;
+    setDraft(null);
+    setTrimPreview(null);
+    setDragView(null);
+  }
   function clip(
     track: Track,
     id: string,
@@ -383,126 +406,27 @@ export function EditorTimeline({
     end: number,
   ) {
     return (
-      <div
+      <TimelineItem
         key={id}
-        role="button"
-        tabIndex={0}
-        aria-label={`${track === "segments" ? "Clip" : track} ${name}`}
-        className={`sequence-item ${track === "segments" ? "timeline-clip" : "layer-clip"} ${selected === id ? "selected" : ""} ${dragView?.id === id ? "drag-origin" : ""}`}
-        style={{
-          left: TRACK_HEADER + start * pixels,
-          width: Math.max(3, (end - start) * pixels),
-        }}
-        onPointerDown={(e) => begin(e, track, id, "move")}
-        onPointerMove={move}
-        onPointerUp={finish}
-        onPointerCancel={() => {
-          gesture.current = null;
-          setDraft(null);
-          setDragView(null);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onSelect(track, id);
-          }
-          if (e.altKey && ["ArrowLeft", "ArrowRight"].includes(e.key)) {
-            e.preventDefault();
-            try {
-              onChange(
-                gestureEdit(
-                  doc,
-                  track,
-                  id,
-                  "move",
-                  e.key === "ArrowLeft" ? -0.1 : 0.1,
-                ),
-              );
-            } catch (error) {
-              onError(error);
-            }
-          }
-        }}
-      >
-        {(track === "segments" || track === "overlays") &&
-          (() => {
-            const s =
-              track === "segments"
-                ? shown.segments.find((x) => x.id === id)!
-                : shown.overlays.find((x) => x.id === id)!;
-            const source = shown.sources[s.sourceIndex];
-            return (
-              <ClipFrames
-                url={urls[source.id]}
-                duration={source.duration}
-                speed={s.speed ?? 1}
-                pixelsPerSecond={pixels}
-                start={"sourceStart" in s ? s.sourceStart : s.start}
-                end={
-                  "sourceStart" in s
-                    ? s.sourceStart + (s.end - s.start) * (s.speed ?? 1)
-                    : s.end
-                }
-                image={source.kind === "image"}
-              />
-            );
-          })()}
-        {track === "audio" &&
-          (() => {
-            const item = shown.audio.find((x) => x.id === id)!;
-            const source = shown.sources[item.sourceIndex];
-            if (source.kind === "image") return null;
-            return (
-              <SourceWaveform
-                url={urls[source.id]}
-                duration={source.duration}
-                bytes={source.bytes}
-                start={item.sourceStart}
-                end={
-                  item.sourceStart + (item.end - item.start) * (item.speed ?? 1)
-                }
-              />
-            );
-          })()}
-        <strong>{name}</strong>
-        <small>{stamp(end - start)}</small>
-        {(["start", "end"] as const).map((edge) => (
-          <button
-            key={edge}
-            className={`trim-grip ${edge}`}
-            aria-label={`Trim ${edge} of ${name}`}
-            onPointerDown={(e) => begin(e, track, id, edge)}
-            onPointerMove={move}
-            onPointerUp={finish}
-            onPointerCancel={() => {
-              gesture.current = null;
-              setDraft(null);
-              setDragView(null);
-              setTrimPreview(null);
-            }}
-            onKeyDown={(e) => {
-              if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
-              e.preventDefault();
-              e.stopPropagation();
-              try {
-                onChange(
-                  gestureEdit(
-                    doc,
-                    track,
-                    id,
-                    edge,
-                    e.key === "ArrowLeft" ? -0.1 : 0.1,
-                  ),
-                );
-              } catch (error) {
-                onError(error);
-              }
-            }}
-          >
-            <span />
-          </button>
-        ))}
-      </div>
+        track={track}
+        id={id}
+        name={name}
+        start={start}
+        end={end}
+        doc={shown}
+        baseDoc={doc}
+        urls={urls}
+        pixels={pixels}
+        selected={selected}
+        dragged={dragView?.id === id}
+        onBegin={begin}
+        onMove={move}
+        onFinish={finish}
+        onCancel={cancelGesture}
+        onSelect={onSelect}
+        onChange={onChange}
+        onError={onError}
+      />
     );
   }
   const leftTrim = draft ? trimPreview : null;
@@ -516,6 +440,15 @@ export function EditorTimeline({
       <div
         className="sequence-viewport"
         ref={viewport}
+        onPointerDown={(e) => {
+          if (
+            (e.target as HTMLElement).closest(
+              "button,.sequence-item,.track-label,.sequence-ruler,.sequence-playhead,input",
+            )
+          )
+            return;
+          seek(e);
+        }}
         onDragOver={(e) => {
           if (
             !e.dataTransfer.types.includes("Files") &&
@@ -638,25 +571,34 @@ export function EditorTimeline({
               <Plus size={18} />
             </button>
           </div>
-          {shown.overlays.map((o) => (
-            <div
-              key={o.id}
-              data-track="overlays"
-              className="sequence-row overlay-row"
-            >
-              <div className="track-label">
-                <Layers size={16} />
-                <span>Overlay</span>
+          {Array.from({ length: 7 }, (_, lane) => ({
+            lane,
+            items: shown.overlays.filter(
+              (o) => overlayLanes.get(o.id) === lane,
+            ),
+          }))
+            .filter((row) => row.items.length)
+            .map((row) => (
+              <div
+                key={row.lane}
+                data-track="overlays"
+                className="sequence-row overlay-row"
+              >
+                <div className="track-label">
+                  <Layers size={16} />
+                  <span>Overlay {row.lane + 1}</span>
+                </div>
+                {row.items.map((o) =>
+                  clip(
+                    "overlays",
+                    o.id,
+                    shown.sources[o.sourceIndex].name,
+                    o.start,
+                    o.end,
+                  ),
+                )}
               </div>
-              {clip(
-                "overlays",
-                o.id,
-                shown.sources[o.sourceIndex].name,
-                o.start,
-                o.end,
-              )}
-            </div>
-          ))}
+            ))}
           {[0, 1, 2]
             .filter(
               (lane) => lane === 0 || shown.audio.some((a) => a.lane === lane),

@@ -1271,7 +1271,9 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   expect(cursor!.width).toBeGreaterThanOrEqual(2);
   const clip = page.locator(".timeline-clip");
   await clip.click({ position: { x: 50, y: 30 } });
-  await expect(page.getByLabel("Timeline playhead")).toHaveValue("1.5");
+  expect(
+    Number(await page.getByLabel("Timeline playhead").inputValue()),
+  ).toBeLessThan(1.5);
   const original = (await clip.boundingBox())!.width;
   const grip = clip.locator(".trim-grip.end");
   const b = (await grip.boundingBox())!;
@@ -1297,6 +1299,7 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   await page.mouse.up();
   expect((await clip.boundingBox())!.x).toBeCloseTo(beforeLeft.x, 0);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await page.getByLabel("Timeline playhead").fill("1.5");
   await page.getByRole("button", { name: "Split clip at playhead" }).click();
   await page.locator(".timeline-clip").first().click();
   await page
@@ -1620,14 +1623,14 @@ test("clip audio extraction preserves trim and speed, undo redo, reload and real
   });
   await expect(
     page.locator(".audio-row .source-waveform path"),
-  ).toHaveAttribute("d", /^M1 28v-/, { timeout: 10000 });
+  ).toHaveAttribute("d", /^M0 28/, { timeout: 10000 });
   await expect.poll(() => saved?.document?.audio?.length).toBe(1);
   const document = saved.document;
   expect(document.segments[0].volume).toBe(0);
   expect(document.audio[0].speed).toBe(1.5);
-  expect(document.audio[0].sourceStart).toBe(0);
+  expect(document.audio[0].sourceStart).toBe(0.5);
   expect(document.audio[0].end).toBeCloseTo(2.5 / 1.5, 2);
-  expect(document.sources[document.audio[0].sourceIndex].kind).toBe("audio");
+  expect(document.sources[document.audio[0].sourceIndex].kind).toBe("video");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
   await page.getByRole("button", { name: "Redo", exact: true }).click();
@@ -1832,6 +1835,7 @@ test("timeline drops import actual files and library sources; lifted reorder com
   await page.mouse.up();
   await expect.poll(names).toEqual(["second.mp4", "first.mp4"]);
   const clip = page.locator(".timeline-clip").first();
+  await clip.click({ position: { x: 40, y: 30 } });
   await expect(clip.locator(".clip-frames span").first()).toBeVisible();
   const filmWidth = await clip
     .locator(".frame-samples")
@@ -1992,4 +1996,135 @@ test("playback cursor moves at animation frame cadence and captions tool stays a
     .locator(".studio-tool-rail .tool-icon")
     .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
   expect(Math.max(...align) - Math.min(...align)).toBeLessThan(2);
+});
+
+test("clean selection, on-video text editing and edge resizing, immediate extraction, detailed zoom waveforms and transient notices", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await authenticated(page);
+  await openStudio(page);
+  const buffer = await readFile(join(process.cwd(), "outputs/fixture.mp4"));
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles([
+      { name: "first.mp4", mimeType: "video/mp4", buffer },
+      { name: "second.mp4", mimeType: "video/mp4", buffer },
+    ]);
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await expect(
+    page.locator(".timeline-clip").last().locator(".trim-grip"),
+  ).toHaveCount(0);
+  await page
+    .locator(".timeline-clip")
+    .last()
+    .click({ position: { x: 50, y: 30 } });
+  await expect(
+    page.locator(".timeline-clip").last().locator(".trim-grip").first(),
+  ).toHaveCSS("opacity", "1");
+  expect(
+    Number(
+      await page.getByLabel("Timeline playhead", { exact: true }).inputValue(),
+    ),
+  ).toBeGreaterThan(4);
+  await page.locator(".text-row").click({ position: { x: 400, y: 15 } });
+  const position = Number(
+    await page.getByLabel("Timeline playhead", { exact: true }).inputValue(),
+  );
+  expect(position).toBeGreaterThan(0);
+  expect(position).toBeLessThan(4);
+  await expect(page.locator(".preview-controls-top")).not.toContainText(
+    "PREVIEW",
+  );
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move selected layer", exact: true })
+    .click();
+  const editor = page.getByLabel("Edit text on video", { exact: true });
+  await editor.fill("Written on the preview");
+  await page.screenshot({
+    path: "outputs/editor-direct-text-edit.png",
+    fullPage: true,
+  });
+  await editor.press("Control+Enter");
+  await expect(page.getByLabel("Caption text", { exact: true })).toHaveValue(
+    "Written on the preview",
+  );
+  await expect(page.locator(".preview-resize")).toHaveCount(0);
+  const before = (await page.locator(".preview-selection").boundingBox())!;
+  const corner = (await page
+    .getByRole("button", { name: "Resize selected layer", exact: true })
+    .boundingBox())!;
+  await page.mouse.move(corner.x + 3, corner.y + 3);
+  await page.mouse.down();
+  await page.mouse.move(corner.x + 28, corner.y + 18, { steps: 5 });
+  await page.mouse.up();
+  expect(
+    (await page.locator(".preview-selection").boundingBox())!.height,
+  ).toBeGreaterThan(before.height);
+  const edge = (await page
+    .getByRole("button", {
+      name: "Resize e edge of selected layer",
+      exact: true,
+    })
+    .boundingBox())!;
+  const oldWidth = (await page.locator(".preview-selection").boundingBox())!
+    .width;
+  await page.mouse.move(edge.x + 2, edge.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(edge.x + 30, edge.y + 8, { steps: 5 });
+  await page.mouse.up();
+  expect(
+    (await page.locator(".preview-selection").boundingBox())!.width,
+  ).toBeGreaterThan(oldWidth);
+  await page.screenshot({
+    path: "outputs/editor-text-resize-handles.png",
+    fullPage: true,
+  });
+  await page
+    .locator(".timeline-clip")
+    .first()
+    .click({ position: { x: 100, y: 30 } });
+  await page
+    .getByRole("button", { name: "Extract audio", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await expect(page.locator(".audio-row .source-waveform")).toBeVisible();
+  const initialPoints = Number(
+    await page
+      .locator(".audio-row .source-waveform")
+      .getAttribute("data-points"),
+  );
+  await page.locator(".sequence-viewport").dispatchEvent("wheel", {
+    ctrlKey: true,
+    deltaY: 100,
+    bubbles: true,
+    cancelable: true,
+  });
+  const wave = page.locator(".audio-row .source-waveform");
+  await expect
+    .poll(async () => Number(await wave.getAttribute("data-points")))
+    .toBeLessThan(initialPoints);
+  const low = Number(await wave.getAttribute("data-points"));
+  await page.locator(".sequence-viewport").dispatchEvent("wheel", {
+    ctrlKey: true,
+    deltaY: -100,
+    bubbles: true,
+    cancelable: true,
+  });
+  await expect
+    .poll(async () => Number(await wave.getAttribute("data-points")))
+    .toBeGreaterThan(low);
+  await page.locator(".timeline-clip").last().click();
+  await page.keyboard.press("Delete");
+  await page.locator(".timeline-clip").click();
+  await page.keyboard.press("Delete");
+  await expect(page.getByRole("status")).toContainText("Keep at least one");
+  await expect(
+    page.getByRole("button", { name: "Dismiss notification", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("status")).toHaveCount(0, { timeout: 7000 });
 });

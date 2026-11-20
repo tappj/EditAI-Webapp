@@ -315,6 +315,19 @@ export default function App({
     setError(e.message || String(e));
     setErrorURL(e.url || "");
   }, []);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 5000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => {
+      setError("");
+      setErrorURL("");
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [error]);
   const gateScreen = session?.screen;
   const gateAdvanced =
     gateScreen?.id === "ready" ||
@@ -1095,10 +1108,10 @@ export default function App({
     });
     replacingAudio.current = null;
   }
-  async function detachClipAudio() {
+  function detachClipAudio() {
     if (!doc || !segment || doc.sources[segment.sourceIndex].kind !== "video")
       return;
-    await run("Extracting clip audio", async () => {
+    try {
       const d = structuredClone(doc),
         clip = d.segments.find((s) => s.id === segment.id)!;
       const start = d.segments
@@ -1113,28 +1126,10 @@ export default function App({
         throw Error(
           "All audio tracks are occupied here. Move or trim a sound first.",
         );
-      const original = await loadMedia(d.sources[clip.sourceIndex].id);
-      if (!original)
-        throw Error(
-          "Original media is unavailable. Reopen the project and try again.",
-        );
-      const wav = await extractAudio(
-        original,
-        clip.start,
-        clip.end - clip.start,
-      );
-      activeSignal?.throwIfAborted();
-      const file = new File(
-        [wav],
-        d.sources[clip.sourceIndex].name.replace(/\.[^.]+$/, "") + " audio.wav",
-        { type: "audio/wav" },
-      );
-      const source = await probe(file);
-      activeSignal?.throwIfAborted();
       const audio = {
         id: crypto.randomUUID(),
-        sourceIndex: d.sources.length,
-        sourceStart: 0,
+        sourceIndex: clip.sourceIndex,
+        sourceStart: clip.start,
         start,
         end,
         speed: clip.speed,
@@ -1143,30 +1138,15 @@ export default function App({
         fadeIn: 0,
         fadeOut: 0,
       };
-      d.sources.push(source);
       d.audio.push(audio);
       clip.volume = 0;
       validate(d);
-      await saveMedia(source.id, file, source.mime);
-      const current = {
-        ...projectRef.current!,
-        document: d,
-        updatedAt: Date.now(),
-      };
-      await saveProject(current);
-      const url = desktop()
-        ? mediaURL((await loadMedia(source.id))!)
-        : URL.createObjectURL(file);
-      setUrls((u) => ({ ...u, [source.id]: url }));
-      persistedProject.current = current;
-      change(d, current);
+      change(d);
       setSelectedLayer({ track: "audio", id: audio.id });
       setTool("layers");
-      setNotice(
-        "Audio extracted. The video’s sound is muted; edit the sound on its own track.",
-      );
-      await syncProject(current, [{ id: source.id, file, mime: source.mime }]);
-    });
+    } catch (e) {
+      fail(e);
+    }
   }
   async function ensureWords(
     d: Document,
@@ -2457,7 +2437,6 @@ export default function App({
                       >
                         <Maximize size={16} />
                       </IconButton>
-                      <span>PREVIEW</span>
                     </div>
                     <div className="canvas-stage">
                       <canvas ref={canvas} aria-label="Video preview" />
@@ -2473,6 +2452,13 @@ export default function App({
                         }
                         time={playhead}
                         onChange={change}
+                        onSelect={(id) => {
+                          setSelectedText(id);
+                          setSelectedLayer({ track: "texts", id });
+                          setTool("captions");
+                          player.current?.pause();
+                          setPlaying(false);
+                        }}
                         onPreview={(d) => {
                           if (player.current) {
                             player.current.pause();

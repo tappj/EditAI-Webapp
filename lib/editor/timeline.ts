@@ -1,3 +1,4 @@
+import { assignLanes, LANE_LIMITS } from "./lanes.ts";
 import {
   duration,
   segmentDuration,
@@ -25,6 +26,7 @@ export function gestureEdit(
   id: string,
   mode: "start" | "end" | "move",
   delta: number,
+  pushThrough = false,
 ) {
   const d = structuredClone(base);
   if (!Number.isFinite(delta)) throw Error("Invalid timeline movement.");
@@ -73,16 +75,65 @@ export function gestureEdit(
       ? (source.duration - sourceStart) /
         ("speed" in layer ? layer.speed || 1 : 1)
       : Infinity;
-  // Audio is constrained to its neighboring clips in its own lane.
   let left = 0,
     right = duration(d);
-  if (track === "audio") {
-    const audio = d.audio.find((x) => x.id === id)!;
-    for (const x of d.audio.filter(
-      (x) => x.id !== id && x.lane === audio.lane,
-    )) {
-      if (x.end <= audio.start) left = Math.max(left, x.end);
-      if (x.start >= audio.end) right = Math.min(right, x.start);
+  const timings = base[track].map((x) => ({
+    ...x,
+    ...(track === "texts"
+      ? textTiming(base, x as Document["texts"][number])
+      : {}),
+  }));
+  const laneMap = assignLanes(timings, LANE_LIMITS[track]);
+  const originalLane = laneMap.get(id)!;
+  layer.lane = originalLane;
+  for (const x of timings.filter(
+    (x) => x.id !== id && laneMap.get(x.id) === originalLane,
+  )) {
+    if (x.end <= layer.start) left = Math.max(left, x.end);
+    if (x.start >= layer.end) right = Math.min(right, x.start);
+  }
+  if (pushThrough) {
+    const desired =
+      mode === "move"
+        ? clamp(layer.start + delta, 0, duration(d) - len)
+        : mode === "start"
+          ? clamp(
+              layer.start + delta,
+              Math.max(
+                0,
+                layer.start -
+                  sourceStart / ("speed" in layer ? layer.speed || 1 : 1),
+              ),
+              layer.end - 0.05,
+            )
+          : layer.start;
+    const desiredEnd =
+      mode === "move"
+        ? desired + len
+        : mode === "end"
+          ? clamp(
+              layer.end + delta,
+              layer.start + 0.05,
+              Math.min(duration(d), layer.start + sourceAvailable),
+            )
+          : layer.end;
+    const otherLane = Array.from(
+      { length: LANE_LIMITS[track] },
+      (_, i) => i,
+    ).find(
+      (lane) =>
+        !timings.some(
+          (x) =>
+            x.id !== id &&
+            laneMap.get(x.id) === lane &&
+            desired < x.end &&
+            desiredEnd > x.start,
+        ),
+    );
+    if (otherLane != null) {
+      layer.lane = otherLane;
+      left = 0;
+      right = duration(d);
     }
   }
   if (mode === "move") {

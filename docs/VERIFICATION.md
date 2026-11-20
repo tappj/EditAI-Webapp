@@ -445,3 +445,47 @@ Full studio regression: Chromium 30/30 (49.3s), WebKit 30/30 (2.1m). Final drag
 cancellation guards pass four focused checks in Chromium (6.0s) and WebKit (27.4s)
 after the final production rebuild, including Delete during a lifted drag followed
 by mouse release without resurrecting the deleted clip.
+
+## Text and precision controls — November 20, 2026
+
+Trim controls are mounted only for the selected item, avoiding both visual clutter
+and invisible keyboard stops on small clips. Removed PREVIEW from the monitor.
+Visible text can be tapped on the canvas to edit it in place; blur or Cmd/Ctrl+Enter
+commits, Escape cancels, and typing remains isolated from timeline deletion keys.
+Compact corner grips scale text and edge grips change box width/height and position.
+The round resize dot is removed. Optional boxHeight is bounded and honored by the
+real preview/export renderer. Imported sources and source-word IDs remain intact.
+
+Extract audio now creates a source-range audio reference synchronously instead of
+encoding/uploading a second WAV. It keeps sourceStart, speed, volume and placement,
+mutes the main clip and remains one undoable edit. Playback/export use the existing
+independent media/gain paths; there is no progress modal, new source upload, or paid
+provider request for extraction. Real extraction/export tests verify source range,
+non-silent audio, undo/redo and reopening with the original video source reference.
+
+Waveforms cache up to 16,384 real RMS bins per source and render a continuous upper
+envelope with point count adapted to clip width (64–8,192). Zoom changes visible
+detail without decoding again. Lazy serialized decoding is capped at five minutes
+and 128 MiB, with unsupported codecs omitting the optional waveform. No synthetic
+peaks or mirrored lower waveform is used.
+
+Clicks in clips and empty timeline space seek directly. The cursor line allows
+pointer events through to clips; its top cap remains draggable, preventing it from
+intercepting a repeated clip drag at the same position. Informational notices expire
+after five seconds, errors after eight, while retaining manual dismissal and links.
+
+Track allocation is capped at 3 audio, 7 text and 7 video-overlay lanes. Sequential
+items reuse lanes. The shared allocator validates concurrent occupancy and explicit
+lane bounds. Collision drags first stop at neighbors; continued movement beyond a
+24px blocked-distance threshold can occupy another available lane. A full set stays
+constrained. AI/application edits are validated atomically and cannot exceed limits.
+
+Typecheck, 24 model/security tests, 12 desktop tests, both production builds and
+changed-component lint pass. All 31 studio scenarios pass in Chromium (55.0s) and
+WebKit (2.1m), with real exports and local media active. The new browser scenario
+checks selected handles, direct text editing, corner/edge geometry, instant extraction
+without a modal, zoom-dependent waveform points and timed notice dismissal. New
+model tests cover collision/continued movement, full-track behavior, seven-track
+acceptance and eighth-track rejection. Authentication and AI remain explicit test
+fixtures; these checks do not prove fresh real Publik connectivity. Shared desktop
+source is updated; the downloadable signed installer remains 0.2.2.

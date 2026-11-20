@@ -269,6 +269,13 @@ function drawText(
     }
     lines.push(line);
   }
+  if (t.boxHeight) {
+    const fit = Math.min(
+      1,
+      (t.boxHeight * h) / (lines.length * size * (1.2 + (t.lineSpacing ?? 0))),
+    );
+    ctx.scale(fit, fit);
+  }
   lines.forEach((line, i) => {
     const y =
       (i - (lines.length - 1) / 2) * size * (1.2 + (t.lineSpacing ?? 0));

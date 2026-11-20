@@ -360,3 +360,95 @@ test("library placement inserts at clip boundaries and routes sound without chan
     /no longer/,
   );
 });
+
+test("layer collisions stop at neighbors then deliberate pull uses bounded tracks", async () => {
+  const { gestureEdit } = await import("../lib/editor/timeline.ts");
+  const d = fixture();
+  d.audio = [
+    {
+      id: "a",
+      sourceIndex: 0,
+      sourceStart: 0,
+      start: 0,
+      end: 2,
+      lane: 0,
+      volume: 1,
+      fadeIn: 0,
+      fadeOut: 0,
+    },
+    {
+      id: "b",
+      sourceIndex: 0,
+      sourceStart: 0,
+      start: 3,
+      end: 5,
+      lane: 0,
+      volume: 1,
+      fadeIn: 0,
+      fadeOut: 0,
+    },
+  ];
+  const stopped = gestureEdit(d, "audio", "a", "move", 2);
+  assert.equal(stopped.audio[0].start, 1);
+  const continued = gestureEdit(d, "audio", "a", "move", 2, true);
+  assert.equal(continued.audio[0].start, 2);
+  assert.equal(continued.audio[0].lane, 1);
+  d.audio.push(
+    ...[1, 2].map((lane) => ({
+      ...d.audio[1],
+      id: "full" + lane,
+      lane,
+      start: 0,
+      end: 10,
+    })),
+  );
+  const capped = gestureEdit(d, "audio", "a", "move", 2, true);
+  assert.equal(capped.audio[0].start, 1);
+  assert.equal(capped.audio[0].lane, 0);
+});
+
+test("text and video overlays allow seven concurrent tracks and reject an eighth atomically", () => {
+  const d = fixture();
+  d.texts = Array.from({ length: 7 }, (_, i) => ({
+    id: "t" + i,
+    text: "Title",
+    start: 0,
+    end: 2,
+    x: 0.5,
+    y: 0.5,
+    size: 0.05,
+    color: "#ffffff",
+    background: "transparent",
+    font: "TikTok Sans",
+    outline: false,
+    animation: "none",
+  }));
+  validate(d);
+  assert.throws(
+    () =>
+      validate({ ...d, texts: [...d.texts, { ...d.texts[0], id: "eighth" }] }),
+    /7-track/,
+  );
+  d.overlays = Array.from({ length: 7 }, (_, i) => ({
+    id: "o" + i,
+    sourceIndex: 0,
+    sourceStart: 0,
+    start: 0,
+    end: 2,
+    x: 0.5,
+    y: 0.5,
+    width: 0.3,
+    opacity: 1,
+  }));
+  validate(d);
+  assert.throws(
+    () =>
+      validate({
+        ...d,
+        overlays: [...d.overlays, { ...d.overlays[0], id: "eighth" }],
+      }),
+    /7-track/,
+  );
+  assert.equal(d.texts.length, 7);
+  assert.equal(d.overlays.length, 7);
+});

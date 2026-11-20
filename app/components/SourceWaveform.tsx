@@ -6,14 +6,14 @@ async function readPeaks(url: string) {
   const response = await fetch(url);
   if (!response.ok) return [];
   const blob = await response.blob();
-  if (blob.size > 32 * 1024 * 1024) return [];
+  if (blob.size > 128 * 1024 * 1024) return [];
   const audio = await new OfflineAudioContext(1, 1, 8000).decodeAudioData(
     await blob.arrayBuffer(),
   );
   const channels = Array.from({ length: audio.numberOfChannels }, (_, i) =>
     audio.getChannelData(i),
   );
-  const step = Math.max(1, Math.ceil(audio.length / 512)),
+  const step = Math.max(1, Math.ceil(audio.length / 16384)),
     peaks: number[] = [];
   for (let offset = 0; offset < audio.length; offset += step) {
     let sum = 0;
@@ -54,12 +54,23 @@ export const SourceWaveform = memo(function SourceWaveform({
 }) {
   const host = useRef<HTMLSpanElement>(null);
   const [peaks, setPeaks] = useState<number[]>([]);
+  const [points, setPoints] = useState(256);
+  useEffect(() => {
+    if (!host.current) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setPoints(
+        Math.min(8192, Math.max(64, Math.ceil(entry.contentRect.width))),
+      ),
+    );
+    observer.observe(host.current);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (
       !url ||
       !host.current ||
       duration > 300 ||
-      (bytes ?? 0) > 32 * 1024 * 1024
+      (bytes ?? 0) > 128 * 1024 * 1024
     )
       return;
     let cancelled = false;
@@ -81,7 +92,7 @@ export const SourceWaveform = memo(function SourceWaveform({
   }, [url, bytes, duration]);
   const values = peaks.length
     ? Array.from(
-        { length: 128 },
+        { length: points },
         (_, i) =>
           peaks[
             Math.min(
@@ -89,7 +100,7 @@ export const SourceWaveform = memo(function SourceWaveform({
               Math.max(
                 0,
                 Math.floor(
-                  ((start + ((end - start) * i) / 128) / duration) *
+                  ((start + ((end - start) * i) / points) / duration) *
                     peaks.length,
                 ),
               ),
@@ -102,16 +113,14 @@ export const SourceWaveform = memo(function SourceWaveform({
       {!!values.length && (
         <svg
           className="source-waveform"
-          viewBox="0 0 512 28"
+          viewBox={`0 0 ${points} 28`}
+          data-points={points}
           preserveAspectRatio="none"
         >
           <path
-            d={values
-              .map((p, i) => `M${i * 4 + 1} 28v-${Math.max(0.5, p * 27)}`)
-              .join(" ")}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+            d={`M0 28 ${values.map((p, i) => `L${i} ${28 - Math.max(0.5, p * 27)}`).join(" ")} L${points} 28 Z`}
+            fill="currentColor"
+            stroke="none"
           />
         </svg>
       )}

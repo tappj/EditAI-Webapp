@@ -147,3 +147,15 @@ across cuts. Drive the playhead transform directly on animation frames, includin
 scrubbing, while keeping the app's text-time updates throttled. Apply logo-colored
 EditAI background, one-line Captions with a sparkle badge, Text inspector title,
 file sizes, and remove library notes/separators and the timeline options bar.
+
+## Text and precision controls — November 20, 2026
+
+Render trim handles only for selected items and remove the PREVIEW label. Edit text
+directly on the canvas; replace the round resize dot with compact corner/edge grips,
+persist text box height and width, and honor vertical fit during preview/export.
+Extract clip sound immediately through a source-range reference, retaining speed,
+volume and atomic undo while muting the original clip. No media job or blocking UI
+is needed. Increase waveform resolution and adapt its detail to zoom. Clicking the
+timeline moves the playhead, while only its cap captures dragging. Notifications
+expire automatically. Enforce bounded concurrent track allocation (audio 3, text 7,
+video overlays 7), retaining collision stops and deliberate continued-drag behavior.

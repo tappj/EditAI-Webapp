@@ -15,6 +15,7 @@ import { join, resolve, relative, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
 import { randomBytes, randomUUID } from "node:crypto";
+import { prepareMacInstallation } from "./mac-install.mjs";
 import { LocalStore, LocalBucket } from "./local-store.mjs";
 import { NativeVideo } from "./native-video.mjs";
 import { readVault, writeVault } from "./vault.mjs";
@@ -534,7 +535,14 @@ app.on("second-instance", () => {
 });
 app
   .whenReady()
-  .then(startDesktop)
+  .then(async () => {
+    if (
+      !process.env.PUBLIK_SELF_TEST &&
+      !(await prepareMacInstallation({ app, dialog, shell }))
+    )
+      return;
+    await startDesktop();
+  })
   .catch((error) => {
     console.error(
       "Desktop startup failed:",

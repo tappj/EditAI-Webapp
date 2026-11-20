@@ -211,7 +211,6 @@ test("large local media survives a browser reload and deletion removes its stora
       Number(await page.getByLabel("Timeline playhead").inputValue()),
     )
     .toBeGreaterThan(0.2);
-  await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.getByRole("button", { name: "My creations", exact: true }).click();
   page.once("dialog", (d) => d.accept());
   await page
@@ -1433,7 +1432,6 @@ test("same account resumes consent and playable local footage after repeated sig
         Number(await page.getByLabel("Timeline playhead").inputValue()),
       )
       .toBeGreaterThan(0.2);
-    await page.getByRole("button", { name: "Pause", exact: true }).click();
   }
   await page.getByRole("button", { name: "My creations", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -1692,9 +1690,15 @@ test("portrait thumbnails retain their aspect ratio and fill video clips; playba
         const image = new Image();
         image.src = getComputedStyle(el).backgroundImage.slice(5, -2);
         await image.decode();
-        return image.naturalWidth / image.naturalHeight;
+        return {
+          ratio: image.naturalWidth / image.naturalHeight,
+          height: image.naturalHeight,
+        };
       });
-    expect(ratio).toBeCloseTo(180 / 320, 1);
+    expect(ratio.ratio).toBeCloseTo(180 / 320, 1);
+    expect(ratio.height).toBeGreaterThanOrEqual(
+      selector.startsWith(".source-card") ? 300 : 160,
+    );
   }
   const clip = (await page.locator(".timeline-clip").boundingBox())!;
   const frames = (await page
@@ -1732,4 +1736,260 @@ test("portrait thumbnails retain their aspect ratio and fill video clips; playba
     path: "outputs/editor-refined-portrait.png",
     fullPage: true,
   });
+});
+
+test("Delete and Backspace remove selected clips, text and audio without deleting while typing", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await openStudio(page);
+  const buffer = await readFile(join(process.cwd(), "outputs/fixture.mp4"));
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles([
+      { name: "first.mp4", mimeType: "video/mp4", buffer },
+      { name: "second.mp4", mimeType: "video/mp4", buffer },
+    ]);
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await page.getByLabel("Caption text").fill("Typing stays safe");
+  await page.getByLabel("Caption text").press("Backspace");
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(1);
+  await page.locator(".text-row .sequence-item").click();
+  await page.keyboard.press("Delete");
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(0);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".text-row .sequence-item")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Audio workspace", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Import audio", exact: true })
+    .click({ noWaitAfter: true });
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles(join(process.cwd(), "outputs/music.wav"));
+  await page.locator(".audio-row .sequence-item").click();
+  await page.keyboard.press("Backspace");
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
+  const lastClip = (await page.locator(".timeline-clip").last().boundingBox())!;
+  await page.mouse.move(lastClip.x + 40, lastClip.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(lastClip.x - 30, lastClip.y + 30, { steps: 5 });
+  await expect(page.locator(".clip-drag-ghost")).toBeVisible();
+  await page.keyboard.press("Delete");
+  await expect(page.locator(".clip-drag-ghost")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await page.locator(".timeline-clip").click();
+  await page.keyboard.press("Delete");
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+});
+
+test("timeline drops import actual files and library sources; lifted reorder commits only inside and trim keeps frames fixed", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await authenticated(page);
+  await openStudio(page);
+  const buffer = await readFile(join(process.cwd(), "outputs/fixture.mp4"));
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles([
+      { name: "first.mp4", mimeType: "video/mp4", buffer },
+      { name: "second.mp4", mimeType: "video/mp4", buffer },
+    ]);
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  const names = () => page.locator(".timeline-clip > strong").allTextContents();
+  const first = (await page.locator(".timeline-clip").first().boundingBox())!;
+  const second = (await page.locator(".timeline-clip").last().boundingBox())!;
+  const beginDrag = async () => {
+    await page.mouse.move(first.x + 40, first.y + 35);
+    await page.mouse.down();
+    await page.mouse.move(second.x + second.width - 30, second.y + 35, {
+      steps: 8,
+    });
+    await expect(page.locator(".clip-drag-ghost")).toContainText("first.mp4");
+    await expect(page.locator(".timeline-drop-marker")).toBeVisible();
+    expect(await names()).toEqual(["first.mp4", "second.mp4"]);
+    await page.screenshot({
+      path: "outputs/editor-drag-lifted.png",
+      fullPage: true,
+    });
+  };
+  await beginDrag();
+  await page.mouse.move(700, 40);
+  await page.mouse.up();
+  await expect(page.locator(".clip-drag-ghost")).toHaveCount(0);
+  expect(await names()).toEqual(["first.mp4", "second.mp4"]);
+  await beginDrag();
+  await page.mouse.up();
+  await expect.poll(names).toEqual(["second.mp4", "first.mp4"]);
+  const clip = page.locator(".timeline-clip").first();
+  await expect(clip.locator(".clip-frames span").first()).toBeVisible();
+  const filmWidth = await clip
+    .locator(".frame-samples")
+    .evaluate((el) => el.getBoundingClientRect().width);
+  const grip = (await clip.locator(".trim-grip.end").boundingBox())!;
+  await page.mouse.move(grip.x + 4, grip.y + 35);
+  await page.mouse.down();
+  await page.mouse.move(grip.x - 35, grip.y + 35, { steps: 6 });
+  expect(
+    await clip
+      .locator(".frame-samples")
+      .evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeCloseTo(filmWidth, 1);
+  await page.mouse.up();
+  await page
+    .getByRole("button", { name: "Media workspace", exact: true })
+    .click();
+  const row = page.locator(".main-row");
+  await page
+    .locator(".source-card")
+    .first()
+    .dragTo(row, { targetPosition: { x: 125, y: 35 } });
+  await expect(page.locator(".timeline-clip")).toHaveCount(3);
+  const data = await page.evaluateHandle(
+    ({ bytes }) => {
+      const dt = new DataTransfer();
+      dt.items.add(
+        new File([new Uint8Array(bytes)], "desktop-import.mp4", {
+          type: "video/mp4",
+        }),
+      );
+      return dt;
+    },
+    { bytes: [...buffer] },
+  );
+  const bounds = (await row.boundingBox())!;
+  await row.dispatchEvent("dragover", {
+    dataTransfer: data,
+    clientX: bounds.x + 125,
+    clientY: bounds.y + 30,
+  });
+  await expect(page.locator(".timeline-drop-marker")).toBeVisible();
+  await row.dispatchEvent("drop", {
+    dataTransfer: data,
+    clientX: bounds.x + 125,
+    clientY: bounds.y + 30,
+  });
+  await expect(page.locator(".timeline-clip")).toHaveCount(4);
+  await expect(page.locator(".source-card")).toHaveCount(3);
+  expect(await names()).toContain("desktop-import.mp4");
+  await expect(page.locator(".source-card > small").first()).toHaveText(
+    /\d+(\.\d)? (KB|MB|B)/,
+  );
+  const audioBytes = await readFile(join(process.cwd(), "outputs/music.wav"));
+  const audioData = await page.evaluateHandle(
+    ({ bytes }) => {
+      const dt = new DataTransfer();
+      dt.items.add(
+        new File([new Uint8Array(bytes)], "desktop-sound.wav", {
+          type: "audio/wav",
+        }),
+      );
+      return dt;
+    },
+    { bytes: [...audioBytes] },
+  );
+  const audioRow = page.locator(".audio-row").first();
+  const audioBounds = (await audioRow.boundingBox())!;
+  await audioRow.dispatchEvent("drop", {
+    dataTransfer: audioData,
+    clientX: audioBounds.x + 125,
+    clientY: audioBounds.y + 20,
+  });
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await expect(page.locator(".audio-row .sequence-item")).toContainText(
+    "desktop-sound.wav",
+  );
+  await expect(page.locator(".sequence-options")).toHaveCount(0);
+  await expect(page.locator(".library-note")).toHaveCount(0);
+  await page.screenshot({
+    path: "outputs/editor-media-drop.png",
+    fullPage: true,
+  });
+});
+
+test("playback cursor moves at animation frame cadence and captions tool stays aligned on one line", async ({
+  page,
+}) => {
+  execFileSync("ffmpeg", [
+    "-v",
+    "error",
+    "-y",
+    "-stream_loop",
+    "15",
+    "-i",
+    "outputs/fixture.mp4",
+    "-t",
+    "60",
+    "-c",
+    "copy",
+    "outputs/cursor-fixture.mp4",
+  ]);
+  await authenticated(page);
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/cursor-fixture.mp4"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await expect(page.locator(".timeline-clip .clip-frames span")).toHaveCount(
+    12,
+  );
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  const positions = await page.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const positions: string[] = [];
+        function tick() {
+          positions.push(
+            (document.querySelector(".sequence-playhead") as HTMLElement).style
+              .transform,
+          );
+          if (positions.length >= 12) resolve(positions);
+          else requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }),
+  );
+
+  expect(new Set(positions).size).toBeGreaterThan(3);
+  expect(
+    new Set(positions).size,
+    `cursor advances across ${positions.length} browser animation frames`,
+  ).toBeGreaterThanOrEqual(Math.ceil(positions.length * 0.75));
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  const cursor = (await page
+    .locator(".sequence-playhead > span")
+    .boundingBox())!;
+  const oldTime = Number(
+    await page.getByLabel("Timeline playhead", { exact: true }).inputValue(),
+  );
+  await page.mouse.move(cursor.x + cursor.width / 2, cursor.y + 3);
+  await page.mouse.down();
+  await page.mouse.move(cursor.x + 70, cursor.y + 3, { steps: 8 });
+  await page.mouse.up();
+  expect(
+    Number(
+      await page.getByLabel("Timeline playhead", { exact: true }).inputValue(),
+    ),
+  ).toBeGreaterThan(oldTime);
+  const captions = page.getByRole("button", {
+    name: "Auto captions workspace",
+    exact: true,
+  });
+  await expect(captions.locator("span").last()).toHaveText("Captions");
+  await expect(captions.locator(".premium-sparkle")).toBeVisible();
+  const align = await page
+    .locator(".studio-tool-rail .tool-icon")
+    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
+  expect(Math.max(...align) - Math.min(...align)).toBeLessThan(2);
 });

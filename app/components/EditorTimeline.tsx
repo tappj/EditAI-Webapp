@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { createPortal } from "react-dom";
+import { insertionIndex, type MediaDrop } from "@/lib/editor/placement";
 import { Music, Plus, Subtitles, Layers, Film } from "lucide-react";
 import {
   duration,
@@ -48,7 +50,10 @@ type Props = {
   onChange: (doc: Document) => void;
   onAdd: () => void;
   onAddAudio: () => void;
-  onAddOverlay: () => void;
+  playing: boolean;
+  getPlaybackTime: () => number;
+  onSourceDrop: (id: string, drop: MediaDrop) => void;
+  onFilesDrop: (files: File[], drop: MediaDrop) => void;
   onAddText: () => void;
   onError: (error: unknown) => void;
 };
@@ -62,7 +67,10 @@ export function EditorTimeline({
   onChange,
   onAdd,
   onAddAudio,
-  onAddOverlay,
+  playing,
+  getPlaybackTime,
+  onSourceDrop,
+  onFilesDrop,
   onAddText,
   onError,
 }: Props) {
@@ -76,6 +84,18 @@ export function EditorTimeline({
     base: Document;
     id: string;
   } | null>(null);
+  const [dragView, setDragView] = useState<{
+    id: string;
+    track: Track;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    marker: number;
+    valid: boolean;
+  } | null>(null);
+  const [dropView, setDropView] = useState<MediaDrop | null>(null);
+  const cursor = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const gesture = useRef<{
@@ -84,11 +104,33 @@ export function EditorTimeline({
     id: string;
     mode: "start" | "end" | "move";
     x: number;
+    y: number;
+    width: number;
+    height: number;
+    offset: number;
     scroll: number;
     latest: Document | null;
   } | null>(null);
+  useEffect(() => {
+    const cancel = () => {
+      if (!gesture.current) return;
+      gesture.current = null;
+      setDraft(null);
+      setTrimPreview(null);
+      setDragView(null);
+    };
+    const key = (event: KeyboardEvent) => {
+      if (["Delete", "Backspace", "Escape"].includes(event.key)) cancel();
+    };
+    window.addEventListener("keydown", key);
+    window.addEventListener("blur", cancel);
+    return () => {
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("blur", cancel);
+    };
+  }, []);
   const shown = draft || doc,
-    total = duration(shown);
+    total = duration(draft && trimPreview ? trimPreview.base : shown);
   const textTracks = useMemo(() => captionTracks(shown), [shown]);
   const firstDuration = useRef(duration(doc));
   useEffect(() => {
@@ -164,25 +206,72 @@ export function EditorTimeline({
   }, []);
   const pixels = zoom,
     width = Math.max(300, total * pixels);
+  const stationaryTime = playing ? 0 : playhead;
   useEffect(() => {
-    const el = viewport.current;
-    if (!el || gesture.current) return;
-    const x = TRACK_HEADER + playhead * pixels;
-    if (
-      x < el.scrollLeft + TRACK_HEADER ||
-      x > el.scrollLeft + el.clientWidth - 24
-    )
-      el.scrollLeft = Math.max(0, x - TRACK_HEADER - el.clientWidth / 3);
-  }, [playhead, pixels]);
-  function seek(e: PointerEvent<HTMLElement>) {
-    const rect = content.current!.getBoundingClientRect();
-    onSeek(
-      Math.max(
-        0,
-        Math.min(total, (e.clientX - rect.left - TRACK_HEADER) / pixels),
+    let frame = 0;
+    function paint(time: number) {
+      const el = viewport.current;
+      const x = TRACK_HEADER + Math.min(time, total) * pixels;
+      if (cursor.current)
+        cursor.current.style.transform = `translate3d(${x}px,0,0)`;
+      if (
+        el &&
+        !gesture.current &&
+        playing &&
+        x > el.scrollLeft + el.clientWidth - 24
+      )
+        el.scrollLeft = Math.max(0, x - el.clientWidth + 24);
+    }
+    paint(playing ? getPlaybackTime() : stationaryTime);
+    if (playing) {
+      const tick = () => {
+        paint(getPlaybackTime());
+        frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    }
+    return () => cancelAnimationFrame(frame);
+  }, [stationaryTime, pixels, playing, getPlaybackTime, total]);
+  function dropAt(e: {
+    clientX: number;
+    target: EventTarget | null;
+  }): MediaDrop {
+    const row = (e.target as HTMLElement).closest<HTMLElement>("[data-track]");
+    const track = row?.dataset.track;
+    const time = Math.max(
+      0,
+      Math.min(
+        total,
+        (e.clientX -
+          content.current!.getBoundingClientRect().left -
+          TRACK_HEADER) /
+          pixels,
       ),
     );
+    return {
+      track: track === "audio" || track === "overlays" ? track : "segments",
+      time,
+    };
   }
+  function markerTime(drop: MediaDrop) {
+    return drop.track === "segments"
+      ? doc.segments
+          .slice(0, insertionIndex(doc, drop.time))
+          .reduce((n, s) => n + segmentDuration(s), 0)
+      : drop.time;
+  }
+
+  function seek(e: PointerEvent<HTMLElement>) {
+    const rect = content.current!.getBoundingClientRect();
+    const time = Math.max(
+      0,
+      Math.min(total, (e.clientX - rect.left - TRACK_HEADER) / pixels),
+    );
+    if (cursor.current)
+      cursor.current.style.transform = `translate3d(${TRACK_HEADER + time * pixels}px,0,0)`;
+    onSeek(time);
+  }
+
   function begin(
     e: PointerEvent<HTMLElement>,
     track: Track,
@@ -194,7 +283,7 @@ export function EditorTimeline({
     e.currentTarget.setPointerCapture(e.pointerId);
     onSelect(track, id);
     setTrimPreview(
-      track === "segments" && mode === "start" ? { base: doc, id } : null,
+      track === "segments" && mode !== "move" ? { base: doc, id } : null,
     );
     gesture.current = {
       base: doc,
@@ -202,6 +291,13 @@ export function EditorTimeline({
       id,
       mode,
       x: e.clientX,
+      y: e.clientY,
+      width: Math.min(400, e.currentTarget.getBoundingClientRect().width),
+      height: e.currentTarget.getBoundingClientRect().height,
+      offset: Math.min(
+        200,
+        e.clientX - e.currentTarget.getBoundingClientRect().left,
+      ),
       scroll: viewport.current?.scrollLeft || 0,
       latest: null,
     };
@@ -214,10 +310,47 @@ export function EditorTimeline({
     if (e.clientX > rect.right - 32) el.scrollLeft += 12;
     if (e.clientX < rect.left + TRACK_HEADER + 24) el.scrollLeft -= 12;
     const dx = e.clientX - g.x + el.scrollLeft - g.scroll;
-    if (Math.abs(dx) < 3) return;
+    if (Math.hypot(dx, e.clientY - g.y) < 3) return;
     try {
       g.latest = gestureEdit(g.base, g.track, g.id, g.mode, dx / pixels);
-      setDraft(g.latest);
+      if (g.mode === "move") {
+        let marker = 0;
+        if (g.track === "segments") {
+          const index = g.latest.segments.findIndex((s) => s.id === g.id);
+          const next = g.latest.segments[index + 1];
+          marker = next
+            ? g.base.segments
+                .slice(
+                  0,
+                  g.base.segments.findIndex((s) => s.id === next.id),
+                )
+                .reduce((n, s) => n + segmentDuration(s), 0)
+            : duration(g.base);
+        } else marker = g.latest[g.track].find((x) => x.id === g.id)!.start;
+        setDragView({
+          id: g.id,
+          track: g.track,
+          x: Math.max(
+            8,
+            Math.min(
+              innerWidth - g.width - 8,
+              e.clientX - Math.min(g.offset, g.width / 2),
+            ),
+          ),
+          y: Math.max(
+            8,
+            Math.min(innerHeight - g.height - 8, e.clientY - g.height / 2),
+          ),
+          width: g.width,
+          height: g.height,
+          marker,
+          valid:
+            e.clientX >= rect.left + TRACK_HEADER &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom,
+        });
+      } else setDraft(g.latest);
     } catch {
       /* Keep the last valid document during constrained drags. */
     }
@@ -226,7 +359,21 @@ export function EditorTimeline({
     const g = gesture.current;
     gesture.current = null;
     setDraft(null);
-    if (g?.latest && e.type !== "pointercancel") onChange(g.latest);
+    setDragView(null);
+    setTrimPreview(null);
+    const rect = viewport.current!.getBoundingClientRect();
+    const inside =
+      e.clientX >= rect.left + (g?.mode === "move" ? TRACK_HEADER : 0) &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom;
+    if (
+      g?.latest &&
+      g.base === doc &&
+      e.type !== "pointercancel" &&
+      (g.mode !== "move" || inside)
+    )
+      onChange(g.latest);
   }
   function clip(
     track: Track,
@@ -241,7 +388,7 @@ export function EditorTimeline({
         role="button"
         tabIndex={0}
         aria-label={`${track === "segments" ? "Clip" : track} ${name}`}
-        className={`sequence-item ${track === "segments" ? "timeline-clip" : "layer-clip"} ${selected === id ? "selected" : ""}`}
+        className={`sequence-item ${track === "segments" ? "timeline-clip" : "layer-clip"} ${selected === id ? "selected" : ""} ${dragView?.id === id ? "drag-origin" : ""}`}
         style={{
           left: TRACK_HEADER + start * pixels,
           width: Math.max(3, (end - start) * pixels),
@@ -252,6 +399,7 @@ export function EditorTimeline({
         onPointerCancel={() => {
           gesture.current = null;
           setDraft(null);
+          setDragView(null);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -286,6 +434,9 @@ export function EditorTimeline({
             return (
               <ClipFrames
                 url={urls[source.id]}
+                duration={source.duration}
+                speed={s.speed ?? 1}
+                pixelsPerSecond={pixels}
                 start={"sourceStart" in s ? s.sourceStart : s.start}
                 end={
                   "sourceStart" in s
@@ -326,6 +477,8 @@ export function EditorTimeline({
             onPointerCancel={() => {
               gesture.current = null;
               setDraft(null);
+              setDragView(null);
+              setTrimPreview(null);
             }}
             onKeyDown={(e) => {
               if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
@@ -360,16 +513,34 @@ export function EditorTimeline({
   const step = pixels < 20 ? 10 : pixels < 50 ? 5 : pixels < 100 ? 2 : 1;
   return (
     <div className="sequence-editor">
-      <div className="sequence-options">
-        <button className="track-import text-button" onClick={onAddOverlay}>
-          <Layers size={14} />
-          Add overlay
-        </button>
-        <span>
-          Pinch to zoom · drag edges to trim <kbd>S</kbd> Split
-        </span>
-      </div>
-      <div className="sequence-viewport" ref={viewport}>
+      <div
+        className="sequence-viewport"
+        ref={viewport}
+        onDragOver={(e) => {
+          if (
+            !e.dataTransfer.types.includes("Files") &&
+            !e.dataTransfer.types.includes("application/x-editai-source")
+          )
+            return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          setDropView(dropAt(e));
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+            setDropView(null);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const drop = dropAt(e);
+          setDropView(null);
+          const id = e.dataTransfer.getData("application/x-editai-source");
+          if (id) onSourceDrop(id, drop);
+          else if (e.dataTransfer.files.length)
+            onFilesDrop([...e.dataTransfer.files], drop);
+        }}
+      >
         <div
           className="sequence-content"
           ref={content}
@@ -398,7 +569,11 @@ export function EditorTimeline({
           </div>
           {textTracks.length ? (
             textTracks.map((row, i) => (
-              <div className="sequence-row text-row" key={"text" + i}>
+              <div
+                data-track="texts"
+                className="sequence-row text-row"
+                key={"text" + i}
+              >
                 <div className="track-label">
                   <Subtitles size={16} />
                   <span>{row.name}</span>
@@ -409,7 +584,7 @@ export function EditorTimeline({
               </div>
             ))
           ) : (
-            <div className="sequence-row text-row">
+            <div data-track="texts" className="sequence-row text-row">
               <div className="track-label">
                 <Subtitles size={16} />
                 <span>Captions</span>
@@ -424,7 +599,11 @@ export function EditorTimeline({
               </button>
             </div>
           )}
-          <div className="sequence-row main-row" aria-label="Video track">
+          <div
+            data-track="segments"
+            className="sequence-row main-row"
+            aria-label="Video track"
+          >
             <div className="track-label">
               <Film size={16} />
               <span>
@@ -440,7 +619,7 @@ export function EditorTimeline({
                   (leftTrim?.id === s.id && original
                     ? (s.start - original.start) / s.speed
                     : 0),
-                offset = offsets[i + 1];
+                offset = start + segmentDuration(s);
               return clip(
                 "segments",
                 s.id,
@@ -460,7 +639,11 @@ export function EditorTimeline({
             </button>
           </div>
           {shown.overlays.map((o) => (
-            <div key={o.id} className="sequence-row overlay-row">
+            <div
+              key={o.id}
+              data-track="overlays"
+              className="sequence-row overlay-row"
+            >
               <div className="track-label">
                 <Layers size={16} />
                 <span>Overlay</span>
@@ -481,6 +664,7 @@ export function EditorTimeline({
             .map((lane) => (
               <div
                 key={lane}
+                data-track="audio"
                 className="sequence-row audio-row"
                 aria-label={`Audio lane ${lane + 1}`}
               >
@@ -513,12 +697,33 @@ export function EditorTimeline({
               </div>
             ))}
           <div
+            ref={cursor}
             className="sequence-playhead"
             data-testid="timeline-cursor"
-            style={{ left: TRACK_HEADER + Math.min(playhead, total) * pixels }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              seek(e);
+            }}
+            onPointerMove={(e) => {
+              if (e.buttons === 1) seek(e);
+            }}
+            style={{ left: 0 }}
           >
             <span />
           </div>
+          {(dropView || dragView?.valid) && (
+            <div
+              className="timeline-drop-marker"
+              style={{
+                left:
+                  TRACK_HEADER +
+                  (dropView ? markerTime(dropView) : dragView!.marker) * pixels,
+              }}
+            >
+              <span>{dropView ? "Drop media" : "Drop here"}</span>
+            </div>
+          )}
           <input
             className="sequence-seek"
             style={{ left: TRACK_HEADER, width: total * pixels }}
@@ -531,7 +736,45 @@ export function EditorTimeline({
             onChange={(e) => onSeek(+e.target.value)}
           />
         </div>
-      </div>
+      </div>{" "}
+      {dragView &&
+        createPortal(
+          <div
+            className={`clip-drag-ghost ${dragView.valid ? "" : "invalid"}`}
+            style={{
+              left: dragView.x,
+              top: dragView.y,
+              width: dragView.width,
+              height: dragView.height,
+            }}
+          >
+            {(() => {
+              const item = doc[dragView.track].find(
+                (x) => x.id === dragView.id,
+              )!;
+              if (!item) return null;
+              if ("sourceIndex" in item) {
+                const source = doc.sources[item.sourceIndex];
+                return (
+                  <>
+                    {source.kind !== "audio" && (
+                      <ClipFrames
+                        library
+                        url={urls[source.id]}
+                        start={0}
+                        end={source.duration}
+                        image={source.kind === "image"}
+                      />
+                    )}
+                    <strong>{source.name}</strong>
+                  </>
+                );
+              }
+              return <strong>{"text" in item ? item.text : "Layer"}</strong>;
+            })()}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

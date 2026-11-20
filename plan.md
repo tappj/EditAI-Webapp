@@ -134,3 +134,16 @@ speed/placement/volume on a separate audio lane while muting its video. Audio pe
 extend upward from a single baseline. Flush project state before leaving the editor
 so returning immediately to My creations cannot reopen an older edit. Normalize
 Shift+Z for keyboard redo. Home and Edits appearance remain unchanged.
+
+## Direct media editing — November 20, 2026
+
+Add Delete/Backspace for selected timeline items with typing/modal guards and the
+existing final-clip safety rule. Library media and real desktop files can be dropped
+onto timeline rows; validate placement, insert at clip boundaries and preserve source
+word IDs. Reordering lifts a named thumbnail ghost with an insertion marker, commits
+only on an inside drop and cancels outside. Trims mask a source-wide fixed filmstrip
+and close the gap on release. Share bounded, higher-resolution thumbnail samples
+across cuts. Drive the playhead transform directly on animation frames, including
+scrubbing, while keeping the app's text-time updates throttled. Apply logo-colored
+EditAI background, one-line Captions with a sparkle badge, Text inspector title,
+file sizes, and remove library notes/separators and the timeline options bar.

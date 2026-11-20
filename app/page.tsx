@@ -99,6 +99,7 @@ import {
   mediaBlob,
   type MediaResource,
 } from "@/lib/editor/desktop";
+import { placeSource, type MediaDrop } from "@/lib/editor/placement";
 import { FontPreviewPicker } from "./components/FontPreviewPicker";
 import { makeReference, type Reference } from "@/lib/editor/reference";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
@@ -255,6 +256,7 @@ export default function App({
   const replacingAudio = useRef<string | null>(null);
   projectRef.current = project;
   urlsRef.current = urls;
+  const getPlaybackTime = useCallback(() => player.current?.time || 0, []);
   const [reference, setReference] = useState<Reference | null>(null);
   const referenceInput = useRef<HTMLInputElement>(null);
   const avatarInput = useRef<HTMLInputElement>(null);
@@ -538,6 +540,16 @@ export default function App({
         privacy
       )
         return;
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        deleteSelection();
+        return;
+      }
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
@@ -647,55 +659,55 @@ export default function App({
     setSelectedLayer({ track: "texts", id: t.id });
     setTool("captions");
   }
-  function addLibrarySource(index: number) {
+  function addLibrarySource(index: number, drop?: MediaDrop) {
     if (!doc) return;
     try {
-      patch((d) => {
-        const source = d.sources[index],
-          start = Math.min(playhead, total - 0.1);
-        if (editorPanel === "audio" || source.kind === "audio") {
-          const end = Math.min(total, start + source.duration);
-          const lane = [0, 1, 2].find(
-            (l) =>
-              !d.audio.some(
-                (a) => a.lane === l && a.start < end && a.end > start,
-              ),
+      const track =
+        editorPanel === "audio"
+          ? "audio"
+          : editorPanel === "overlays"
+            ? "overlays"
+            : "segments";
+      change(
+        placeSource(
+          structuredClone(doc),
+          index,
+          drop || { track, time: track === "segments" ? total : playhead },
+        ),
+      );
+    } catch (e) {
+      fail(e);
+    }
+  }
+  function deleteSelection() {
+    if (!doc) return;
+    try {
+      if (selectedLayer && selectedLayer.track !== "segments") {
+        change(
+          layerAction(
+            doc,
+            selectedLayer.track,
+            selectedLayer.id,
+            "delete",
+            playhead,
+          ),
+        );
+        setSelectedLayer(null);
+        setSelectedText("");
+      } else if (segment) {
+        if (doc.segments.length <= 1) {
+          setNotice(
+            "Keep at least one video clip in your edit. Add another clip before deleting this one.",
           );
-          if (lane == null)
-            throw Error(
-              "All three audio tracks are occupied here. Move or trim a sound first.",
-            );
-          d.audio.push({
-            id: crypto.randomUUID(),
-            sourceIndex: index,
-            sourceStart: 0,
-            start,
-            end,
-            lane,
-            volume: 0.7,
-            fadeIn: 0,
-            fadeOut: 0,
-          });
-        } else if (editorPanel === "overlays")
-          d.overlays.push({
-            id: crypto.randomUUID(),
-            sourceIndex: index,
-            sourceStart: 0,
-            start,
-            end: Math.min(
-              total,
-              start + (source.kind === "image" ? 3 : source.duration),
-            ),
-            x: 0.5,
-            y: 0.5,
-            width: 0.5,
-            opacity: 1,
-          });
-        else
-          d.segments.push(
-            newSegment(index, source.kind === "image" ? 3 : source.duration),
-          );
-      });
+          return;
+        }
+        const copy = structuredClone(doc);
+        copy.segments = copy.segments.filter((s) => s.id !== segment.id);
+        change(copy);
+        setSelected(copy.segments[0].id);
+        setSelectedLayer(null);
+        setSelectedText("");
+      }
     } catch (e) {
       fail(e);
     }
@@ -974,9 +986,9 @@ export default function App({
     if (!r.ok)
       throw Error(((await r.json()) as any).error || "Cloud backup failed.");
   }
-  async function addMedia(files: File[]) {
+  async function addMedia(files: File[], drop?: MediaDrop) {
     if (!doc) return;
-    const replacement = replacingAudio.current;
+    const replacement = drop ? null : replacingAudio.current;
     if (replacement && files.length !== 1) {
       replacingAudio.current = null;
       fail(Error("Choose one file to replace this sound."));
@@ -984,6 +996,7 @@ export default function App({
     }
     await run("Adding media", async () => {
       const placement = Math.min(playhead, total - 0.1);
+      let dropTime = drop?.time || 0;
       const next = { ...urls },
         d = structuredClone(doc);
       const media: { id: string; file: File; mime: string }[] = [];
@@ -998,6 +1011,18 @@ export default function App({
           : URL.createObjectURL(f);
         const i = d.sources.length;
         d.sources.push(s);
+        if (drop) {
+          placeSource(d, i, { ...drop, time: dropTime });
+          if (drop.track === "segments" && s.kind !== "audio") {
+            const inserted = d.segments.findIndex(
+              (segment) => segment.sourceIndex === i,
+            );
+            dropTime = d.segments
+              .slice(0, inserted + 1)
+              .reduce((sum, segment) => sum + segmentDuration(segment), 0);
+          }
+          continue;
+        }
         if (mediaKind.current === "clip") {
           if (s.kind === "audio")
             throw Error(
@@ -2060,7 +2085,14 @@ export default function App({
               </main>
             )}
             {screen === "editor" && doc && (
-              <div className="editor">
+              <div
+                className="editor"
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes("Files"))
+                    e.preventDefault();
+                }}
+                onDrop={(e) => e.preventDefault()}
+              >
                 <div className="editor-top">
                   <span className="studio-wordmark">
                     <Wordmark />
@@ -2131,7 +2163,7 @@ export default function App({
                         { id: "text", label: "Text", icon: Type },
                         {
                           id: "captions",
-                          label: "Auto captions",
+                          label: "Captions",
                           icon: Subtitles,
                         },
                         { id: "overlays", label: "Overlays", icon: Layers },
@@ -2148,7 +2180,9 @@ export default function App({
                           aria-label={
                             item.id === "chat"
                               ? "Open EditAI chat"
-                              : item.label + " workspace"
+                              : item.id === "captions"
+                                ? "Auto captions workspace"
+                                : item.label + " workspace"
                           }
                           title={
                             item.label === "EditAI"
@@ -2203,7 +2237,16 @@ export default function App({
                             }
                           }}
                         >
-                          <item.icon size={20} />
+                          <span className="tool-icon">
+                            <item.icon size={20} />
+                            {item.id === "captions" && (
+                              <Sparkles
+                                className="premium-sparkle"
+                                size={9}
+                                aria-hidden="true"
+                              />
+                            )}
+                          </span>
                           <span>{item.label}</span>
                         </button>
                       ))}
@@ -2495,7 +2538,7 @@ export default function App({
                     {tool === "captions" ? (
                       <>
                         <div className="section-heading">
-                          <h3>Captions & text</h3>
+                          <h3>Text</h3>
                           <IconButton label="Add text" onClick={addTextLayer}>
                             <Plus size={17} />
                           </IconButton>
@@ -3064,28 +3107,7 @@ export default function App({
                             selectedLayer.track === "segments") &&
                           doc.segments.length <= 1
                         }
-                        onClick={() => {
-                          if (
-                            selectedLayer &&
-                            selectedLayer.track !== "segments"
-                          ) {
-                            change(
-                              layerAction(
-                                doc,
-                                selectedLayer.track,
-                                selectedLayer.id,
-                                "delete",
-                                playhead,
-                              ),
-                            );
-                            setSelectedLayer(null);
-                          } else
-                            patch((d) => {
-                              d.segments = d.segments.filter(
-                                (s) => s.id !== segment?.id,
-                              );
-                            });
-                        }}
+                        onClick={deleteSelection}
                       >
                         <Trash2 size={17} />
                       </IconButton>
@@ -3134,10 +3156,13 @@ export default function App({
                       extraInput.current?.click();
                     }}
                     onAddText={addTextLayer}
-                    onAddOverlay={() => {
-                      mediaKind.current = "overlay";
-                      extraInput.current?.click();
+                    playing={playing}
+                    getPlaybackTime={getPlaybackTime}
+                    onSourceDrop={(id, drop) => {
+                      const index = doc.sources.findIndex((s) => s.id === id);
+                      if (index >= 0) addLibrarySource(index, drop);
                     }}
+                    onFilesDrop={(files, drop) => void addMedia(files, drop)}
                     onChange={change}
                     onError={fail}
                     onAdd={() => {
@@ -3743,18 +3768,20 @@ export default function App({
               <dt>Zoom timeline</dt>
               <dd>
                 Pinch on your trackpad. Scroll sideways to move through the
-                edit.
+                edit. Drag source library media or files from your desktop onto
+                a timeline row to add them.
               </dd>
               <dt>Move / trim</dt>
               <dd>
-                Drag a clip to move it; drag its edges to shorten or restore
+                Drag a clip to an insertion marker and release to move it. Drop
+                outside the timeline to cancel. Drag edges to shorten or restore
                 footage. Use arrow keys on an edge for precise trims; Alt +
                 arrow moves a focused layer.
               </dd>
               <dt>Duplicate / delete</dt>
               <dd>
-                Select a clip or layer, then use the timeline toolbar. The final
-                video clip is protected.
+                Select a clip or layer, then press Delete / Backspace or use the
+                timeline toolbar. The final video clip is protected.
               </dd>
               <dt>Audio</dt>
               <dd>

@@ -393,3 +393,55 @@ and fallback-copy refinement passes all three targeted layout, extraction and
 portrait checks in each browser after a fresh build/server restart. Portrait/source-strip and text-style
 screenshots are inspected under ignored outputs/. UI component lint has no errors;
 the pre-existing Wordmark img performance advisory remains.
+
+## Direct media editing — November 20, 2026
+
+Delete and Backspace share the toolbar's deletion action for selected main clips,
+text, overlays and audio. Typing fields, modal dialogs and active operations keep
+their own keyboard handling. The final main clip remains protected. Drag cancellation
+handles Escape, deletion, window blur, pointer cancellation and outside drops; a
+stale drag cannot overwrite a later document edit.
+
+Source cards carry project-local source IDs through native drag data. Timeline
+rows accept these or real File objects from the OS. Video/images insert at the
+nearest clip boundary, sound enters a free audio lane, and overlay-row drops place
+overlays. Multi-file insertion advances from the actual inserted boundary. The new
+placement helper validates complete documents, respects source/media bounds and
+does not rewrite existing source word IDs. Existing ingestion, persistence and
+cloud backup paths handle external files; there is no fake upload or auth bypass.
+
+Reordering renders a lifted thumbnail/name ghost and insertion marker while the
+original row remains in place. Only an inside release commits the reorder; outside
+returns to the original. Main trims mask/offset fixed source-wide filmstrips rather
+than shrinking images or re-sampling the trimmed range. Adjacent clips close the
+gap on release. Frames are lazily shared per source/range to avoid duplicate decode
+jobs across many cuts; the cache holds at most 48 completed sets. Library samples
+use original proportions up to 1280x720, timeline samples up to 164px high, JPEG .9,
+and 12 source-wide samples; static images keep their original URL.
+
+Playhead position uses a compositor transform updated on browser animation frames
+from the real player's clock, independently of the 100ms app time-label updates.
+The cursor itself can be grabbed to scrub; pointer seeks paint its position directly.
+This follows available browser frame cadence rather than promising a device FPS.
+The new cadence test samples 12 actual browser frames with a longer real clip;
+storage/resume checks navigate away to pause rather than racing a short clip's end.
+
+Visual changes: pastel logo-colored EditAI button background, aligned one-line
+Captions label with a small sparkle, Text inspector heading, actual file size below
+source names, centered append icon, no source note/separator, and no timeline options
+bar. Home and Edits appearance remain unchanged. Ignored screenshots include
+outputs/editor-drag-lifted.png and outputs/editor-media-drop.png.
+
+Typecheck, 22 model/security tests, 12 desktop checks, both production builds and
+lint on the changed editor components/placement helper pass. Browser tests cover
+keyboard deletion/typing isolation, drag cancellation/reorder commit, fixed filmstrip
+width during trims, library drag, real video/audio File drops, frame cadence and
+caption-tab alignment, alongside existing real exports and account persistence.
+Provider/authentication fixtures remain explicit; these checks do not establish
+fresh real Publik connectivity. Shared desktop source is updated; the public signed
+installer remains 0.2.2.
+
+Full studio regression: Chromium 30/30 (49.3s), WebKit 30/30 (2.1m). Final drag
+cancellation guards pass four focused checks in Chromium (6.0s) and WebKit (27.4s)
+after the final production rebuild, including Delete during a lifted drag followed
+by mouse release without resurrecting the deleted clip.

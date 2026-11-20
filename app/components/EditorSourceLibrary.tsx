@@ -11,6 +11,12 @@ import {
 import type { Document } from "@/lib/editor/model";
 import { Button } from "./ui";
 import { ClipFrames } from "./ClipFrames";
+function fileSize(bytes?: number) {
+  if (bytes == null) return "Size unavailable";
+  if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  return bytes >= 1000 ? `${(bytes / 1000).toFixed(1)} KB` : `${bytes} B`;
+}
 export function EditorSourceLibrary({
   doc,
   urls,
@@ -97,13 +103,26 @@ export function EditorSourceLibrary({
             doc.audio.some((c) => c.sourceIndex === index) ||
             doc.overlays.some((c) => c.sourceIndex === index);
           return (
-            <div className="source-item source-card" key={s.id}>
+            <div
+              className="source-item source-card"
+              key={s.id}
+              draggable
+              onDragStart={(e) => {
+                if ((e.target as HTMLElement).closest("button")) {
+                  e.preventDefault();
+                  return;
+                }
+                e.dataTransfer.effectAllowed = "copy";
+                e.dataTransfer.setData("application/x-editai-source", s.id);
+              }}
+            >
               <div className={`source-preview ${s.kind}`}>
                 {s.kind !== "audio" ? (
                   <ClipFrames
+                    library
                     url={urls[s.id]}
                     start={0}
-                    end={Math.min(s.duration, 3)}
+                    end={s.duration}
                     image={s.kind === "image"}
                   />
                 ) : (
@@ -141,13 +160,7 @@ export function EditorSourceLibrary({
                 </button>
               </div>
               <strong title={s.name}>{s.name}</strong>
-              <small>
-                {s.kind === "image"
-                  ? `${s.width} × ${s.height}`
-                  : s.kind === "audio"
-                    ? "Audio source"
-                    : `${s.width} × ${s.height}`}
-              </small>
+              <small>{fileSize(s.bytes)}</small>
             </div>
           );
         })}
@@ -166,9 +179,6 @@ export function EditorSourceLibrary({
           </button>
         </div>
       )}
-      <p className="panel-note library-note">
-        Your original files stay intact. Add a source to the timeline with +.
-      </p>
     </div>
   );
 }

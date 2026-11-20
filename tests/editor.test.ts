@@ -322,3 +322,41 @@ test("global caption defaults survive regeneration and audio mute retains volume
   assert.equal(restored.audio[0].muted, false);
   assert.equal(restored.audio[0].volume, 0.3);
 });
+
+test("library placement inserts at clip boundaries and routes sound without changing source words", async () => {
+  const { placeSource } = await import("../lib/editor/placement.ts");
+  const d = fixture();
+  const ids = d.words.map((w) => w.id);
+  d.sources.push({
+    ...d.sources[0],
+    id: crypto.randomUUID(),
+    name: "second.mp4",
+    duration: 3,
+  });
+  placeSource(d, 1, { track: "segments", time: 0 });
+  assert.equal(d.segments[0].sourceIndex, 1);
+  assert.equal(duration(d), 13);
+  assert.deepEqual(
+    d.words.map((w) => w.id),
+    ids,
+  );
+  d.sources.push({
+    id: crypto.randomUUID(),
+    name: "sound.wav",
+    kind: "audio",
+    mime: "audio/wav",
+    duration: 2,
+    width: 0,
+    height: 0,
+  });
+  placeSource(d, 2, { track: "segments", time: 1 });
+  assert.equal(d.audio[0].start, 1);
+  assert.equal(d.audio[0].end, 3);
+  assert.equal(d.segments.length, 2);
+  placeSource(d, 1, { track: "overlays", time: 12 });
+  assert.equal(d.overlays[0].end, 13);
+  assert.throws(
+    () => placeSource(structuredClone(d), 99, { track: "segments", time: 0 }),
+    /no longer/,
+  );
+});

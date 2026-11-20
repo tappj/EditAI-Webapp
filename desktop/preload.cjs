@@ -28,3 +28,17 @@ contextBridge.exposeInMainWorld("publikGate", {
     return () => ipcRenderer.removeListener("gate:screen", fn);
   },
 });
+
+// Native controls stay above this safe draggable area; web pages do not opt in.
+window.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    document.documentElement.dataset.desktopPlatform = process.platform;
+    if (process.platform !== "darwin") return;
+    const drag = document.createElement("div");
+    drag.className = "desktop-window-drag";
+    drag.setAttribute("aria-hidden", "true");
+    document.body.append(drag);
+  },
+  { once: true },
+);

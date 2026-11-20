@@ -16,8 +16,8 @@ try {
   const dir = resolve("desktop/release");
   const app = join(dir, "mac-arm64/EditAI.app");
   const archive = join(app, "Contents/Resources/app.asar");
-  const dmg = join(dir, "EditAI-0.2.3-mac-arm64.dmg");
-  const zip = join(dir, "EditAI-0.2.3-mac-arm64.zip");
+  const dmg = join(dir, "EditAI-0.2.4-mac-arm64.dmg");
+  const zip = join(dir, "EditAI-0.2.4-mac-arm64.zip");
   const zipBlockmap = zip + ".blockmap";
   const source = resolve("outputs/EditAI-0.2.0-native-corresponding-source.tar.xz");
   const native = JSON.parse(await readFile("desktop/bin/native-build.json", "utf8"));
@@ -48,10 +48,10 @@ try {
   // Match its ZIP-first update-info schema; the signed DMG is a manual download only.
   const zipSha512 = await sha(zip, "sha512", "base64");
   const zipSize = (await stat(zip)).size;
-  const name = "EditAI-0.2.3-mac-arm64.zip";
+  const name = "EditAI-0.2.4-mac-arm64.zip";
   await writeFile(join(dir, "latest-mac.yml"),
-    `version: 0.2.3\nfiles:\n  - url: ${name}\n    sha512: ${zipSha512}\n    size: ${zipSize}\npath: ${name}\nsha512: ${zipSha512}\nreleaseDate: '${new Date().toISOString()}'\n`);
-  const files = [name, name + ".blockmap", "EditAI-0.2.3-mac-arm64.dmg", "latest-mac.yml"];
+    `version: 0.2.4\nfiles:\n  - url: ${name}\n    sha512: ${zipSha512}\n    size: ${zipSize}\npath: ${name}\nsha512: ${zipSha512}\nreleaseDate: '${new Date().toISOString()}'\n`);
+  const files = [name, name + ".blockmap", "EditAI-0.2.4-mac-arm64.dmg", "latest-mac.yml"];
   const artifactSha256 = {};
   for (const file of files) artifactSha256[file] = await sha(join(dir, file));
   const report = {
@@ -64,7 +64,7 @@ try {
     gatekeeper: true,
     publikSelfTest: run(join(app, "Contents/MacOS/EditAI"), [], {
       env: { ...process.env, PUBLIK_SELF_TEST: "1", DO_NOT_TRACK: "1", PUBLIK_TELEMETRY: "false" },
-    }).includes("publik self-test: ok editai-desktop 0.2.3"),
+    }).includes("publik self-test: ok editai-desktop 0.2.4"),
     ciDmgRun: process.env.EDITAI_DMG_CI_RUN_ID || null,
     artifacts: files,
   };

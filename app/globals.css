@@ -2771,3 +2771,56 @@ progress {
 .is-editor .mobile-menu {
   display: none;
 }
+
+/* macOS content extends under the native traffic lights, without an OS title strip. */
+html[data-desktop-platform="darwin"] .desktop-window-drag {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 44px;
+  z-index: 100;
+  background: var(--bg);
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+html[data-desktop-platform="darwin"] body {
+  padding-top: 44px;
+}
+html[data-desktop-platform="darwin"]:has(.app-shell) body {
+  padding-top: 0;
+}
+html[data-desktop-platform="darwin"]:has(.app-shell) .desktop-window-drag {
+  width: 222px;
+  right: auto;
+  height: 48px;
+  background: transparent;
+}
+html[data-desktop-platform="darwin"] .sidebar {
+  padding-top: 58px;
+}
+html[data-desktop-platform="darwin"] .topbar {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+html[data-desktop-platform="darwin"]
+  .topbar
+  :is(button, a, input, select, textarea, [contenteditable]) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+html[data-desktop-platform="darwin"]:has(.is-editor) .desktop-window-drag {
+  width: 90px;
+}
+html[data-desktop-platform="darwin"] .is-editor .topbar {
+  padding-left: 104px;
+}
+html[data-desktop-platform="darwin"]:has(.marketing) .desktop-window-drag,
+html[data-desktop-platform="darwin"]:has(
+    .onboarding-theme[data-onboarding-theme="light"]
+  )
+  .desktop-window-drag {
+  background: #fff;
+}
+html[data-desktop-platform="darwin"] .m-header {
+  top: 44px;
+}

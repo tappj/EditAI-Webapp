@@ -232,6 +232,13 @@ async function startDesktop() {
       minHeight: 650,
       show: false,
       title: "EditAI",
+      backgroundColor: "#ffffff",
+      ...(process.platform === "darwin"
+        ? {
+            titleBarStyle: "hiddenInset",
+            trafficLightPosition: { x: 16, y: 18 },
+          }
+        : {}),
       webPreferences: {
         preload: join(bundledRoot, "preload.cjs"),
         backgroundThrottling: false,

@@ -109,3 +109,15 @@ sign-out checks repeated after the final edit-flush change. Previously deleted
 handle-less install identities are not automatically merged or claimed recovered.
 Includes all prior uncommitted editor parity work. Publication evidence follows
 in docs/VERIFICATION.md.
+
+## Reference editor workspace — November 19, 2026
+
+Reformat the editor using the supplied studio references: compact project header,
+thumbnail source library and tool rail, central preview, right-hand clip/text/layer
+inspector, and full-width timeline. Keep EditAI components and its light pastel
+palette. Home and Edits layouts remain unchanged. Source search/filter/import and
+append actions use real project media; captions share sequential timeline lanes,
+with numbered inspector rows and expandable typography controls. Add track labels,
+zoom controls and real decoded waveforms without changing source anchors or AI
+validation. Shared web/desktop source builds include this workspace; a new signed
+desktop installer is outside this publication. See docs/VERIFICATION.md.

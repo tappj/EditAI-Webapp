@@ -1,6 +1,14 @@
 "use client";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { Music, Plus, Subtitles, Layers } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import {
+  Music,
+  Plus,
+  Subtitles,
+  Layers,
+  Film,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import {
   duration,
   segmentDuration,
@@ -9,7 +17,34 @@ import {
 } from "@/lib/editor/model";
 import { gestureEdit, type Track } from "@/lib/editor/timeline";
 
+import { SourceWaveform } from "./SourceWaveform";
+import { IconButton } from "./ui";
 import { ClipFrames } from "./ClipFrames";
+const TRACK_HEADER = 112;
+function captionTracks(doc: Document) {
+  const rows: {
+    name: string;
+    items: { id: string; text: string; start: number; end: number }[];
+  }[] = [];
+  for (const automatic of [true, false]) {
+    const lanes: typeof rows = [];
+    const items = doc.texts
+      .filter((t) => !!t.anchor === automatic)
+      .map((t) => ({ ...textTiming(doc, t), id: t.id, text: t.text }))
+      .filter((t) => t.start >= 0 && t.end > t.start)
+      .sort((a, b) => a.start - b.start);
+    for (const item of items) {
+      let lane = lanes.find((row) => row.items.at(-1)!.end <= item.start);
+      if (!lane) {
+        lane = { name: automatic ? "Captions" : "Text", items: [] };
+        lanes.push(lane);
+      }
+      lane.items.push(item);
+    }
+    rows.push(...lanes);
+  }
+  return rows;
+}
 const stamp = (s: number) =>
   `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 type Props = {
@@ -21,6 +56,9 @@ type Props = {
   onSelect: (track: Track, id: string) => void;
   onChange: (doc: Document) => void;
   onAdd: () => void;
+  onAddAudio: () => void;
+  onAddOverlay: () => void;
+  onAddText: () => void;
   onError: (error: unknown) => void;
 };
 export function EditorTimeline({
@@ -32,6 +70,9 @@ export function EditorTimeline({
   onSelect,
   onChange,
   onAdd,
+  onAddAudio,
+  onAddOverlay,
+  onAddText,
   onError,
 }: Props) {
   const [zoom, setZoom] = useState(48);
@@ -53,18 +94,59 @@ export function EditorTimeline({
   } | null>(null);
   const shown = draft || doc,
     total = duration(shown);
+  const textTracks = useMemo(() => captionTracks(shown), [shown]);
+  const firstDuration = useRef(duration(doc));
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth > TRACK_HEADER + 80) {
+        setZoom(
+          Math.min(
+            160,
+            Math.max(
+              8,
+              (el.clientWidth - TRACK_HEADER - 60) / firstDuration.current,
+            ),
+          ),
+        );
+        observer.disconnect();
+      }
+    });
+    observer.observe(el);
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      setZoom((z) =>
+        Math.min(160, Math.max(8, z * Math.exp(-event.deltaY * 0.008))),
+      );
+    };
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("wheel", wheel);
+    };
+  }, []);
   const pixels = zoom,
     width = Math.max(300, total * pixels);
   useEffect(() => {
     const el = viewport.current;
     if (!el || gesture.current) return;
-    const x = playhead * pixels;
-    if (x < el.scrollLeft || x > el.scrollLeft + el.clientWidth - 24)
-      el.scrollLeft = Math.max(0, x - el.clientWidth / 3);
+    const x = TRACK_HEADER + playhead * pixels;
+    if (
+      x < el.scrollLeft + TRACK_HEADER ||
+      x > el.scrollLeft + el.clientWidth - 24
+    )
+      el.scrollLeft = Math.max(0, x - TRACK_HEADER - el.clientWidth / 3);
   }, [playhead, pixels]);
   function seek(e: PointerEvent<HTMLElement>) {
     const rect = content.current!.getBoundingClientRect();
-    onSeek(Math.max(0, Math.min(total, (e.clientX - rect.left) / pixels)));
+    onSeek(
+      Math.max(
+        0,
+        Math.min(total, (e.clientX - rect.left - TRACK_HEADER) / pixels),
+      ),
+    );
   }
   function begin(
     e: PointerEvent<HTMLElement>,
@@ -95,7 +177,7 @@ export function EditorTimeline({
     const el = viewport.current!;
     const rect = el.getBoundingClientRect();
     if (e.clientX > rect.right - 32) el.scrollLeft += 12;
-    if (e.clientX < rect.left + 32) el.scrollLeft -= 12;
+    if (e.clientX < rect.left + TRACK_HEADER + 24) el.scrollLeft -= 12;
     const dx = e.clientX - g.x + el.scrollLeft - g.scroll;
     if (Math.abs(dx) < 3) return;
     try {
@@ -126,7 +208,7 @@ export function EditorTimeline({
         aria-label={`${track === "segments" ? "Clip" : track} ${name}`}
         className={`sequence-item ${track === "segments" ? "timeline-clip" : "layer-clip"} ${selected === id ? "selected" : ""}`}
         style={{
-          left: start * pixels,
+          left: TRACK_HEADER + start * pixels,
           width: Math.max(3, (end - start) * pixels),
         }}
         onPointerDown={(e) => begin(e, track, id, "move")}
@@ -169,6 +251,29 @@ export function EditorTimeline({
                 start={s.start}
                 end={s.end}
                 image={source.kind === "image"}
+              />
+            );
+          })()}
+        {(track === "segments" || track === "audio") &&
+          (() => {
+            const item =
+              track === "segments"
+                ? shown.segments.find((x) => x.id === id)!
+                : shown.audio.find((x) => x.id === id)!;
+            const source = shown.sources[item.sourceIndex];
+            if (source.kind === "image") return null;
+            return (
+              <SourceWaveform
+                url={urls[source.id]}
+                duration={source.duration}
+                bytes={source.bytes}
+                start={"sourceStart" in item ? item.sourceStart : item.start}
+                end={
+                  "sourceStart" in item
+                    ? item.sourceStart +
+                      (item.end - item.start) * (item.speed ?? 1)
+                    : item.end
+                }
               />
             );
           })()}
@@ -220,9 +325,20 @@ export function EditorTimeline({
   return (
     <div className="sequence-editor">
       <div className="sequence-options">
-        <span>Drag edges to trim · drag clips to reorder · S to split</span>
+        <button className="track-import text-button" onClick={onAddOverlay}>
+          <Layers size={14} />
+          Add overlay
+        </button>
+        <span>
+          Drag to move · drag edges to trim <kbd>S</kbd> Split
+        </span>
         <label>
-          Zoom{" "}
+          <IconButton
+            label="Zoom timeline out"
+            onClick={() => setZoom((z) => Math.max(8, z / 1.25))}
+          >
+            <ZoomOut size={15} />
+          </IconButton>
           <input
             aria-label="Timeline zoom"
             type="range"
@@ -231,13 +347,19 @@ export function EditorTimeline({
             value={zoom}
             onChange={(e) => setZoom(+e.target.value)}
           />
+          <IconButton
+            label="Zoom timeline in"
+            onClick={() => setZoom((z) => Math.min(160, z * 1.25))}
+          >
+            <ZoomIn size={15} />
+          </IconButton>
         </label>
       </div>
       <div className="sequence-viewport" ref={viewport}>
         <div
           className="sequence-content"
           ref={content}
-          style={{ width: width + 54 }}
+          style={{ width: width + TRACK_HEADER + 54 }}
         >
           <div
             className="sequence-ruler"
@@ -250,12 +372,46 @@ export function EditorTimeline({
             }}
           >
             {Array.from({ length: Math.floor(total / step) + 1 }, (_, i) => (
-              <span key={i} style={{ left: i * step * pixels }}>
+              <span key={i} style={{ left: TRACK_HEADER + i * step * pixels }}>
                 {stamp(i * step)}
               </span>
             ))}
           </div>
+          {textTracks.length ? (
+            textTracks.map((row, i) => (
+              <div className="sequence-row text-row" key={"text" + i}>
+                <div className="track-label">
+                  <Subtitles size={16} />
+                  <span>{row.name}</span>
+                </div>
+                {row.items.map((t) =>
+                  clip("texts", t.id, t.text, t.start, t.end),
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="sequence-row text-row">
+              <div className="track-label">
+                <Subtitles size={16} />
+                <span>Captions</span>
+              </div>
+              <button
+                className="empty-track-action"
+                style={{ left: TRACK_HEADER + 12 }}
+                onClick={onAddText}
+              >
+                <Plus size={13} />
+                Add text or captions
+              </button>
+            </div>
+          )}
           <div className="sequence-row main-row" aria-label="Video track">
+            <div className="track-label">
+              <Film size={16} />
+              <span>
+                Video<small>{shown.segments.length} clips</small>
+              </span>
+            </div>
             {shown.segments.map((s, i) => {
               const original = leftTrim?.base.segments.find(
                 (x) => x.id === s.id,
@@ -277,24 +433,18 @@ export function EditorTimeline({
             <button
               className="sequence-add"
               aria-label="Append media"
-              style={{ left: total * pixels + 6 }}
+              style={{ left: TRACK_HEADER + total * pixels + 6 }}
               onClick={onAdd}
             >
               <Plus size={18} />
             </button>
           </div>
-          {shown.texts.map((t) => {
-            const timing = textTiming(shown, t);
-            return timing.end > timing.start && timing.start >= 0 ? (
-              <div key={t.id} className="sequence-row text-row">
-                <Subtitles size={13} />
-                {clip("texts", t.id, t.text, timing.start, timing.end)}
-              </div>
-            ) : null;
-          })}
           {shown.overlays.map((o) => (
             <div key={o.id} className="sequence-row overlay-row">
-              <Layers size={13} />
+              <div className="track-label">
+                <Layers size={16} />
+                <span>Overlay</span>
+              </div>
               {clip(
                 "overlays",
                 o.id,
@@ -305,14 +455,30 @@ export function EditorTimeline({
             </div>
           ))}
           {[0, 1, 2]
-            .filter((lane) => shown.audio.some((a) => a.lane === lane))
+            .filter(
+              (lane) => lane === 0 || shown.audio.some((a) => a.lane === lane),
+            )
             .map((lane) => (
               <div
                 key={lane}
                 className="sequence-row audio-row"
                 aria-label={`Audio lane ${lane + 1}`}
               >
-                <Music size={13} />
+                <div className="track-label">
+                  <Music size={16} />
+                  <span>Audio {lane + 1}</span>
+                </div>
+                {!shown.audio.some((a) => a.lane === lane) && (
+                  <button
+                    className="empty-track-action"
+                    aria-label="Add audio to timeline"
+                    style={{ left: TRACK_HEADER + 12 }}
+                    onClick={onAddAudio}
+                  >
+                    <Plus size={13} />
+                    Add audio
+                  </button>
+                )}
                 {shown.audio
                   .filter((a) => a.lane === lane)
                   .map((a) =>
@@ -329,13 +495,13 @@ export function EditorTimeline({
           <div
             className="sequence-playhead"
             data-testid="timeline-cursor"
-            style={{ left: Math.min(playhead, total) * pixels }}
+            style={{ left: TRACK_HEADER + Math.min(playhead, total) * pixels }}
           >
             <span />
           </div>
           <input
             className="sequence-seek"
-            style={{ width: total * pixels }}
+            style={{ left: TRACK_HEADER, width: total * pixels }}
             aria-label="Timeline playhead"
             type="range"
             min={0}

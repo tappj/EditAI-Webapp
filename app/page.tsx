@@ -4,6 +4,7 @@ import {
   MarketingSignIn,
 } from "../components/marketing/landing";
 import "./marketing.css";
+import "./components/editor-workspace.css";
 import { DesktopDownloads } from "../components/desktop-downloads";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
@@ -120,6 +121,7 @@ import { Batch } from "./components/Batch";
 import { TextStyleEditor } from "./components/TextStyleEditor";
 import { AppearanceEditor } from "./components/AppearanceEditor";
 import { PreviewHandles } from "./components/PreviewHandles";
+import { EditorSourceLibrary } from "./components/EditorSourceLibrary";
 import { EditorTimeline } from "./components/EditorTimeline";
 import { fitLayers, layerAction, type Track } from "@/lib/editor/timeline";
 import { quietPauses } from "@/lib/editor/audio-evidence";
@@ -200,6 +202,7 @@ export default function App({
     } | null>(null),
     [selectedText, setSelectedText] = useState(""),
     [onlySelectedText, setOnlySelectedText] = useState(false),
+    [captionStyleOpen, setCaptionStyleOpen] = useState(false),
     [exportOpen, setExportOpen] = useState(false),
     [resolution, setResolution] = useState(1280),
     [fps, setFps] = useState(30),
@@ -615,6 +618,82 @@ export default function App({
         delete selected.anchor;
       }
     });
+  }
+  function addTextLayer() {
+    if (!doc) return;
+    const start = Math.min(playhead, total - 0.1);
+    const t: TextLayer = {
+      id: crypto.randomUUID(),
+      text: "Your words here",
+      start,
+      end: Math.min(total, start + 3),
+      x: 0.5,
+      y: 0.5,
+      size: 0.055,
+      color: "#ffffff",
+      background: "transparent",
+      font: "TikTok Sans",
+      outline: true,
+      animation: "none",
+      ...doc.captionStyle,
+    };
+    patch((d) => d.texts.push(t));
+    setSelectedText(t.id);
+    setSelectedLayer({ track: "texts", id: t.id });
+    setTool("captions");
+  }
+  function addLibrarySource(index: number) {
+    if (!doc) return;
+    try {
+      patch((d) => {
+        const source = d.sources[index],
+          start = Math.min(playhead, total - 0.1);
+        if (editorPanel === "audio" || source.kind === "audio") {
+          const end = Math.min(total, start + source.duration);
+          const lane = [0, 1, 2].find(
+            (l) =>
+              !d.audio.some(
+                (a) => a.lane === l && a.start < end && a.end > start,
+              ),
+          );
+          if (lane == null)
+            throw Error(
+              "All three audio tracks are occupied here. Move or trim a sound first.",
+            );
+          d.audio.push({
+            id: crypto.randomUUID(),
+            sourceIndex: index,
+            sourceStart: 0,
+            start,
+            end,
+            lane,
+            volume: 0.7,
+            fadeIn: 0,
+            fadeOut: 0,
+          });
+        } else if (editorPanel === "overlays")
+          d.overlays.push({
+            id: crypto.randomUUID(),
+            sourceIndex: index,
+            sourceStart: 0,
+            start,
+            end: Math.min(
+              total,
+              start + (source.kind === "image" ? 3 : source.duration),
+            ),
+            x: 0.5,
+            y: 0.5,
+            width: 0.5,
+            opacity: 1,
+          });
+        else
+          d.segments.push(
+            newSegment(index, source.kind === "image" ? 3 : source.duration),
+          );
+      });
+    } catch (e) {
+      fail(e);
+    }
   }
   function updateClip(fn: (s: Segment) => void) {
     if (!segment) return;
@@ -1742,18 +1821,6 @@ export default function App({
                     <UserRound size={16} /> Account
                   </Button>
                 )}
-                {screen === "editor" && (
-                  <Button
-                    onClick={() => {
-                      player.current?.pause();
-                      setPlaying(false);
-                      setExportOpen(true);
-                    }}
-                  >
-                    <Download size={16} />
-                    Export
-                  </Button>
-                )}
               </div>
             </header>
             {screen === "home" && (
@@ -1916,6 +1983,9 @@ export default function App({
             {screen === "editor" && doc && (
               <div className="editor">
                 <div className="editor-top">
+                  <span className="studio-wordmark">
+                    <Wordmark />
+                  </span>
                   <button
                     className="text-button"
                     onClick={() => nav("library")}
@@ -1952,25 +2022,94 @@ export default function App({
                   >
                     <Redo2 size={18} />
                   </IconButton>
+                  <Button
+                    onClick={() => {
+                      player.current?.pause();
+                      setPlaying(false);
+                      setExportOpen(true);
+                    }}
+                  >
+                    <Download size={16} />
+                    Export
+                  </Button>
                 </div>
                 <div className="editor-workspace">
-                  <div className="editor-left">
-                    <div className="panel-tabs">
-                      <button
-                        className={editorPanel === "media" ? "selected" : ""}
-                        onClick={() => setEditorPanel("media")}
-                      >
-                        <Film size={15} />
-                        Media
-                      </button>
-                      <button
-                        className={editorPanel === "chat" ? "selected" : ""}
-                        aria-label="Open EditAI chat"
-                        onClick={() => setEditorPanel("chat")}
-                      >
-                        <Sparkles size={15} />
-                        EditAI
-                      </button>
+                  <div
+                    className="editor-left"
+                    role="region"
+                    aria-label="Media and tools"
+                  >
+                    <div className="studio-tool-rail" aria-label="Editor tools">
+                      {[
+                        { id: "media", label: "Media", icon: Film },
+                        { id: "audio", label: "Audio", icon: Music },
+                        { id: "text", label: "Text", icon: Type },
+                        { id: "overlays", label: "Overlays", icon: Layers },
+                        { id: "filters", label: "Filters", icon: ImageIcon },
+                        {
+                          id: "adjust",
+                          label: "Adjust",
+                          icon: SlidersHorizontal,
+                        },
+                        { id: "chat", label: "EditAI", icon: Sparkles },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          aria-label={
+                            item.id === "chat"
+                              ? "Open EditAI chat"
+                              : item.label + " workspace"
+                          }
+                          className={editorPanel === item.id ? "selected" : ""}
+                          aria-pressed={editorPanel === item.id}
+                          onClick={() => {
+                            setEditorPanel(item.id);
+                            if (item.id === "text") setTool("captions");
+                            else if (
+                              item.id === "overlays" ||
+                              item.id === "audio"
+                            )
+                              setTool("layers");
+                            else if (
+                              item.id === "filters" ||
+                              item.id === "adjust"
+                            ) {
+                              setTool("clip");
+                              requestAnimationFrame(() => {
+                                const inspector = document.querySelector(
+                                  ".is-editor .inspector",
+                                );
+                                if (item.id === "filters")
+                                  inspector
+                                    ?.querySelector(".filter-grid")
+                                    ?.scrollIntoView({ block: "nearest" });
+                                else {
+                                  const details = [
+                                    ...(inspector?.querySelectorAll(
+                                      "details",
+                                    ) || []),
+                                  ].find((d) =>
+                                    d
+                                      .querySelector("summary")
+                                      ?.textContent?.includes(
+                                        "More adjustments",
+                                      ),
+                                  );
+                                  if (details) {
+                                    details.open = true;
+                                    details.scrollIntoView({
+                                      block: "nearest",
+                                    });
+                                  }
+                                }
+                              });
+                            }
+                          }}
+                        >
+                          <item.icon size={20} />
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
                     </div>
                     {editorPanel === "chat" ? (
                       <div className="chat-panel">
@@ -2041,64 +2180,112 @@ export default function App({
                           </button>
                         </form>
                       </div>
-                    ) : (
-                      <div className="media-panel">
-                        <div className="section-heading">
-                          <h3>Source library</h3>
-                          <IconButton
-                            label="Add clips"
-                            onClick={() => {
-                              mediaKind.current = "clip";
-                              extraInput.current?.click();
-                            }}
-                          >
-                            <Plus size={16} />
-                          </IconButton>
-                        </div>
-                        {doc.sources.map((s, i) => (
-                          <div className="source-item" key={s.id}>
-                            <Film size={20} />
-                            <div>
-                              <strong>{s.name}</strong>
-                              <small>
-                                {time(s.duration)} · {s.kind}
-                              </small>
-                            </div>
-                            <button
-                              className="text-button"
-                              aria-label={"Append " + s.name}
-                              onClick={() =>
-                                s.kind !== "audio" &&
-                                patch((d) =>
-                                  d.segments.push(
-                                    newSegment(
-                                      i,
-                                      s.kind === "image" ? 3 : s.duration,
-                                    ),
-                                  ),
-                                )
-                              }
-                            >
-                              <Plus size={15} />
-                            </button>
-                          </div>
-                        ))}
-                        <div className="panel-divider" />
-                        <Button
-                          secondary
-                          onClick={() => void generateCaptions()}
-                        >
-                          <Subtitles size={16} />
-                          Generate captions
-                        </Button>
-                        <p className="panel-note">
-                          AI edits are reversible. Your original footage always
-                          stays intact.
+                    ) : editorPanel === "text" ? (
+                      <div className="editor-tool-panel">
+                        <span className="tool-eyebrow">TEXT & CAPTIONS</span>
+                        <h3>Let every word land.</h3>
+                        <p>
+                          Add your own text or generate editable captions from
+                          the speech in your video.
                         </p>
+                        <Button secondary onClick={addTextLayer}>
+                          <Type size={17} />
+                          Add text
+                        </Button>
+                        <div className="caption-generate-card">
+                          <span className="caption-generate-icon">
+                            <Subtitles size={26} />
+                          </span>
+                          <h3>Auto captions</h3>
+                          <p>
+                            Recognize speech and place captions on your edited
+                            timeline.
+                          </p>
+                          <label>
+                            Spoken language
+                            <select
+                              aria-label="Caption spoken language"
+                              value={language}
+                              onChange={(e) => setLanguage(e.target.value)}
+                            >
+                              {Object.entries({
+                                auto: "Detect automatically",
+                                en: "English",
+                                es: "Spanish",
+                                fr: "French",
+                                de: "German",
+                                it: "Italian",
+                                pt: "Portuguese",
+                                ja: "Japanese",
+                                ko: "Korean",
+                                zh: "Chinese",
+                              }).map(([id, name]) => (
+                                <option key={id} value={id}>
+                                  {name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <Button onClick={() => void generateCaptions()}>
+                            <Subtitles size={16} />
+                            Generate captions
+                          </Button>
+                          <small>
+                            Manual text stays in place when speech captions are
+                            regenerated.
+                          </small>
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <EditorSourceLibrary
+                          key={
+                            editorPanel === "audio"
+                              ? "audio"
+                              : editorPanel === "overlays"
+                                ? "overlay"
+                                : "all"
+                          }
+                          doc={doc}
+                          urls={urls}
+                          mode={
+                            editorPanel === "audio"
+                              ? "audio"
+                              : editorPanel === "overlays"
+                                ? "overlay"
+                                : "all"
+                          }
+                          onImport={() => {
+                            mediaKind.current =
+                              editorPanel === "audio"
+                                ? "audio"
+                                : editorPanel === "overlays"
+                                  ? "overlay"
+                                  : "clip";
+                            replacingAudio.current = null;
+                            extraInput.current?.click();
+                          }}
+                          onAdd={addLibrarySource}
+                        />
+                        {editorPanel === "media" && (
+                          <div className="library-caption-action">
+                            <Button
+                              secondary
+                              onClick={() => void generateCaptions()}
+                            >
+                              <Subtitles size={16} />
+                              Generate captions
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                  <div className="preview-area">
+                  <div
+                    className="preview-area"
+                    role="region"
+                    aria-label="Video monitor"
+                  >
                     <div className="preview-controls-top">
                       <select
                         aria-label="Canvas aspect ratio"
@@ -2198,7 +2385,11 @@ export default function App({
                       </span>
                     </div>
                   </div>
-                  <div className="inspector">
+                  <div
+                    className="inspector"
+                    role="region"
+                    aria-label="Editing inspector"
+                  >
                     <div className="inspector-tabs">
                       {[
                         { id: "clip", icon: SlidersHorizontal, label: "Clip" },
@@ -2208,7 +2399,10 @@ export default function App({
                         <button
                           className={tool === t.id ? "selected" : ""}
                           key={t.id}
-                          onClick={() => setTool(t.id)}
+                          onClick={() => {
+                            setTool(t.id);
+                            if (t.id === "captions") setCaptionStyleOpen(false);
+                          }}
                         >
                           <t.icon size={16} />
                           {t.label}
@@ -2219,31 +2413,7 @@ export default function App({
                       <>
                         <div className="section-heading">
                           <h3>Captions & text</h3>
-                          <IconButton
-                            label="Add text"
-                            onClick={() => {
-                              const t: TextLayer = {
-                                id: crypto.randomUUID(),
-                                text: "Your words here",
-                                start: Math.min(playhead, total - 0.1),
-                                end: Math.min(
-                                  total,
-                                  Math.min(playhead, total - 0.1) + 3,
-                                ),
-                                x: 0.5,
-                                y: 0.5,
-                                size: 0.055,
-                                color: "#ffffff",
-                                background: "transparent",
-                                font: "TikTok Sans",
-                                outline: true,
-                                animation: "none",
-                                ...doc.captionStyle,
-                              };
-                              patch((d) => d.texts.push(t));
-                              setSelectedText(t.id);
-                            }}
-                          >
+                          <IconButton label="Add text" onClick={addTextLayer}>
                             <Plus size={17} />
                           </IconButton>
                         </div>
@@ -2253,49 +2423,8 @@ export default function App({
                         >
                           Generate speech captions
                         </Button>
-                        <select
-                          aria-label="Caption grouping"
-                          value={doc.captionFormat}
-                          onChange={(e) =>
-                            change(
-                              captions(
-                                doc,
-                                e.target.value as Document["captionFormat"],
-                              ),
-                            )
-                          }
-                        >
-                          <option value="standard">Standard · 6 words</option>
-                          <option value="boxed">Boxed · 4 words</option>
-                          <option value="single">One word</option>
-                        </select>
-                        <label className="checkbox">
-                          <input
-                            type="checkbox"
-                            checked={onlySelectedText}
-                            disabled={!textLayer}
-                            onChange={(e) =>
-                              setOnlySelectedText(e.target.checked)
-                            }
-                          />
-                          Only apply style to this caption
-                        </label>
-                        <label>
-                          Project font
-                          <select
-                            aria-label="Project font"
-                            value={doc.captionStyle?.font || "TikTok Sans"}
-                            onChange={(e) =>
-                              updateTextStyle({ font: e.target.value })
-                            }
-                          >
-                            {FONTS.map((f) => (
-                              <option key={f}>{f}</option>
-                            ))}
-                          </select>
-                        </label>
                         <div className="text-layer-list">
-                          {doc.texts.map((t) => (
+                          {doc.texts.map((t, i) => (
                             <button
                               className={
                                 selectedText === t.id ? "selected" : ""
@@ -2306,27 +2435,75 @@ export default function App({
                                 player.current?.seek(textTiming(doc, t).start);
                               }}
                             >
-                              <span>{t.text}</span>
-                              <small>{time(textTiming(doc, t).start)}</small>
+                              <span
+                                className="caption-row-number"
+                                aria-hidden="true"
+                              >
+                                {i + 1}
+                              </span>
+                              <span className="caption-row-copy">
+                                {t.text}
+                                <small>
+                                  {time(textTiming(doc, t).start)} –{" "}
+                                  {time(textTiming(doc, t).end)}
+                                </small>
+                              </span>
                             </button>
                           ))}
                         </div>
                         {textLayer && (
-                          <>
-                            <textarea
-                              aria-label="Caption text"
-                              value={textLayer.text}
+                          <textarea
+                            aria-label="Caption text"
+                            value={textLayer.text}
+                            onChange={(e) =>
+                              patch((d) => {
+                                d.texts.find(
+                                  (t) => t.id === selectedText,
+                                )!.text = e.target.value;
+                              })
+                            }
+                          />
+                        )}
+                        <details
+                          className="caption-style-panel"
+                          open={captionStyleOpen}
+                          onToggle={(e) =>
+                            setCaptionStyleOpen(e.currentTarget.open)
+                          }
+                        >
+                          <summary>Text style</summary>
+                          <select
+                            aria-label="Caption grouping"
+                            value={doc.captionFormat}
+                            onChange={(e) =>
+                              change(
+                                captions(
+                                  doc,
+                                  e.target.value as Document["captionFormat"],
+                                ),
+                              )
+                            }
+                          >
+                            <option value="standard">Standard · 6 words</option>
+                            <option value="boxed">Boxed · 4 words</option>
+                            <option value="single">One word</option>
+                          </select>
+                          <label className="checkbox">
+                            <input
+                              type="checkbox"
+                              checked={onlySelectedText}
+                              disabled={!textLayer}
                               onChange={(e) =>
-                                patch((d) => {
-                                  d.texts.find(
-                                    (t) => t.id === selectedText,
-                                  )!.text = e.target.value;
-                                })
+                                setOnlySelectedText(e.target.checked)
                               }
                             />
+                            Only apply style to this caption
+                          </label>
+                          <label>
+                            Project font
                             <select
-                              aria-label="Font"
-                              value={textLayer.font}
+                              aria-label="Project font"
+                              value={doc.captionStyle?.font || "TikTok Sans"}
                               onChange={(e) =>
                                 updateTextStyle({ font: e.target.value })
                               }
@@ -2335,81 +2512,100 @@ export default function App({
                                 <option key={f}>{f}</option>
                               ))}
                             </select>
-                            {[
-                              ["Size", "size", 0.02, 0.2],
-                              ["Horizontal", "x", 0.07, 0.93],
-                              ["Vertical", "y", 0.12, 0.88],
-                            ].map(([label, key, min, max]) => (
-                              <Range
-                                key={String(key)}
-                                label={String(label)}
-                                value={(textLayer as any)[key]}
-                                min={Number(min)}
-                                max={Number(max)}
-                                onChange={(n) =>
-                                  updateTextStyle({ [String(key)]: n })
+                          </label>
+                          {textLayer && (
+                            <>
+                              <select
+                                aria-label="Font"
+                                value={textLayer.font}
+                                onChange={(e) =>
+                                  updateTextStyle({ font: e.target.value })
                                 }
-                              />
-                            ))}
-                            <div className="swatches">
-                              {colors.map((c) => (
-                                <button
-                                  key={c}
-                                  aria-label={"Text color " + c}
-                                  style={{ background: c }}
-                                  onClick={() => updateTextStyle({ color: c })}
+                              >
+                                {FONTS.map((f) => (
+                                  <option key={f}>{f}</option>
+                                ))}
+                              </select>
+                              {[
+                                ["Size", "size", 0.02, 0.2],
+                                ["Horizontal", "x", 0.07, 0.93],
+                                ["Vertical", "y", 0.12, 0.88],
+                              ].map(([label, key, min, max]) => (
+                                <Range
+                                  key={String(key)}
+                                  label={String(label)}
+                                  value={(textLayer as any)[key]}
+                                  min={Number(min)}
+                                  max={Number(max)}
+                                  onChange={(n) =>
+                                    updateTextStyle({ [String(key)]: n })
+                                  }
                                 />
                               ))}
-                            </div>
-                            <label className="checkbox">
-                              <input
-                                type="checkbox"
-                                checked={textLayer.outline}
+                              <div className="swatches">
+                                {colors.map((c) => (
+                                  <button
+                                    key={c}
+                                    aria-label={"Text color " + c}
+                                    style={{ background: c }}
+                                    onClick={() =>
+                                      updateTextStyle({ color: c })
+                                    }
+                                  />
+                                ))}
+                              </div>
+                              <label className="checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={textLayer.outline}
+                                  onChange={(e) =>
+                                    updateTextStyle({
+                                      outline: e.target.checked,
+                                    })
+                                  }
+                                />
+                                Text outline
+                              </label>
+                              <select
+                                aria-label="Text animation"
+                                value={textLayer.animation}
                                 onChange={(e) =>
-                                  updateTextStyle({ outline: e.target.checked })
+                                  updateTextStyle({ animation: e.target.value })
                                 }
+                              >
+                                {[
+                                  "none",
+                                  "fade",
+                                  "pop",
+                                  "zoom",
+                                  "slide",
+                                  "typewriter",
+                                ].map((a) => (
+                                  <option key={a}>{a}</option>
+                                ))}
+                              </select>
+                              <TextStyleEditor
+                                text={textLayer}
+                                timing={textTiming(doc, textLayer)}
+                                total={total}
+                                onChange={(values) => updateTextStyle(values)}
                               />
-                              Text outline
-                            </label>
-                            <select
-                              aria-label="Text animation"
-                              value={textLayer.animation}
-                              onChange={(e) =>
-                                updateTextStyle({ animation: e.target.value })
-                              }
-                            >
-                              {[
-                                "none",
-                                "fade",
-                                "pop",
-                                "zoom",
-                                "slide",
-                                "typewriter",
-                              ].map((a) => (
-                                <option key={a}>{a}</option>
-                              ))}
-                            </select>
-                            <TextStyleEditor
-                              text={textLayer}
-                              timing={textTiming(doc, textLayer)}
-                              total={total}
-                              onChange={(values) => updateTextStyle(values)}
-                            />
-                            <Button
-                              secondary
-                              onClick={() =>
-                                patch((d) => {
-                                  d.texts = d.texts.filter(
-                                    (t) => t.id !== selectedText,
-                                  );
-                                })
-                              }
-                            >
-                              <Trash2 size={15} />
-                              Delete text
-                            </Button>
-                          </>
-                        )}
+                              <Button
+                                secondary
+                                onClick={() =>
+                                  patch((d) => {
+                                    d.texts = d.texts.filter(
+                                      (t) => t.id !== selectedText,
+                                    );
+                                  })
+                                }
+                              >
+                                <Trash2 size={15} />
+                                Delete text
+                              </Button>
+                            </>
+                          )}
+                        </details>
                       </>
                     ) : tool === "layers" ? (
                       <>
@@ -2730,7 +2926,11 @@ export default function App({
                     )}
                   </div>
                 </div>
-                <div className="timeline">
+                <div
+                  className="timeline"
+                  role="region"
+                  aria-label="Editing timeline"
+                >
                   <div className="timeline-toolbar">
                     <div>
                       <IconButton
@@ -2876,6 +3076,12 @@ export default function App({
                         className="text-button"
                         onClick={() => {
                           setTool("captions");
+                          setCaptionStyleOpen(true);
+                          requestAnimationFrame(() =>
+                            document
+                              .querySelector(".is-editor .caption-style-panel")
+                              ?.scrollIntoView({ block: "nearest" }),
+                          );
                           if (!selectedText)
                             setSelectedText(doc.texts[0]?.id || "");
                         }}
@@ -2967,6 +3173,16 @@ export default function App({
                         setSelectedText("");
                         setTool("layers");
                       }
+                    }}
+                    onAddAudio={() => {
+                      mediaKind.current = "audio";
+                      replacingAudio.current = null;
+                      extraInput.current?.click();
+                    }}
+                    onAddText={addTextLayer}
+                    onAddOverlay={() => {
+                      mediaKind.current = "overlay";
+                      extraInput.current?.click();
                     }}
                     onChange={change}
                     onError={fail}

@@ -1317,6 +1317,7 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   await expect(page.locator(".sequence-playhead")).toBeVisible();
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await page.getByRole("button", { name: "Font", exact: true }).click();
   await page
     .getByLabel("Project font", { exact: true })
     .selectOption("Montserrat");
@@ -1433,4 +1434,122 @@ test("same account resumes consent and playable local footage after repeated sig
     page.getByRole("heading", { name: "Upload your raw takes here" }),
   ).toBeVisible();
   await expect(page.locator(".project-card")).toHaveCount(0);
+});
+
+test("reference studio layout keeps monitor, source cards, caption lanes and audio within the desktop workspace", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await authenticated(page);
+  await page.route("**/api/ai/transcribe", (r) =>
+    r.fulfill({
+      json: {
+        words: [
+          { word: "Hello.", start: 0.2, end: 0.6 },
+          { word: "Keep", start: 1, end: 1.3 },
+          { word: "creating.", start: 1.4, end: 1.8 },
+          { word: "Today.", start: 2.5, end: 3 },
+        ],
+      },
+    }),
+  );
+  await page.route("**/api/ai/edit", (r) => r.fulfill({ json: { cuts: [] } }));
+  await openStudio(page);
+  const buffer = await readFile(join(process.cwd(), "outputs/fixture.mp4"));
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles([
+      { name: "First take.mp4", mimeType: "video/mp4", buffer },
+      { name: "Second take.mp4", mimeType: "video/mp4", buffer },
+    ]);
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await expect(page.locator(".source-card")).toHaveCount(2);
+  await expect(
+    page.locator(".source-card .clip-frames span").first(),
+  ).toBeVisible();
+  await page.getByLabel("Search source media").fill("Second");
+  await expect(page.locator(".source-card")).toHaveCount(1);
+  await page.getByLabel("Search source media").fill("");
+  await page
+    .getByRole("button", { name: "Generate captions", exact: true })
+    .click();
+  await expect(page.locator(".text-layer-list>button")).toHaveCount(6);
+  await expect(page.locator(".text-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "Audio workspace" }).click();
+  await page
+    .getByRole("button", { name: "Import audio", exact: true })
+    .click({ noWaitAfter: true });
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles(join(process.cwd(), "outputs/music.wav"));
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await expect(
+    page.locator(".audio-row .source-waveform path"),
+  ).toHaveAttribute("d", /^M/);
+  await page.getByRole("button", { name: "Overlays workspace" }).click();
+  await page
+    .getByRole("button", { name: "Import overlay", exact: true })
+    .click({ noWaitAfter: true });
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles(join(process.cwd(), "outputs/overlay.png"));
+  await expect(page.locator(".overlay-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "Media workspace" }).click();
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.locator(".text-layer-list>button").first().click();
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 720],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollHeight <= innerHeight + 1,
+        ),
+      )
+      .toBe(true);
+    const left = (await page
+      .getByRole("region", { name: "Media and tools" })
+      .boundingBox())!;
+    const monitor = (await page
+      .getByRole("region", { name: "Video monitor" })
+      .boundingBox())!;
+    const inspector = (await page
+      .getByRole("region", { name: "Editing inspector" })
+      .boundingBox())!;
+    const timeline = (await page
+      .getByRole("region", { name: "Editing timeline" })
+      .boundingBox())!;
+    expect(left.x + left.width).toBeLessThanOrEqual(monitor.x);
+    expect(monitor.x + monitor.width).toBeLessThanOrEqual(inspector.x);
+    expect(timeline.y + timeline.height).toBeLessThanOrEqual(height + 1);
+    expect(timeline.y).toBeGreaterThanOrEqual(monitor.y + monitor.height);
+    const canvas = (await page
+      .getByLabel("Video preview", { exact: true })
+      .boundingBox())!;
+    expect(canvas.height).toBeLessThan(monitor.height);
+    expect(canvas.height).toBeGreaterThan(150);
+    await page.screenshot({
+      path: `outputs/studio-reference-${width}.png`,
+      fullPage: true,
+    });
+  }
+  await page.getByRole("button", { name: "Text workspace" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Auto captions", exact: true }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "outputs/studio-reference-mobile.png",
+    fullPage: true,
+  });
 });

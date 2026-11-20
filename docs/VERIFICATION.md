@@ -321,3 +321,32 @@ or promise recovery of originals never backed up. A stable public account ID or
 handle still permits account-scoped lookup across installs; otherwise the
 retained same-device connection is required. Existing cloud file/quota limits
 and browser-clearing limitations remain disclosed.
+
+## Reference studio workspace — November 19, 2026
+
+Applied the supplied desktop editor references to the editor suite only, retaining
+EditAI's existing components, branding and pastel colors. The compact header,
+source thumbnail grid, media search/filters, real import/append controls, center
+monitor, right inspector and full-width layered timeline replace the old workspace
+distribution. Numbered captions and expandable text styling retain existing editing
+actions. Sequential automatic captions share a lane; overlapping captions and
+manual text retain independent lanes. Track gutters, zoom buttons and the visible
+playhead use matching timeline coordinates for seeking and drag edits.
+
+Waveforms are derived from actual source audio across all channels, lazily decoded
+for visible clips, serialized and cached as peaks. Sources over five minutes or
+32 MiB omit this optional decoration, as do unsupported codecs; no synthetic peaks
+are shown. Playback and export remain independent of thumbnail/waveform decoding.
+Source word IDs, editorial validation, account persistence and Home/Edits layouts
+are unchanged.
+
+Typecheck, 21 web unit/security tests, 12 desktop tests, production web and desktop
+builds, and lint on the three new/updated editor components pass. Chromium passes
+all 25 studio scenarios, including real MP4 export and the new media/caption/audio
+layout scenario (40.5s); WebKit also passes all 25 (1.3m) against a freshly started
+production Worker. Screenshots inspected at 1440x900, 1280x720 and 390px mobile are
+under ignored outputs/studio-reference-*.png. Layout checks require the monitor,
+inspector and timeline to fit the desktop viewport and prevent mobile horizontal
+overflow. Authentication and AI use test fixtures; these checks do not establish
+fresh real Publik connectivity. The shared desktop source is updated; the public
+signed installer remains 0.2.2.

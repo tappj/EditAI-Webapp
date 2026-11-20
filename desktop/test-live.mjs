@@ -143,7 +143,7 @@ try {
   if (process.env.EDITAI_VERIFY_EDITOR_UI) {
     await expect(
       page.getByRole("button", { name: "Adjust workspace" }),
-    ).toHaveCount(0);
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Filters workspace" }),
     ).toHaveCount(0);
@@ -151,7 +151,7 @@ try {
       0,
     );
     await expect(
-      page.getByRole("button", { name: "Overlays", exact: true }),
+      page.getByRole("button", { name: "Overlays workspace", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Crop", exact: true }),
@@ -159,7 +159,19 @@ try {
     await expect(
       page.getByRole("spinbutton", { name: "Volume value", exact: true }),
     ).toHaveValue("100");
-    await expect(page.locator(".range-wedge")).toHaveCount(2);
+    await expect(page.locator(".range-wedge")).toHaveCount(1);
+    const volumeBox = await page
+      .getByRole("slider", { name: "Volume", exact: true })
+      .boundingBox();
+    const speedBox = await page
+      .getByRole("slider", { name: "Speed", exact: true })
+      .boundingBox();
+    expect(volumeBox.y).toBeLessThan(speedBox.y);
+    await page.getByRole("button", { name: "Adjust workspace" }).click();
+    await expect(
+      page.getByRole("button", { name: "Filter", exact: true }),
+    ).toHaveClass("selected");
+    await expect(page.locator(".advanced-adjustments > summary")).toBeVisible();
     await expect(page.locator(".preview-controls-top select")).toHaveCount(0);
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(
@@ -202,7 +214,7 @@ try {
     ).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
     await page.getByRole("button", { name: "Clip", exact: true }).click();
     await page.screenshot({
-      path: "outputs/desktop026-editor-controls.png",
+      path: "outputs/desktop027-editor-controls.png",
       fullPage: true,
     });
     report.editorUI = {

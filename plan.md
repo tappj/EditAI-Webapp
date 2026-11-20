@@ -254,3 +254,21 @@ without inference or consent/telemetry changes. Guarded GitHub publication succe
 update the homepage download manifest and publish it. Keep both main and the working
 branch pushed. Detailed evidence and remaining platform limits are recorded in
 both verification documents.
+
+## Shared platform corrections and compact Edits — November 20, 2026
+
+Treat requests for web or desktop as shared changes unless explicitly limited.
+Restore Overlays to the top-left rail and Adjust as a shortcut into Filter's Adjust
+section; keep Filter off the rail and Crop on the timeline toolbar. Remove the
+redundant toolbar Overlays action. Preserve the left library/chat when using the
+Adjust shortcut and inspect primary media if audio was selected.
+
+Place Volume before Speed. Only Volume has the tapered track; Speed uses a straight
+rail. Rails, fill boundaries and centered ticks explicitly span the native thumb's
+usable travel (input width minus its eight-pixel thumb), with shared half-thumb
+insets. Native range values retain exact typed precision; keyboard stepping remains
+bounded and pointer snapping uses the same usable width. Use compact square Edits
+thumbnails in bounded 176px desktop cards and three columns on phones, with square
+list thumbnails and accessible over-image actions. Remove Upload clips from Edits;
+Home import remains available. Prepare/publish matching 0.2.7 native assets and the
+live Site after checks, preserving source anchors and existing authentication.

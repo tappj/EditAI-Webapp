@@ -323,7 +323,9 @@ test("overlay and imported audio appear in actual exported media", async ({
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await page.getByRole("button", { name: "Overlays", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Overlays workspace", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Import overlay", exact: true })
     .click({ noWaitAfter: true });
@@ -1529,7 +1531,7 @@ test("reference studio layout keeps monitor, source cards, caption lanes and aud
   await expect(
     page.locator(".audio-row .source-waveform path"),
   ).toHaveAttribute("d", /^M/);
-  await page.getByRole("button", { name: "Overlays" }).click();
+  await page.getByRole("button", { name: "Overlays workspace" }).click();
   await page
     .getByRole("button", { name: "Import overlay", exact: true })
     .click({ noWaitAfter: true });
@@ -2562,7 +2564,7 @@ test("editable numeric drafts, percentage units, magnetic sliders and independen
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
   await expect(
     page.getByRole("button", { name: "Adjust workspace" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Filters workspace" }),
   ).toHaveCount(0);
@@ -2600,7 +2602,7 @@ test("editable numeric drafts, percentage units, magnetic sliders and independen
   await expect(
     page.getByRole("slider", { name: "Speed", exact: true }),
   ).toHaveValue("1.25");
-  await expect(page.locator(".range-wedge")).toHaveCount(2);
+  await expect(page.locator(".range-wedge")).toHaveCount(1);
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   const opacity = page.getByRole("spinbutton", {
     name: "Opacity value",
@@ -2629,7 +2631,9 @@ test("editable numeric drafts, percentage units, magnetic sliders and independen
   await exact.fill("0.013");
   await exact.press("Enter");
   await expect(exposure).toHaveValue("0.013");
-  await page.getByRole("button", { name: "Overlays", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Overlays workspace", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Filter", exact: true }),
   ).toHaveClass("selected");
@@ -2786,7 +2790,7 @@ test("caption-only grouping, source reference previews, relaxed-cut restoration 
   await page.getByRole("button", { name: "My Edits", exact: true }).click();
   await expect(page.locator(".project-preview").first()).toHaveCSS(
     "aspect-ratio",
-    "4 / 5",
+    "1 / 1",
   );
   await page.getByRole("button", { name: "List view", exact: true }).click();
   await expect(page.locator(".project-grid")).toHaveClass(/project-list/);
@@ -2836,4 +2840,133 @@ test("nonmodal media import preserves text added while the source is decoding", 
   await expect(page.locator(".progress-modal")).toHaveCount(0);
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
   await expect(page.locator(".text-row .sequence-item")).toHaveCount(1);
+});
+
+test("restored rail shortcuts, volume-first controls, aligned ticks and compact square Edits", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(
+    page.getByRole("button", { name: "Filters workspace" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Overlays workspace" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Overlay media", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Adjust workspace" }).click();
+  const heading = page.locator(".advanced-adjustments > summary");
+  await expect
+    .poll(async () => {
+      const h = (await heading.boundingBox())!,
+        tabs = (await page.locator(".inspector-tabs").boundingBox())!;
+      return h.y >= tabs.y + tabs.height && h.y < tabs.y + tabs.height + 60;
+    })
+    .toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Filter", exact: true }),
+  ).toHaveClass("selected");
+  await expect(
+    page.getByRole("heading", { name: "Overlay media", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  const volume = page.getByRole("slider", { name: "Volume", exact: true });
+  const speed = page.getByRole("slider", { name: "Speed", exact: true });
+  expect((await volume.boundingBox())!.y).toBeLessThan(
+    (await speed.boundingBox())!.y,
+  );
+  await expect(volume.locator("../..")).toHaveClass(/range-wedge/);
+  await expect(speed.locator("../..")).not.toHaveClass(/range-wedge/);
+  const value = page.getByRole("spinbutton", {
+    name: "Speed value",
+    exact: true,
+  });
+  await value.fill("1.23");
+  await value.press("Enter");
+  await expect(speed).toHaveValue("1.23");
+  await speed.press("ArrowRight");
+  await expect(speed).toHaveValue("1.28");
+  const geometry = await volume.evaluate((input) => {
+    const control = input.parentElement!;
+    const box = input.getBoundingClientRect();
+    const axis = control.querySelector(".range-ticks")!.getBoundingClientRect();
+    const marks = [
+      ...control.querySelectorAll<HTMLElement>(".range-ticks .major"),
+    ].map((mark) => {
+      const rect = mark.getBoundingClientRect();
+      return {
+        fraction: parseFloat(mark.style.left) / 100,
+        center: rect.x + rect.width / 2,
+      };
+    });
+    const track = getComputedStyle(control, "::before");
+    return {
+      start: box.x + 4,
+      width: box.width - 8,
+      axisStart: axis.x,
+      axisWidth: axis.width,
+      trackLeft: track.left,
+      trackRight: track.right,
+      marks,
+    };
+  });
+  expect(Math.abs(geometry.axisStart - geometry.start)).toBeLessThan(0.1);
+  expect(
+    Math.abs(geometry.axisWidth - geometry.width),
+    JSON.stringify(geometry),
+  ).toBeLessThan(0.1);
+  expect(geometry.trackLeft).toBe("4px");
+  expect(geometry.trackRight).toBe("4px");
+  for (const mark of geometry.marks)
+    expect(
+      Math.abs(mark.center - geometry.start - mark.fraction * geometry.width),
+    ).toBeLessThan(0.1);
+  await page
+    .getByRole("spinbutton", { name: "Volume value", exact: true })
+    .fill("50");
+  await page
+    .getByRole("spinbutton", { name: "Volume value", exact: true })
+    .press("Enter");
+  await expect(volume).toHaveValue("0.5");
+  await page.screenshot({
+    path: "outputs/release027-aligned-sliders.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Upload clips", exact: true }),
+  ).toHaveCount(0);
+  const preview = page.locator(".project-preview").first();
+  let box = (await preview.boundingBox())!;
+  expect(box.width).toBeLessThanOrEqual(176);
+  expect(Math.abs(box.width - box.height)).toBeLessThan(1);
+  await expect(preview.locator("video")).toHaveClass("frame-ready");
+  await page.screenshot({
+    path: "outputs/release027-compact-edits.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  box = (await preview.boundingBox())!;
+  expect(box.width).toBeLessThan(125);
+  expect(Math.abs(box.width - box.height)).toBeLessThan(1);
+  expect(
+    await page
+      .locator(".project-grid")
+      .evaluate(
+        (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length,
+      ),
+  ).toBe(3);
+  await page.getByRole("button", { name: "List view", exact: true }).click();
+  box = (await preview.boundingBox())!;
+  expect(Math.abs(box.width - box.height)).toBeLessThan(1);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Upload clips", exact: true }).first(),
+  ).toBeVisible();
 });

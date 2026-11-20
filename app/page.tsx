@@ -2241,10 +2241,6 @@ export default function App({
                         </button>
                       ))}
                     </div>
-                    <Button onClick={() => pick()}>
-                      <Plus size={18} />
-                      Upload clips
-                    </Button>
                   </div>
                 </div>
                 <div
@@ -2335,6 +2331,12 @@ export default function App({
                           label: "Auto",
                           icon: Subtitles,
                         },
+                        { id: "overlays", label: "Overlays", icon: Layers },
+                        {
+                          id: "adjust",
+                          label: "Adjust",
+                          icon: SlidersHorizontal,
+                        },
                         { id: "chat", label: "EditAI", icon: Sparkles },
                       ].map((item) => (
                         <button
@@ -2355,6 +2357,18 @@ export default function App({
                           aria-pressed={editorPanel === item.id}
                           onClick={() => {
                             closeCrop();
+                            if (item.id === "adjust") {
+                              if (selectedLayer?.track === "audio" && segment) {
+                                setSelectedLayer({
+                                  track: "segments",
+                                  id: segment.id,
+                                });
+                                setSelectedText("");
+                              }
+                              setTool("filter");
+                              scrollInspector("adjust");
+                              return;
+                            }
                             setEditorPanel(item.id);
                             if (item.id === "text" || item.id === "captions") {
                               setTool("captions");
@@ -2928,12 +2942,6 @@ export default function App({
                       />
                     </div>
                     <div className="timeline-edit-actions">
-                      <IconButton
-                        label="Overlays"
-                        onClick={() => setEditorPanel("overlays")}
-                      >
-                        <Layers size={20} />
-                      </IconButton>
                       <IconButton
                         label="Crop"
                         disabled={mediaSelection.track === "audio"}

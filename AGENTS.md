@@ -2,6 +2,8 @@
 
 This is the independent web editor. Do not modify the sibling iOS project or the older private marketing website. Work on `codex/desktop-migration`. The owner’s November 20 instruction authorizes and requests committing and pushing completed changes to `main`; preserve remote history and never force-push.
 
+Web and desktop are one shared product: a request mentioning either platform applies to both unless explicitly limited. Publish requested interface updates to the live web app and a matching verified desktop release, including the installed Mac app; source pushes alone are insufficient.
+
 Read `plan.md` and `docs/VERIFICATION.md` before claiming completion. Tests using fixture authentication do not prove real Publik connectivity. Do not add production authentication bypasses or fake AI responses. Native editing contracts and editorial safety checks live under `lib/ios`; keep stable source word IDs and validate AI edits atomically.
 
 ## publik API

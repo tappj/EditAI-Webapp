@@ -80,6 +80,7 @@ export function IconButton({
     </>
   );
 }
+const RANGE_THUMB_SIZE = 8;
 type ResettableRange = HTMLInputElement & { editaiReset?: () => void };
 export function resetHoveredRange() {
   const slider = document.querySelector<ResettableRange>(
@@ -146,6 +147,14 @@ export function Range({
       return { n, large: Math.abs(n / major - Math.round(n / major)) < 0.001 };
     },
   ).filter((m) => m.n <= max + span * 0.0001);
+  for (const n of [min, max, neutral]) {
+    if (
+      n >= min &&
+      n <= max &&
+      !marks.some((m) => Math.abs(m.n - n) < span * 1e-8)
+    )
+      marks.push({ n, large: true });
+  }
   const snapped = (n: number, width: number, bypass: boolean) => {
     if (bypass) return n;
     const candidates = [
@@ -157,13 +166,15 @@ export function Range({
     const nearest = candidates.reduce((a, b) =>
       Math.abs(n - a) < Math.abs(n - b) ? a : b,
     );
-    return (Math.abs(n - nearest) / span) * width <= 9
+    return (Math.abs(n - nearest) / span) *
+      Math.max(1, width - RANGE_THUMB_SIZE) <=
+      9
       ? Number(nearest.toPrecision(10))
       : n;
   };
   return (
     <label
-      className={`range-label${speed || /volume/i.test(label) ? " range-wedge" : ""}`}
+      className={`range-label${/volume/i.test(label) ? " range-wedge" : ""}`}
     >
       <span>
         {label}
@@ -202,6 +213,7 @@ export function Range({
         style={
           {
             "--range-fill": `${((value - min) / span) * 100}%`,
+            "--range-thumb-size": `${RANGE_THUMB_SIZE}px`,
           } as React.CSSProperties
         }
       >
@@ -222,6 +234,29 @@ export function Range({
           }}
           onKeyDown={(e) => {
             if (
+              ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
+                e.key,
+              )
+            ) {
+              e.preventDefault();
+              e.stopPropagation();
+              const direction =
+                e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 1;
+              onChange(
+                Math.min(
+                  max,
+                  Math.max(
+                    min,
+                    Number(
+                      (value + direction * (step ?? span / 100)).toPrecision(
+                        10,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+            if (
               e.key.toLowerCase() === "r" &&
               !e.metaKey &&
               !e.ctrlKey &&
@@ -234,7 +269,7 @@ export function Range({
           }}
           min={min}
           max={max}
-          step={/speed|volume/i.test(label) ? (step ?? 0.01) : "any"}
+          step="any"
           value={value}
           style={
             {

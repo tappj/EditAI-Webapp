@@ -155,6 +155,18 @@ export function SelectedMediaInspector({
         {source.kind !== "image" && (
           <>
             <Range
+              label="Volume"
+              min={0}
+              max={1}
+              resetValue={overlay ? 0 : 1}
+              value={item.volume ?? (overlay ? 0 : 1)}
+              onChange={(n) =>
+                update((x) => {
+                  x.volume = n;
+                })
+              }
+            />
+            <Range
               label={audio ? "Audio speed" : "Speed"}
               min={0.25}
               max={4}
@@ -172,18 +184,6 @@ export function SelectedMediaInspector({
                       x.start + ((x.end - x.start) * (x.speed ?? 1)) / n,
                     );
                   x.speed = n;
-                })
-              }
-            />
-            <Range
-              label="Volume"
-              min={0}
-              max={1}
-              resetValue={overlay ? 0 : 1}
-              value={item.volume ?? (overlay ? 0 : 1)}
-              onChange={(n) =>
-                update((x) => {
-                  x.volume = n;
                 })
               }
             />

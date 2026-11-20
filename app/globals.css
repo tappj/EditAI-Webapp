@@ -2853,13 +2853,18 @@ html[data-desktop-platform="darwin"]
   app-region: no-drag;
 }
 
-/* Portrait-friendly edits, with the native library's alternate row layout. */
+/* Compact edits, with the native library's alternate row layout. */
+.project-grid {
+  grid-template-columns: repeat(auto-fill, minmax(148px, 176px));
+  align-items: start;
+}
 .project-preview {
   height: auto;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1;
 }
 .project-preview video {
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center 32%;
 }
 .library-actions,
 .edits-layout-toggle {
@@ -2990,4 +2995,30 @@ body:has(.is-editor) .notification-stack .toast.error + .toast {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.project-grid:not(.project-list) .project-card {
+  position: relative;
+}
+.project-grid:not(.project-list) .project-card-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #17202ab3;
+  color: white;
+  border-radius: 8px;
+}
+.project-grid:not(.project-list) .project-card-meta > div:first-child {
+  width: 100%;
+}
+@media (max-width: 700px) {
+  .project-grid:not(.project-list) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .project-grid:not(.project-list) .project-card-meta {
+    padding: 8px 6px;
+  }
+}
+.project-grid:not(.project-list) .project-card-actions .icon-button {
+  color: #fff;
 }

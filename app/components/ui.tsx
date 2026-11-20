@@ -80,12 +80,22 @@ export function IconButton({
     </>
   );
 }
+type ResettableRange = HTMLInputElement & { editaiReset?: () => void };
+export function resetHoveredRange() {
+  const slider = document.querySelector<ResettableRange>(
+    ".is-editor .range-label:hover input[type=range]",
+  );
+  if (!slider?.editaiReset) return false;
+  slider.editaiReset();
+  return true;
+}
 export function Range({
   label,
   value,
   min,
   max,
   step = 0.01,
+  resetValue,
   onChange,
 }: {
   label: string;
@@ -93,8 +103,19 @@ export function Range({
   min: number;
   max: number;
   step?: number;
+  resetValue?: number;
   onChange: (n: number) => void;
 }) {
+  const neutral =
+    resetValue ??
+    (/speed|contrast|saturation|opacity|volume/i.test(label)
+      ? 1
+      : /horizontal|vertical/i.test(label)
+        ? 0.5
+        : /size/i.test(label)
+          ? 0.055
+          : 0);
+  const reset = () => onChange(Math.min(max, Math.max(min, neutral)));
   return (
     <label className="range-label">
       <span>
@@ -103,6 +124,21 @@ export function Range({
       </span>
       <input
         type="range"
+        ref={(node) => {
+          if (node) (node as ResettableRange).editaiReset = reset;
+        }}
+        onKeyDown={(e) => {
+          if (
+            e.key.toLowerCase() === "r" &&
+            !e.metaKey &&
+            !e.ctrlKey &&
+            !e.altKey
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            reset();
+          }
+        }}
         min={min}
         max={max}
         step={step}

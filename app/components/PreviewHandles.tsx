@@ -7,6 +7,8 @@ import {
   type PointerEvent,
 } from "react";
 import { type Document, textTiming } from "@/lib/editor/model";
+import { appearance, type Appearance } from "@/lib/editor/model";
+import { overlayAspect } from "@/lib/editor/crop";
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 export function PreviewHandles({
@@ -82,16 +84,26 @@ export function PreviewHandles({
     boxWidth?: number;
     boxHeight?: number;
     width?: number;
+    height?: number;
     sourceIndex?: number;
+    appearance?: Appearance;
   }) {
     const width = layer.width ?? layer.boxWidth ?? 0.86;
     const source =
       layer.sourceIndex != null ? d.sources[layer.sourceIndex] : null;
-    const height = source
-      ? (width * bounds.width * source.height) / source.width
-      : layer.boxHeight
-        ? layer.boxHeight * bounds.height
-        : (layer.size ?? 0.055) * bounds.width * 2;
+    const height = layer.height
+      ? layer.height * bounds.height
+      : source
+        ? width *
+          bounds.width *
+          overlayAspect(
+            source.width,
+            source.height,
+            layer.appearance || appearance(),
+          )
+        : layer.boxHeight
+          ? layer.boxHeight * bounds.height
+          : (layer.size ?? 0.055) * bounds.width * 2;
     return {
       left: bounds.left + layer.x * bounds.width - (width * bounds.width) / 2,
       top: bounds.top + layer.y * bounds.height - height / 2,
@@ -133,13 +145,39 @@ export function PreviewHandles({
     if (g.handle === "move") {
       layer.x = clamp(original.x + dx, 0, 1);
       layer.y = clamp(original.y + dy, 0, 1);
-    } else if ("width" in layer && "width" in original)
-      layer.width = clamp(
-        original.width + dx * (g.handle.includes("w") ? -2 : 2),
-        0.1,
-        1,
-      );
-    else if ("size" in layer && "size" in original) {
+    } else if ("width" in layer && "width" in original) {
+      const source = d.sources[original.sourceIndex],
+        oldW = original.width,
+        oldH =
+          original.height ??
+          (oldW *
+            bounds.width *
+            overlayAspect(
+              source.width,
+              source.height,
+              original.appearance || appearance(),
+            )) /
+            bounds.height;
+      const sx = g.handle.includes("w") ? -1 : 1,
+        sy = g.handle.includes("n") ? -1 : 1;
+      const hx = /[ew]/.test(g.handle),
+        hy = /[ns]/.test(g.handle);
+      if (hx && hy) {
+        const scale = Math.max(
+          0.1,
+          Math.abs(dx / oldW) > Math.abs(dy / oldH)
+            ? 1 + (sx * dx) / oldW
+            : 1 + (sy * dy) / oldH,
+        );
+        layer.width = clamp(oldW * scale, 0.1, 1);
+        layer.height = clamp(oldH * scale, 0.03, 1);
+      } else {
+        layer.width = hx ? clamp(oldW + sx * dx, 0.1, 1) : oldW;
+        layer.height = hy ? clamp(oldH + sy * dy, 0.03, 1) : oldH;
+      }
+      layer.x = clamp(original.x + ((layer.width - oldW) * sx) / 2, 0, 1);
+      layer.y = clamp(original.y + ((layer.height - oldH) * sy) / 2, 0, 1);
+    } else if ("size" in layer && "size" in original) {
       const oldW = original.boxWidth ?? 0.86,
         oldH =
           original.boxHeight ??
@@ -267,10 +305,7 @@ export function PreviewHandles({
               onPointerCancel={() => finish(true)}
             />
           )}
-          {(o
-            ? ["nw", "ne", "se", "sw"]
-            : ["nw", "n", "ne", "e", "se", "s", "sw", "w"]
-          ).map((handle) => (
+          {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((handle) => (
             <button
               key={handle}
               aria-label={

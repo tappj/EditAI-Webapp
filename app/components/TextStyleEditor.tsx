@@ -67,6 +67,7 @@ export function TextStyleEditor({
       </label>
       <Range
         label="Text opacity"
+        resetValue={1}
         min={0}
         max={1}
         value={text.opacity ?? 1}
@@ -74,6 +75,7 @@ export function TextStyleEditor({
       />
       <Range
         label="Text box width"
+        resetValue={0.86}
         min={0.15}
         max={0.94}
         value={text.boxWidth ?? 0.86}
@@ -94,6 +96,7 @@ export function TextStyleEditor({
       </label>
       <Range
         label="Letter spacing"
+        resetValue={0}
         min={-0.05}
         max={0.3}
         value={text.letterSpacing ?? 0}
@@ -101,6 +104,7 @@ export function TextStyleEditor({
       />
       <Range
         label="Line spacing"
+        resetValue={0}
         min={0}
         max={1}
         value={text.lineSpacing ?? 0}
@@ -110,6 +114,7 @@ export function TextStyleEditor({
         <>
           <Range
             label="Outline width"
+            resetValue={0.00495}
             min={0.0005}
             max={0.02}
             step={0.0005}
@@ -161,6 +166,7 @@ export function TextStyleEditor({
           </label>
           <Range
             label="Background opacity"
+            resetValue={1}
             min={0}
             max={1}
             value={text.backgroundOpacity ?? 1}
@@ -168,6 +174,7 @@ export function TextStyleEditor({
           />
           <Range
             label="Background padding"
+            resetValue={0.012}
             min={0.002}
             max={0.03}
             step={0.001}
@@ -176,6 +183,7 @@ export function TextStyleEditor({
           />
           <Range
             label="Background radius"
+            resetValue={0}
             min={0}
             max={0.05}
             step={0.001}
@@ -186,6 +194,7 @@ export function TextStyleEditor({
       )}
       <Range
         label="Shadow opacity"
+        resetValue={0}
         min={0}
         max={1}
         value={text.shadowOpacity ?? 0}
@@ -203,6 +212,7 @@ export function TextStyleEditor({
           </label>
           <Range
             label="Shadow blur"
+            resetValue={0.005}
             min={0}
             max={0.025}
             step={0.001}
@@ -211,6 +221,7 @@ export function TextStyleEditor({
           />
           <Range
             label="Shadow offset"
+            resetValue={0.003}
             min={-0.025}
             max={0.025}
             step={0.001}
@@ -232,6 +243,7 @@ export function TextStyleEditor({
       </label>
       <Range
         label="Animation duration"
+        resetValue={0.35}
         min={0.1}
         max={2}
         step={0.05}

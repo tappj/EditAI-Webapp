@@ -542,7 +542,17 @@ export class Player {
           c = a.crop,
           cw = s.width * c.width,
           ch = s.height * c.height,
-          scale = (o.width * w) / (a.rotation % 2 ? ch : cw);
+          scale = (o.width * w) / (a.rotation % 2 ? ch : cw),
+          drawW = o.height
+            ? a.rotation % 2
+              ? o.height * h
+              : o.width * w
+            : cw * scale,
+          drawH = o.height
+            ? a.rotation % 2
+              ? o.width * w
+              : o.height * h
+            : ch * scale;
         ctx.save();
         ctx.globalAlpha = o.opacity * a.opacity;
         ctx.filter = cssFilter(a);
@@ -559,10 +569,10 @@ export class Player {
           s.height * c.y,
           cw,
           ch,
-          (-cw * scale) / 2,
-          (-ch * scale) / 2,
-          cw * scale,
-          ch * scale,
+          -drawW / 2,
+          -drawH / 2,
+          drawW,
+          drawH,
         );
         ctx.restore();
       }

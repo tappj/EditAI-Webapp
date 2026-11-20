@@ -452,3 +452,25 @@ test("text and video overlays allow seven concurrent tracks and reject an eighth
   assert.equal(d.texts.length, 7);
   assert.equal(d.overlays.length, 7);
 });
+
+test("manual crop round-trips through rotation and flips without changing source coordinates", async () => {
+  const { displayCrop, sourceCrop } = await import("../lib/editor/crop.ts");
+  const rect = { x: 0.1, y: 0.2, width: 0.6, height: 0.5 };
+  for (let rotation = 0; rotation < 4; rotation++)
+    for (const flipX of [false, true])
+      for (const flipY of [false, true]) {
+        const a = {
+          ...fixture().segments[0].appearance,
+          rotation,
+          flipX,
+          flipY,
+        };
+        const actual = sourceCrop(displayCrop(rect, a), a);
+        for (const key of ["x", "y", "width", "height"] as const)
+          assert.ok(Math.abs(actual[key] - rect[key]) < 1e-9);
+      }
+  assert.deepEqual(
+    displayCrop(rect, { ...fixture().segments[0].appearance, rotation: 1 }),
+    { x: 0.30000000000000004, y: 0.1, width: 0.5, height: 0.6 },
+  );
+});

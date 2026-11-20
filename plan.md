@@ -160,3 +160,14 @@ timeline moves the playhead, while only its cap captures dragging. Notifications
 expire automatically. Enforce bounded concurrent track allocation (audio 3, text 7,
 video overlays 7), retaining collision stops and deliberate continued-drag behavior.
 - November 20: implemented and pushed guided Mac Install and Open with native relaunch, explicit existing-app handling and optional matching-DMG eject/Trash cleanup. Isolated required checks and signed/notarized 0.2.3 app/image verification pass; installed app is open for the owner's first-run privacy choice. Private release staged; public download stays 0.2.2 until installed-app export acceptance passes. See docs/desktop/VERIFICATION.md.
+
+## Selected inspector and manual crop — November 20, 2026
+
+Use Clip, Text and Filter inspector tabs; remove Layers and inspect only the selected
+media item. Keep opacity in Clip, place Extract audio below Volume, and label the
+feature-bar caption tool Auto without a sparkle. Provide actual selected-source
+filter previews, compact section resets, and focused/hovered slider R resets recorded
+only in Help. Account for the sticky tab height when navigating to section headings
+at every viewport. Crop media directly with edge/corner handles and pinch; preserve
+source crop coordinates through rotations/flips. Overlay corners scale and sides
+stretch independently, with matching preview/export geometry. Keep Home/Edits intact.

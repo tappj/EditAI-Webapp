@@ -493,3 +493,29 @@ source is updated; the downloadable signed installer remains 0.2.2.
 ## Guided desktop installation — November 20, 2026
 
 Added the packaged-Mac Install and Open/relaunch flow, existing-install confirmation, optional disk-image eject/Trash cleanup and clearer installer instructions. Validated in an isolated checkout: typecheck, 24 web tests, 18 desktop tests and both builds pass. App/DMG signing, Apple notarization, Gatekeeper, packaged self-test, exact CI image identity and native mounted-image discovery pass. Installed 0.2.3 and preserved the prior app. Public release remains 0.2.2 pending the owner's actual first-run privacy choice and the release script's installed-app export acceptance. No consent was chosen for the owner. Detailed evidence and limits are in docs/desktop/VERIFICATION.md.
+
+## Selected inspector and crop — November 20, 2026
+
+Clip/Text/Filter replaces the Layers inspector. Selection controls one media item;
+opacity stays in Clip, Extract audio follows Volume, and the caption rail reads Auto
+without a sparkle. Filter thumbnails decode the selected source and display the
+existing native presets. Compact playback/filter/adjustment/crop resets remain;
+focused or hovered sliders support R, documented only in Help. Split, Duplicate and
+Delete use short action labels.
+
+Section navigation measures the sticky inspector tabs and positions the complete
+category heading below them. Direct crop handles/pinch map display-space rectangles
+back into source coordinates across all rotations/flips. Overlay corner scaling and
+independent side stretching persist dimensions used by the actual compositor.
+
+Typecheck, 25 model/security tests, 18 desktop tests and web/desktop production builds
+pass. Browser coverage includes heading visibility at 1440×900, 1280×720, 1024×768
+and 390×844, real filter previews, focused/hovered R resets, manual crop and reset,
+rotation, selected-only overlay controls, opacity reset and independent edge resizing.
+Authentication and AI responses in these browser checks are fixtures; they do not
+prove fresh real Publik connectivity. The shared desktop source/build is updated;
+this change does not publish a replacement signed installer.
+
+All 32 studio scenarios pass in Chromium (59.4s) and WebKit (2.3m) against a freshly
+started production Worker. Changed-component lint has no errors; the existing
+Wordmark image optimization advisory remains. Home/Edits appearance is unchanged.

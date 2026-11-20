@@ -103,7 +103,13 @@ import { placeSource, type MediaDrop } from "@/lib/editor/placement";
 import { FontPreviewPicker } from "./components/FontPreviewPicker";
 import { makeReference, type Reference } from "@/lib/editor/reference";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
-import { Button, IconButton, Range, Wordmark } from "./components/ui";
+import {
+  Button,
+  IconButton,
+  Range,
+  Wordmark,
+  resetHoveredRange,
+} from "./components/ui";
 import { ProjectCard } from "./components/ProjectCard";
 import { StudioAccount, StudioOnboarding } from "./components/StudioOnboarding";
 import {
@@ -119,7 +125,8 @@ import {
 import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
 import { TextStyleEditor } from "./components/TextStyleEditor";
-import { AppearanceEditor } from "./components/AppearanceEditor";
+import { SelectedMediaInspector } from "./components/SelectedMediaInspector";
+import { CropEditor } from "./components/CropEditor";
 import { PreviewHandles } from "./components/PreviewHandles";
 import { EditorSourceLibrary } from "./components/EditorSourceLibrary";
 import { EditorTimeline } from "./components/EditorTimeline";
@@ -204,6 +211,7 @@ export default function App({
     [onlySelectedText, setOnlySelectedText] = useState(false),
     [captionStyleOpen, setCaptionStyleOpen] = useState(true),
     [helpOpen, setHelpOpen] = useState(false),
+    [cropping, setCropping] = useState(false),
     [exportOpen, setExportOpen] = useState(false),
     [resolution, setResolution] = useState(1280),
     [fps, setFps] = useState(30),
@@ -264,6 +272,49 @@ export default function App({
     total = doc ? duration(doc) : 0,
     segment = doc?.segments.find((s) => s.id === selected) || doc?.segments[0],
     textLayer = doc?.texts.find((t) => t.id === selectedText);
+  const mediaSelection: {
+    track: "segments" | "audio" | "overlays";
+    id: string;
+  } =
+    selectedLayer?.track === "audio" || selectedLayer?.track === "overlays"
+      ? { track: selectedLayer.track, id: selectedLayer.id }
+      : { track: "segments", id: segment?.id || "" };
+  function closeCrop() {
+    setCropping(false);
+    if (player.current && doc) {
+      player.current.doc = doc;
+      player.current.draw();
+    }
+  }
+  function scrollInspector(section?: string) {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const panel = document.querySelector<HTMLElement>(
+          ".is-editor .inspector",
+        );
+        if (!panel) return;
+        const target = section
+          ? panel.querySelector<HTMLElement>(`[data-section="${section}"]`)
+          : null;
+        if (target) {
+          const details = target.querySelector("details");
+          if (details) details.open = true;
+          const tabs = panel
+            .querySelector(".inspector-tabs")!
+            .getBoundingClientRect();
+          panel.scrollTop = Math.max(
+            0,
+            target.getBoundingClientRect().top -
+              panel.getBoundingClientRect().top +
+              panel.scrollTop -
+              tabs.height -
+              16,
+          );
+        } else panel.scrollTop = 0;
+        if (innerWidth < 1100) panel.scrollIntoView({ block: "nearest" });
+      }),
+    );
+  }
   useEffect(() => {
     if (!privacy && !exportOpen && !helpOpen && !busy) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -561,6 +612,16 @@ export default function App({
       ) {
         e.preventDefault();
         deleteSelection();
+        return;
+      }
+      if (
+        e.key.toLowerCase() === "r" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        resetHoveredRange()
+      ) {
+        e.preventDefault();
         return;
       }
       if (e.code === "Space") {
@@ -1103,6 +1164,21 @@ export default function App({
       setUrls(next);
       persistedProject.current = current;
       change(d, current);
+      const addedIndex = d.sources.length - 1;
+      const addedAudio = d.audio.findLast((x) => x.sourceIndex === addedIndex),
+        addedOverlay = d.overlays.findLast((x) => x.sourceIndex === addedIndex),
+        addedClip = d.segments.findLast((x) => x.sourceIndex === addedIndex);
+      if (addedAudio) setSelectedLayer({ track: "audio", id: addedAudio.id });
+      else if (addedOverlay)
+        setSelectedLayer({ track: "overlays", id: addedOverlay.id });
+      else if (addedClip) {
+        setSelectedLayer({ track: "segments", id: addedClip.id });
+        setSelected(addedClip.id);
+      }
+      setSelectedText("");
+      setTool("clip");
+      scrollInspector();
+
       setProjects(await listProjects());
       await syncProject(current, media);
     });
@@ -1143,7 +1219,7 @@ export default function App({
       validate(d);
       change(d);
       setSelectedLayer({ track: "audio", id: audio.id });
-      setTool("layers");
+      setTool("clip");
     } catch (e) {
       fail(e);
     }
@@ -2143,7 +2219,7 @@ export default function App({
                         { id: "text", label: "Text", icon: Type },
                         {
                           id: "captions",
-                          label: "Captions",
+                          label: "Auto",
                           icon: Subtitles,
                         },
                         { id: "overlays", label: "Overlays", icon: Layers },
@@ -2172,60 +2248,37 @@ export default function App({
                           className={`${editorPanel === item.id ? "selected" : ""} ${item.id === "chat" ? "editai-tool" : ""}`}
                           aria-pressed={editorPanel === item.id}
                           onClick={() => {
+                            closeCrop();
                             setEditorPanel(item.id);
                             if (item.id === "text" || item.id === "captions") {
                               setTool("captions");
                               setCaptionStyleOpen(true);
+                              scrollInspector();
                             } else if (
-                              item.id === "overlays" ||
-                              item.id === "audio"
-                            )
-                              setTool("layers");
-                            else if (
                               item.id === "filters" ||
                               item.id === "adjust"
                             ) {
+                              if (selectedLayer?.track === "audio") {
+                                setSelectedLayer({
+                                  track: "segments",
+                                  id: segment!.id,
+                                });
+                                setSelectedText("");
+                              }
+                              setTool(
+                                item.id === "filters" ? "filter" : "clip",
+                              );
+                              scrollInspector(
+                                item.id === "adjust" ? "adjust" : undefined,
+                              );
+                            } else {
                               setTool("clip");
-                              requestAnimationFrame(() => {
-                                const inspector = document.querySelector(
-                                  ".is-editor .inspector",
-                                );
-                                if (item.id === "filters")
-                                  inspector
-                                    ?.querySelector(".filter-grid")
-                                    ?.scrollIntoView({ block: "nearest" });
-                                else {
-                                  const details = [
-                                    ...(inspector?.querySelectorAll(
-                                      "details",
-                                    ) || []),
-                                  ].find((d) =>
-                                    d
-                                      .querySelector("summary")
-                                      ?.textContent?.includes(
-                                        "More adjustments",
-                                      ),
-                                  );
-                                  if (details) {
-                                    details.open = true;
-                                    details.scrollIntoView({
-                                      block: "nearest",
-                                    });
-                                  }
-                                }
-                              });
+                              scrollInspector();
                             }
                           }}
                         >
                           <span className="tool-icon">
                             <item.icon size={20} />
-                            {item.id === "captions" && (
-                              <Sparkles
-                                className="premium-sparkle"
-                                size={9}
-                                aria-hidden="true"
-                              />
-                            )}
                           </span>
                           <span>{item.label}</span>
                         </button>
@@ -2440,34 +2493,56 @@ export default function App({
                     </div>
                     <div className="canvas-stage">
                       <canvas ref={canvas} aria-label="Video preview" />
-                      <PreviewHandles
-                        canvas={canvas}
-                        doc={doc}
-                        id={
-                          selectedLayer?.track === "overlays"
-                            ? selectedLayer.id
-                            : tool === "captions"
-                              ? selectedText
-                              : ""
-                        }
-                        time={playhead}
-                        onChange={change}
-                        onSelect={(id) => {
-                          setSelectedText(id);
-                          setSelectedLayer({ track: "texts", id });
-                          setTool("captions");
-                          player.current?.pause();
-                          setPlaying(false);
-                        }}
-                        onPreview={(d) => {
-                          if (player.current) {
-                            player.current.pause();
-                            setPlaying(false);
-                            player.current.doc = d;
-                            player.current.draw();
+                      {!cropping && (
+                        <PreviewHandles
+                          canvas={canvas}
+                          doc={doc}
+                          id={
+                            selectedLayer?.track === "overlays"
+                              ? selectedLayer.id
+                              : tool === "captions"
+                                ? selectedText
+                                : ""
                           }
-                        }}
-                      />
+                          time={playhead}
+                          onChange={change}
+                          onSelect={(id) => {
+                            setSelectedText(id);
+                            setSelectedLayer({ track: "texts", id });
+                            setTool("captions");
+                            player.current?.pause();
+                            setPlaying(false);
+                          }}
+                          onPreview={(d) => {
+                            if (player.current) {
+                              player.current.pause();
+                              setPlaying(false);
+                              player.current.doc = d;
+                              player.current.draw();
+                            }
+                          }}
+                        />
+                      )}
+                      {cropping && mediaSelection.track !== "audio" && (
+                        <CropEditor
+                          key={mediaSelection.id}
+                          canvas={canvas}
+                          doc={doc}
+                          track={mediaSelection.track}
+                          id={mediaSelection.id}
+                          onPreview={(next) => {
+                            if (player.current) {
+                              player.current.doc = next;
+                              player.current.draw();
+                            }
+                          }}
+                          onApply={(next) => {
+                            setCropping(false);
+                            change(next);
+                          }}
+                          onCancel={closeCrop}
+                        />
+                      )}
                     </div>
                     <div className="transport">
                       <span>
@@ -2506,13 +2581,15 @@ export default function App({
                       {[
                         { id: "clip", icon: SlidersHorizontal, label: "Clip" },
                         { id: "captions", icon: Subtitles, label: "Text" },
-                        { id: "layers", icon: Layers, label: "Layers" },
+                        { id: "filter", icon: ImageIcon, label: "Filter" },
                       ].map((t) => (
                         <button
                           className={tool === t.id ? "selected" : ""}
                           key={t.id}
                           onClick={() => {
+                            closeCrop();
                             setTool(t.id);
+                            scrollInspector();
                             if (t.id === "captions") setCaptionStyleOpen(true);
                           }}
                         >
@@ -2670,357 +2747,45 @@ export default function App({
                           )}
                         </details>
                       </>
-                    ) : tool === "layers" ? (
-                      <>
-                        <h3>Layers</h3>
-                        <Button
-                          secondary
-                          onClick={() => {
-                            mediaKind.current = "overlay";
-                            extraInput.current?.click();
-                          }}
-                        >
-                          <ImageIcon size={16} />
-                          Add image / video
-                        </Button>
-                        <Button
-                          secondary
-                          onClick={() => {
-                            mediaKind.current = "audio";
-                            replacingAudio.current = null;
-                            extraInput.current?.click();
-                          }}
-                        >
-                          <Music size={16} />
-                          Add audio
-                        </Button>
-                        {doc.overlays.map((o) => (
-                          <div className="layer-settings" key={o.id}>
-                            <strong>{doc.sources[o.sourceIndex].name}</strong>
-                            {[
-                              ["Start", "start", 0, total],
-                              ["End", "end", 0, total],
-                              ["X", "x", 0, 1],
-                              ["Y", "y", 0, 1],
-                              ["Width", "width", 0.1, 1],
-                              ["Opacity", "opacity", 0, 1],
-                            ].map(([label, key, min, max]) => (
-                              <Range
-                                key={String(key)}
-                                label={String(label)}
-                                value={(o as any)[key]}
-                                min={Number(min)}
-                                max={Number(max)}
-                                onChange={(n) =>
-                                  patch((d) => {
-                                    (
-                                      d.overlays.find(
-                                        (x) => x.id === o.id,
-                                      ) as any
-                                    )[key] = n;
-                                  })
-                                }
-                              />
-                            ))}
-                            <Range
-                              label="Overlay speed"
-                              min={0.25}
-                              max={4}
-                              step={0.05}
-                              value={o.speed ?? 1}
-                              onChange={(n) =>
-                                patch((d) => {
-                                  const l = d.overlays.find(
-                                    (x) => x.id === o.id,
-                                  )!;
-                                  l.speed = n;
-                                  if (d.sources[l.sourceIndex].kind !== "image")
-                                    l.end = Math.min(
-                                      total,
-                                      l.start +
-                                        (d.sources[l.sourceIndex].duration -
-                                          l.sourceStart) /
-                                          n,
-                                    );
-                                })
-                              }
-                            />
-                            <Range
-                              label="Overlay volume"
-                              min={0}
-                              max={1}
-                              value={o.volume ?? 0}
-                              onChange={(n) =>
-                                patch((d) => {
-                                  d.overlays.find(
-                                    (x) => x.id === o.id,
-                                  )!.volume = n;
-                                })
-                              }
-                            />
-                            <details>
-                              <summary>Overlay appearance</summary>
-                              <AppearanceEditor
-                                value={o.appearance || appearance()}
-                                onChange={(value) =>
-                                  patch((d) => {
-                                    d.overlays.find(
-                                      (x) => x.id === o.id,
-                                    )!.appearance = value;
-                                  })
-                                }
-                              />
-                            </details>
-                            <IconButton
-                              label="Delete overlay"
-                              onClick={() =>
-                                patch((d) => {
-                                  d.overlays = d.overlays.filter(
-                                    (x) => x.id !== o.id,
-                                  );
-                                })
-                              }
-                            >
-                              <Trash2 size={15} />
-                            </IconButton>
-                          </div>
-                        ))}
-                        {doc.audio.map((a) => (
-                          <div className="layer-settings" key={a.id}>
-                            <strong>
-                              {doc.sources[a.sourceIndex].name} · lane{" "}
-                              {a.lane + 1}
-                            </strong>
-                            <Button
-                              secondary
-                              onClick={() => {
-                                mediaKind.current = "audio";
-                                replacingAudio.current = a.id;
-                                extraInput.current?.click();
-                              }}
-                            >
-                              Replace audio
-                            </Button>
-                            <label className="checkbox">
-                              <input
-                                type="checkbox"
-                                checked={a.muted ?? false}
-                                onChange={(e) =>
-                                  patch((d) => {
-                                    d.audio.find((x) => x.id === a.id)!.muted =
-                                      e.target.checked;
-                                  })
-                                }
-                              />
-                              Mute audio
-                            </label>
-                            <Range
-                              label="Audio speed"
-                              min={0.25}
-                              max={4}
-                              step={0.05}
-                              value={a.speed ?? 1}
-                              onChange={(n) =>
-                                patch((d) => {
-                                  const l = d.audio.find((x) => x.id === a.id)!;
-                                  const end =
-                                    l.start +
-                                    ((l.end - l.start) * (l.speed ?? 1)) / n;
-                                  l.speed = n;
-                                  l.end = Math.min(total, end);
-                                })
-                              }
-                            />
-                            <Range
-                              label="Audio source in"
-                              min={0}
-                              max={Math.max(
-                                0,
-                                doc.sources[a.sourceIndex].duration -
-                                  (a.end - a.start) * (a.speed ?? 1),
-                              )}
-                              value={a.sourceStart}
-                              onChange={(n) =>
-                                patch((d) => {
-                                  d.audio.find(
-                                    (x) => x.id === a.id,
-                                  )!.sourceStart = n;
-                                })
-                              }
-                            />
-                            <label>
-                              Audio lane
-                              <select
-                                value={a.lane}
-                                onChange={(e) =>
-                                  patch((d) => {
-                                    d.audio.find((x) => x.id === a.id)!.lane =
-                                      +e.target.value;
-                                  })
-                                }
-                              >
-                                {[0, 1, 2].map((n) => (
-                                  <option value={n} key={n}>
-                                    Lane {n + 1}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            {[
-                              ["Start", "start", 0, total],
-                              ["End", "end", 0, total],
-                              ["Volume", "volume", 0, 1],
-                              ["Fade in", "fadeIn", 0, 10],
-                              ["Fade out", "fadeOut", 0, 10],
-                            ].map(([label, key, min, max]) => (
-                              <Range
-                                key={String(key)}
-                                label={String(label)}
-                                value={(a as any)[key]}
-                                min={Number(min)}
-                                max={Number(max)}
-                                onChange={(n) =>
-                                  patch((d) => {
-                                    (d.audio.find((x) => x.id === a.id) as any)[
-                                      key
-                                    ] = n;
-                                  })
-                                }
-                              />
-                            ))}
-                            <IconButton
-                              label="Delete audio"
-                              onClick={() =>
-                                patch((d) => {
-                                  d.audio = d.audio.filter(
-                                    (x) => x.id !== a.id,
-                                  );
-                                })
-                              }
-                            >
-                              <Trash2 size={15} />
-                            </IconButton>
-                          </div>
-                        ))}
-                      </>
                     ) : (
-                      segment && (
-                        <>
-                          <h3>Clip settings</h3>
-                          <Button
-                            secondary
-                            disabled={doc.segments.length < 2}
-                            title="Place this clip above the video track; keep another clip below"
-                            onClick={() => {
-                              try {
-                                change(makeOverlay(doc, segment.id, playhead));
-                                setSelectedLayer({
-                                  track: "overlays",
-                                  id: segment.id,
-                                });
-                                setSelected(
-                                  doc.segments.find((s) => s.id !== segment.id)
-                                    ?.id || "",
-                                );
-                                setTool("layers");
-                              } catch (e) {
-                                fail(e);
-                              }
-                            }}
-                          >
-                            <Layers size={16} />
-                            Move to overlay
-                          </Button>
-                          <p className="clip-name">
-                            {doc.sources[segment.sourceIndex].name}
-                          </p>
-                          <p className="panel-note">
-                            Drag the blue clip edges on the timeline to shorten
-                            or restore footage.
-                          </p>
-                          <details>
-                            <summary>Precision trim</summary>
-                            <div className="timing-fields">
-                              <label>
-                                In
-                                <input
-                                  type="number"
-                                  aria-label="Clip in point"
-                                  min={0}
-                                  max={segment.end - 0.1}
-                                  step={0.1}
-                                  value={Number(segment.start.toFixed(2))}
-                                  onChange={(e) =>
-                                    updateClip((s) => {
-                                      s.start = +e.target.value;
-                                    })
-                                  }
-                                />
-                              </label>
-                              <label>
-                                Out
-                                <input
-                                  type="number"
-                                  aria-label="Clip out point"
-                                  min={segment.start + 0.1}
-                                  max={
-                                    doc.sources[segment.sourceIndex].duration
-                                  }
-                                  step={0.1}
-                                  value={Number(segment.end.toFixed(2))}
-                                  onChange={(e) =>
-                                    updateClip((s) => {
-                                      s.end = +e.target.value;
-                                    })
-                                  }
-                                />
-                              </label>
-                            </div>
-                          </details>
-                          <Range
-                            label="Speed"
-                            min={0.25}
-                            max={4}
-                            step={0.05}
-                            value={segment.speed}
-                            onChange={(n) =>
-                              updateClip((s) => {
-                                s.speed = n;
-                              })
-                            }
-                          />
-                          {doc.sources[segment.sourceIndex].kind ===
-                            "video" && (
-                            <Button
-                              secondary
-                              onClick={() => void detachClipAudio()}
-                              title="Move this clip’s sound to a separate audio track"
-                            >
-                              <AudioLines size={16} />
-                              Extract audio
-                            </Button>
-                          )}
-                          <Range
-                            label="Volume"
-                            min={0}
-                            max={1}
-                            value={segment.volume}
-                            onChange={(n) =>
-                              updateClip((s) => {
-                                s.volume = n;
-                              })
-                            }
-                          />
-                          <AppearanceEditor
-                            value={segment.appearance}
-                            onChange={(value) =>
-                              updateClip((s) => {
-                                s.appearance = value;
-                              })
-                            }
-                          />
-                        </>
-                      )
+                      <SelectedMediaInspector
+                        doc={doc}
+                        selection={mediaSelection}
+                        urls={urls}
+                        filter={tool === "filter"}
+                        onChange={(next) => {
+                          closeCrop();
+                          change(next);
+                        }}
+                        onCrop={() => {
+                          player.current?.pause();
+                          setPlaying(false);
+                          setCropping(true);
+                        }}
+                        onExtract={detachClipAudio}
+                        onOverlay={() => {
+                          if (!segment) return;
+                          try {
+                            change(makeOverlay(doc, segment.id, playhead));
+                            setSelectedLayer({
+                              track: "overlays",
+                              id: segment.id,
+                            });
+                            setSelected(
+                              doc.segments.find((x) => x.id !== segment.id)
+                                ?.id || "",
+                            );
+                            setTool("clip");
+                          } catch (e) {
+                            fail(e);
+                          }
+                        }}
+                        onReplace={(id) => {
+                          mediaKind.current = "audio";
+                          replacingAudio.current = id;
+                          extraInput.current?.click();
+                        }}
+                      />
                     )}
                   </div>
                 </div>
@@ -3032,7 +2797,7 @@ export default function App({
                   <div className="timeline-toolbar">
                     <div>
                       <IconButton
-                        label="Split clip at playhead"
+                        label="Split"
                         onClick={() => {
                           try {
                             if (
@@ -3061,7 +2826,7 @@ export default function App({
                         <Scissors size={17} />
                       </IconButton>
                       <IconButton
-                        label="Duplicate selected clip"
+                        label="Duplicate"
                         onClick={() => {
                           try {
                             if (
@@ -3087,7 +2852,7 @@ export default function App({
                         <Copy size={16} />
                       </IconButton>
                       <IconButton
-                        label="Delete selected clip"
+                        label="Delete"
                         disabled={
                           (!selectedLayer ||
                             selectedLayer.track === "segments") &&
@@ -3121,6 +2886,8 @@ export default function App({
                       setPlayhead(t);
                     }}
                     onSelect={(track, id) => {
+                      closeCrop();
+                      scrollInspector();
                       player.current?.pause();
                       setPlaying(false);
                       setSelectedLayer({ track, id });
@@ -3133,7 +2900,7 @@ export default function App({
                         setTool("captions");
                       } else {
                         setSelectedText("");
-                        setTool("layers");
+                        setTool("clip");
                       }
                     }}
                     onAddAudio={() => {
@@ -3743,9 +3510,14 @@ export default function App({
               <dd>
                 <kbd>Space</kbd>
               </dd>
-              <dt>Split at the playhead</dt>
+              <dt>Split</dt>
               <dd>
                 <kbd>S</kbd>
+              </dd>
+              <dt>Reset a slider</dt>
+              <dd>
+                Focus or hover a slider and press <kbd>R</kbd> to restore its
+                default value.
               </dd>
               <dt>Undo / redo</dt>
               <dd>

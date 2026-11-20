@@ -1,178 +1,201 @@
 "use client";
-import { type Appearance, appearance, filters } from "@/lib/editor/model";
+import { RotateCw, RotateCcw, Crop } from "lucide-react";
+import {
+  type Appearance,
+  appearance,
+  filters,
+  cssFilter,
+} from "@/lib/editor/model";
 import { ADVANCED_ADJUSTMENTS, POSITIVE_ADJUSTMENTS } from "@/lib/editor/color";
-import { Button, Range } from "./ui";
+import { Button, IconButton, Range } from "./ui";
+import { ClipFrames } from "./ClipFrames";
 export function AppearanceEditor({
   value,
   onChange,
+  mode = "controls",
+  url,
+  image = false,
+  sourceDuration = 1,
+  onCrop,
 }: {
   value: Appearance;
   onChange: (value: Appearance) => void;
+  mode?: "filters" | "controls";
+  url?: string;
+  image?: boolean;
+  sourceDuration?: number;
+  onCrop?: () => void;
 }) {
   const edit = (fn: (v: Appearance) => void) => {
     const next = structuredClone(value);
     fn(next);
     onChange(next);
   };
-  return (
-    <>
-      {" "}
-      <div className="panel-divider" />
-      <h3>Look & feel</h3>
-      <div className="filter-grid">
-        {filters.map((f) => (
-          <button
-            key={f}
-            className={value.filter === f ? "selected" : ""}
+  if (mode === "filters")
+    return (
+      <section data-section="filter" className="appearance-section">
+        <div className="section-heading">
+          <h3>Filter</h3>
+          <IconButton
+            label="Reset filter"
             onClick={() =>
               edit((s) => {
-                s.filter = f;
+                const defaults = appearance();
+                s.filter = defaults.filter;
+                s.brightness = defaults.brightness;
+                s.contrast = defaults.contrast;
+                s.saturation = defaults.saturation;
+                s.warmth = defaults.warmth;
+                s.adjustments = {};
               })
             }
           >
-            {f}
-          </button>
-        ))}
-      </div>
-      <Range
-        label="Brightness"
-        min={-0.8}
-        max={0.8}
-        value={value.brightness}
-        onChange={(n) =>
-          edit((s) => {
-            s.brightness = n;
-          })
-        }
-      />
-      <Range
-        label="Contrast"
-        min={0.2}
-        max={2}
-        value={value.contrast}
-        onChange={(n) =>
-          edit((s) => {
-            s.contrast = n;
-          })
-        }
-      />
-      <Range
-        label="Saturation"
-        min={0}
-        max={2}
-        value={value.saturation}
-        onChange={(n) =>
-          edit((s) => {
-            s.saturation = n;
-          })
-        }
-      />
-      <div className="panel-divider" />
-      <details className="advanced-adjustments">
-        <summary>More adjustments</summary>
-        {ADVANCED_ADJUSTMENTS.map((name) => (
-          <Range
-            key={name}
-            label={name}
-            min={POSITIVE_ADJUSTMENTS.has(name) ? 0 : -1}
-            max={1}
-            value={value.adjustments?.[name] || 0}
-            onChange={(n) =>
+            <RotateCcw size={15} />
+          </IconButton>
+        </div>
+        <div className="filter-grid visual-filters">
+          {filters.map((f) => (
+            <button
+              key={f}
+              aria-pressed={value.filter === f}
+              className={value.filter === f ? "selected" : ""}
+              onClick={() =>
+                edit((s) => {
+                  s.filter = f;
+                })
+              }
+            >
+              <span
+                className="filter-preview"
+                style={{ filter: cssFilter({ ...appearance(), filter: f }) }}
+              >
+                <ClipFrames
+                  library
+                  url={url}
+                  start={0}
+                  end={sourceDuration}
+                  image={image}
+                />
+              </span>
+              <span>{f}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  return (
+    <>
+      <section data-section="adjust" className="appearance-section">
+        <details className="advanced-adjustments">
+          <summary>Adjust</summary>
+          <div className="adjust-reset">
+            <IconButton
+              label="Reset adjustments"
+              onClick={() =>
+                edit((s) => {
+                  s.brightness = 0;
+                  s.contrast = 1;
+                  s.saturation = 1;
+                  s.warmth = 0;
+                  s.adjustments = {};
+                })
+              }
+            >
+              <RotateCcw size={15} />
+            </IconButton>
+          </div>
+          {(
+            [
+              ["Brightness", "brightness", -0.8, 0.8, 0],
+              ["Contrast", "contrast", 0.2, 2, 1],
+              ["Saturation", "saturation", 0, 2, 1],
+            ] as const
+          ).map(([label, key, min, max, reset]) => (
+            <Range
+              key={key}
+              label={label}
+              min={min}
+              max={max}
+              value={value[key]}
+              resetValue={reset}
+              onChange={(n) =>
+                edit((s) => {
+                  s[key] = n;
+                })
+              }
+            />
+          ))}
+          {ADVANCED_ADJUSTMENTS.map((name) => (
+            <Range
+              key={name}
+              label={name}
+              min={POSITIVE_ADJUSTMENTS.has(name) ? 0 : -1}
+              max={1}
+              value={value.adjustments?.[name] || 0}
+              resetValue={0}
+              onChange={(n) =>
+                edit((s) => {
+                  s.adjustments ??= {};
+                  s.adjustments[name] = n;
+                })
+              }
+            />
+          ))}
+        </details>
+      </section>
+      <section data-section="crop" className="appearance-section">
+        <div className="section-heading">
+          <h3>Crop</h3>
+          <IconButton
+            label="Reset crop"
+            onClick={() =>
               edit((s) => {
-                s.adjustments ??= {};
-                s.adjustments[name] = n;
+                s.crop = { x: 0, y: 0, width: 1, height: 1 };
+                s.rotation = 0;
+                s.flipX = false;
+                s.flipY = false;
               })
             }
-          />
-        ))}
-      </details>
-      <div className="panel-divider" />
-      <h3>Crop & transform</h3>
-      <div className="button-row">
-        <button
-          onClick={() =>
-            edit((s) => {
-              s.rotation = (s.rotation + 1) % 4;
-            })
-          }
-        >
-          Rotate 90°
-        </button>
-        <button
-          onClick={() =>
-            edit((s) => {
-              s.flipX = !s.flipX;
-            })
-          }
-        >
-          Flip ↔
-        </button>
-        <button
-          onClick={() =>
-            edit((s) => {
-              s.flipY = !s.flipY;
-            })
-          }
-        >
-          Flip ↕
-        </button>
-      </div>
-      {[
-        ["X", "x", 0, 0.9],
-        ["Y", "y", 0, 0.9],
-        ["Width", "width", 0.1, 1],
-        ["Height", "height", 0.1, 1],
-      ].map(([label, key, min, max]) => (
-        <Range
-          key={String(key)}
-          label={String(label)}
-          value={(value.crop as any)[key]}
-          min={Number(min)}
-          max={Number(max)}
-          onChange={(n) =>
-            edit((s) => {
-              const c = s.crop;
-              (c as any)[key] = n;
-              c.width = Math.min(c.width, 1 - c.x);
-              c.height = Math.min(c.height, 1 - c.y);
-            })
-          }
-        />
-      ))}
-      <Button
-        secondary
-        onClick={() =>
-          edit((s) => {
-            const crop = s.crop,
-              rotation = s.rotation,
-              flipX = s.flipX,
-              flipY = s.flipY,
-              opacity = s.opacity;
-            Object.assign(s, appearance(), {
-              crop,
-              rotation,
-              flipX,
-              flipY,
-              opacity,
-            });
-          })
-        }
-      >
-        Reset look & color
-      </Button>
-      <Button
-        secondary
-        onClick={() =>
-          edit((s) => {
-            s.crop = { x: 0, y: 0, width: 1, height: 1 };
-            s.rotation = 0;
-            s.flipX = false;
-            s.flipY = false;
-          })
-        }
-      >
-        Reset crop & transform
-      </Button>
+          >
+            <RotateCcw size={15} />
+          </IconButton>
+        </div>
+        <Button secondary onClick={onCrop}>
+          <Crop size={15} />
+          Crop on video
+        </Button>
+        <div className="button-row">
+          <button
+            title="Rotate 90°"
+            onClick={() =>
+              edit((s) => {
+                s.rotation = (s.rotation + 1) % 4;
+              })
+            }
+          >
+            <RotateCw size={15} />
+            Rotate 90°
+          </button>
+          <button
+            onClick={() =>
+              edit((s) => {
+                s.flipX = !s.flipX;
+              })
+            }
+          >
+            Flip ↔
+          </button>
+          <button
+            onClick={() =>
+              edit((s) => {
+                s.flipY = !s.flipY;
+              })
+            }
+          >
+            Flip ↕
+          </button>
+        </div>
+      </section>
     </>
   );
 }

@@ -75,6 +75,7 @@ export type TextLayer = {
   anchor?: { segmentId: string; start: number; end: number };
 };
 export type Overlay = {
+  height?: number;
   lane?: number;
   speed?: number;
   volume?: number;
@@ -257,6 +258,7 @@ export function validate(d: Document) {
       !finite(o.x, 0, 1) ||
       !finite(o.y, 0, 1) ||
       !finite(o.width, 0.1, 1) ||
+      (o.height != null && !finite(o.height, 0.03, 1)) ||
       !finite(o.speed ?? 1, 0.25, 4) ||
       !finite(o.volume ?? 0, 0, 1) ||
       !finite(o.opacity, 0, 1)

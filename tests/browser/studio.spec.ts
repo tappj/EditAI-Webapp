@@ -96,17 +96,17 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await expect(
-    page.getByRole("button", { name: "Split clip at playhead" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Split" })).toBeVisible();
   await page.getByLabel("Timeline playhead").fill("1.5");
-  await page.getByRole("button", { name: "Split clip at playhead" }).click();
+  await page.getByRole("button", { name: "Split" }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(1);
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
-  await page.getByText("More adjustments", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Adjust workspace", exact: true })
+    .click();
   await page.getByRole("slider", { name: /^Exposure/ }).fill("0.25");
   await page.getByLabel("Canvas aspect ratio").selectOption("1:1");
   await page.getByRole("button", { name: "Text", exact: true }).click();
@@ -163,9 +163,7 @@ test("AI failure preserves timeline and explains recovery", async ({
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await expect(
-    page.getByRole("button", { name: "Split clip at playhead" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Split" })).toBeVisible();
   await expect(page.getByRole("alert")).toContainText(
     "Not enough publik API balance.",
     { timeout: 120000 },
@@ -192,9 +190,7 @@ test("large local media survives a browser reload and deletion removes its stora
       mimeType: "video/mp4",
       buffer: Buffer.concat([video, Buffer.alloc(5 * 1024 * 1024)]),
     });
-  await expect(
-    page.getByRole("button", { name: "Split clip at playhead" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Split" })).toBeVisible();
   await page.getByRole("button", { name: "My creations", exact: true }).click();
   await page.reload();
   await page
@@ -202,9 +198,7 @@ test("large local media survives a browser reload and deletion removes its stora
     .first()
     .click();
   await page.locator(".project-card-title").click();
-  await expect(
-    page.getByRole("button", { name: "Split clip at playhead" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Split" })).toBeVisible();
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect
     .poll(async () =>
@@ -290,9 +284,9 @@ test("MediaRecorder takes with generated camera source, teleprompter and playabl
     page.getByRole("heading", { name: "1 recorded takes" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Use these takes" }).click();
-  await expect(
-    page.getByRole("button", { name: "Split clip at playhead" }),
-  ).toBeVisible({ timeout: 120000 });
+  await expect(page.getByRole("button", { name: "Split" })).toBeVisible({
+    timeout: 120000,
+  });
   await expect(page.locator(".timeline-clip")).toHaveCount(1);
 });
 
@@ -308,23 +302,28 @@ test("overlay and imported audio appear in actual exported media", async ({
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
   await page
-    .getByRole("button", { name: "Add image / video" })
+    .getByRole("button", { name: "Overlays workspace", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Import overlay", exact: true })
     .click({ noWaitAfter: true });
   await page
     .locator("input[type=file]")
     .nth(1)
     .setInputFiles(join(process.cwd(), "outputs/overlay.png"));
-  await expect(page.locator(".layer-settings")).toHaveCount(1);
+  await expect(page.locator(".overlay-row .sequence-item")).toHaveCount(1);
   await page
-    .getByRole("button", { name: "Add audio", exact: true })
+    .getByRole("button", { name: "Audio workspace", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Import audio", exact: true })
     .click({ noWaitAfter: true });
   await page
     .locator("input[type=file]")
     .nth(1)
     .setInputFiles(join(process.cwd(), "outputs/music.wav"));
-  await expect(page.locator(".layer-settings")).toHaveCount(2);
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
   await page
     .getByRole("button", { name: "Replace audio", exact: true })
     .click({ noWaitAfter: true });
@@ -1300,7 +1299,7 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   expect((await clip.boundingBox())!.x).toBeCloseTo(beforeLeft.x, 0);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await page.getByLabel("Timeline playhead").fill("1.5");
-  await page.getByRole("button", { name: "Split clip at playhead" }).click();
+  await page.getByRole("button", { name: "Split" }).click();
   await page.locator(".timeline-clip").first().click();
   await page
     .getByRole("button", { name: "Move to overlay", exact: true })
@@ -1404,7 +1403,7 @@ test("same account resumes consent and playable local footage after repeated sig
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
   await expect(page.locator(".timeline-clip")).toHaveCount(1);
   await page.getByLabel("Timeline playhead").fill("0.9");
-  await page.getByRole("button", { name: "Split clip at playhead" }).click();
+  await page.getByRole("button", { name: "Split" }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
   for (let i = 0; i < 2; i++) {
     await page
@@ -1608,7 +1607,7 @@ test("clip audio extraction preserves trim and speed, undo redo, reload and real
     )
     .toBeLessThan(before);
   await page.getByRole("button", { name: "Editor help and shortcuts" }).click();
-  await expect(page.getByRole("dialog")).toContainText("Split at the playhead");
+  await expect(page.getByRole("dialog")).toContainText("Split");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByText("Precision trim", { exact: true }).click();
@@ -1729,10 +1728,8 @@ test("portrait thumbnails retain their aspect ratio and fill video clips; playba
     .boundingBox())!;
   expect(aiTool.x + aiTool.width).toBeLessThanOrEqual(rail.x + rail.width);
 
-  await page
-    .getByRole("button", { name: "Duplicate selected clip", exact: true })
-    .hover();
-  await expect(page.getByRole("tooltip")).toHaveText("Duplicate selected clip");
+  await page.getByRole("button", { name: "Duplicate", exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toHaveText("Duplicate");
   await page.mouse.move(600, 400);
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   await page.screenshot({
@@ -1990,8 +1987,8 @@ test("playback cursor moves at animation frame cadence and captions tool stays a
     name: "Auto captions workspace",
     exact: true,
   });
-  await expect(captions.locator("span").last()).toHaveText("Captions");
-  await expect(captions.locator(".premium-sparkle")).toBeVisible();
+  await expect(captions.locator("span").last()).toHaveText("Auto");
+  await expect(captions.locator(".premium-sparkle")).toHaveCount(0);
   const align = await page
     .locator(".studio-tool-rail .tool-icon")
     .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
@@ -2127,4 +2124,171 @@ test("clean selection, on-video text editing and edge resizing, immediate extrac
     page.getByRole("button", { name: "Dismiss notification", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("status")).toHaveCount(0, { timeout: 7000 });
+});
+
+test("selected inspector tabs, filter previews, safe section scrolling, slider resets, manual crop and overlay edge stretching", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await authenticated(page);
+  let saved: any;
+  await page.route("**/api/projects", (r) => {
+    if (r.request().method() === "POST") saved = r.request().postDataJSON();
+    return r.fulfill({
+      json: r.request().method() === "GET" ? { projects: [] } : { ok: true },
+    });
+  });
+  await openStudio(page);
+  const buffer = await readFile(join(process.cwd(), "outputs/fixture.mp4"));
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles([
+      { name: "one.mp4", mimeType: "video/mp4", buffer },
+      { name: "two.mp4", mimeType: "video/mp4", buffer },
+    ]);
+  await expect(
+    page.getByRole("button", { name: "Layers", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Auto captions workspace" }),
+  ).toHaveText("Auto");
+  await expect(page.locator(".premium-sparkle")).toHaveCount(0);
+  await page.getByRole("button", { name: "Filters workspace" }).click();
+  await expect(
+    page.locator(".visual-filters .filter-preview .clip-frames span").first(),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Warm", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Warm", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Reset filter", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Clear", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 720],
+    [1024, 768],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.getByRole("button", { name: "Adjust workspace" }).click();
+    const heading = page.locator(".advanced-adjustments > summary");
+    await expect
+      .poll(async () => {
+        const h = (await heading.boundingBox())!,
+          tabs = (await page.locator(".inspector-tabs").boundingBox())!,
+          panel = (await page.locator(".inspector").boundingBox())!;
+        return (
+          h.y >= tabs.y + tabs.height + 5 &&
+          h.y + h.height <= panel.y + panel.height
+        );
+      })
+      .toBe(true);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Adjust workspace" }).click();
+  const exposure = page.getByRole("slider", { name: /^Exposure/ });
+  await exposure.fill("0.4");
+  await exposure.press("r");
+  await expect(exposure).toHaveValue("0");
+  const brilliance = page.getByRole("slider", { name: /^Brilliance/ });
+  await brilliance.fill("0.5");
+  await page.getByRole("button", { name: "Adjust workspace" }).focus();
+  await brilliance.locator("..").hover();
+  await page.keyboard.press("r");
+  await expect(brilliance).toHaveValue("0");
+  await page.getByRole("slider", { name: /^Contrast/ }).fill("1.5");
+  await page
+    .getByRole("button", { name: "Reset adjustments", exact: true })
+    .click();
+  await expect(page.getByRole("slider", { name: /^Contrast/ })).toHaveValue(
+    "1",
+  );
+  await page.getByRole("button", { name: "Editor help and shortcuts" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Reset a slider");
+  await expect(
+    page
+      .getByRole("dialog")
+      .locator("dt")
+      .filter({ hasText: /^Split$/ }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  const volume = (await page
+      .getByRole("slider", { name: /^Volume/ })
+      .boundingBox())!,
+    extract = (await page
+      .getByRole("button", { name: "Extract audio", exact: true })
+      .boundingBox())!;
+  expect(extract.y).toBeGreaterThan(volume.y);
+  await page
+    .getByRole("button", { name: "Crop on video", exact: true })
+    .click();
+  await expect.poll(async () => (await page.locator(".crop-selection").boundingBox())?.width ?? 0).toBeGreaterThan(100);
+  const before = (await page.locator(".crop-selection").boundingBox())!;
+  const corner = (await page
+    .getByRole("button", { name: "Crop nw edge", exact: true })
+    .boundingBox())!;
+  await page.mouse.move(corner.x + 3, corner.y + 3);
+  await page.mouse.down();
+  await page.mouse.move(corner.x + 50, corner.y + 25, { steps: 5 });
+  await page.mouse.up();
+  expect(
+    (await page.locator(".crop-selection").boundingBox())!.width,
+  ).toBeLessThan(before.width);
+  await page.locator(".crop-surface").dispatchEvent("wheel", {
+    ctrlKey: true,
+    deltaY: -50,
+    cancelable: true,
+    bubbles: true,
+  });
+  await page.getByRole("button", { name: "Apply crop", exact: true }).click();
+  await expect
+    .poll(() => saved?.document?.segments[0].appearance.crop.width)
+    .toBeLessThan(0.95);
+  await page.getByRole("button", { name: "Reset crop", exact: true }).click();
+  await expect
+    .poll(() => saved?.document?.segments[0].appearance.crop.width)
+    .toBe(1);
+  await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+  await expect
+    .poll(() => saved?.document?.segments[0].appearance.rotation)
+    .toBe(1);
+  await page.getByRole("button", { name: "Reset crop", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move to overlay", exact: true })
+    .click();
+  await expect(page.locator(".selected-media-settings")).toHaveCount(1);
+  await expect(
+    page.locator(".selected-media-settings .range-label"),
+  ).toHaveCount(3);
+  await expect(page.getByRole("slider", { name: /^Opacity/ })).toBeVisible();
+  await page.getByRole("slider", { name: /^Opacity/ }).fill("0.6");
+  await page.getByRole("slider", { name: /^Opacity/ }).press("r");
+  await expect(page.getByRole("slider", { name: /^Opacity/ })).toHaveValue("1");
+  const edge = (await page
+    .getByRole("button", {
+      name: "Resize e edge of selected layer",
+      exact: true,
+    })
+    .boundingBox())!;
+  const rect = (await page.locator(".preview-selection").boundingBox())!;
+  await page.mouse.move(edge.x + 2, edge.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(edge.x + 32, edge.y + 8, { steps: 5 });
+  await page.mouse.up();
+  const after = (await page.locator(".preview-selection").boundingBox())!;
+  expect(after.width).toBeGreaterThan(rect.width);
+  expect(after.height).toBeCloseTo(rect.height, 0);
+  await page.screenshot({
+    path: "outputs/editor-selected-inspector.png",
+    fullPage: true,
+  });
 });

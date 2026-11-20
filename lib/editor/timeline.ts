@@ -12,9 +12,15 @@ const clamp = (v: number, min: number, max: number) =>
 // Main-track edits preserve absolute layer placement, cropping only at the new end.
 export function fitLayers(d: Document) {
   const end = duration(d);
-  d.texts = d.texts.filter(
-    (t) => !t.anchor || d.segments.some((s) => s.id === t.anchor!.segmentId),
-  );
+  d.texts = d.texts.filter((t) => {
+    const timing = textTiming(d, t);
+    return (
+      timing.start >= 0 &&
+      timing.start < end - 0.01 &&
+      timing.end > timing.start
+    );
+  });
+  for (const t of d.texts) if (!t.anchor) t.end = Math.min(t.end, end);
   d.overlays = d.overlays.filter((x) => x.start < end - 0.01);
   d.audio = d.audio.filter((x) => x.start < end - 0.01);
   for (const x of [...d.overlays, ...d.audio]) x.end = Math.min(x.end, end);

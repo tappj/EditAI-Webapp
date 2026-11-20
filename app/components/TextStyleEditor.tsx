@@ -1,5 +1,7 @@
 "use client";
 import type { TextLayer } from "@/lib/editor/model";
+import { AnimationPicker } from "./AnimationPicker";
+import { ColorPicker } from "./ColorPicker";
 import { Range } from "./ui";
 export function TextStyleEditor({
   text,
@@ -56,15 +58,6 @@ export function TextStyleEditor({
       <p className="panel-note">
         Changing timing pins this text to the timeline.
       </p>
-      <label>
-        Text color
-        <input
-          aria-label="Custom text color"
-          type="color"
-          value={text.color}
-          onChange={(e) => onChange({ color: e.target.value })}
-        />
-      </label>
       <Range
         label="Text opacity"
         resetValue={1}
@@ -121,18 +114,11 @@ export function TextStyleEditor({
             value={text.outlineWidth ?? 0.00495}
             onChange={(outlineWidth) => onChange({ outlineWidth })}
           />
-          <label>
-            Outline color
-            <input
-              type="color"
-              value={
-                text.outlineColor?.startsWith("#")
-                  ? text.outlineColor
-                  : "#000000"
-              }
-              onChange={(e) => onChange({ outlineColor: e.target.value })}
-            />
-          </label>
+          <ColorPicker
+            label="Outline color"
+            value={text.outlineColor || "#000000"}
+            onChange={(outlineColor) => onChange({ outlineColor })}
+          />
         </>
       )}
       <label>
@@ -154,16 +140,11 @@ export function TextStyleEditor({
       </label>
       {text.background !== "transparent" && (
         <>
-          <label>
-            Background color
-            <input
-              type="color"
-              value={
-                text.background.startsWith("#") ? text.background : "#000000"
-              }
-              onChange={(e) => onChange({ background: e.target.value })}
-            />
-          </label>
+          <ColorPicker
+            label="Background color"
+            value={text.background}
+            onChange={(background) => onChange({ background })}
+          />
           <Range
             label="Background opacity"
             resetValue={1}
@@ -202,14 +183,11 @@ export function TextStyleEditor({
       />
       {!!text.shadowOpacity && (
         <>
-          <label>
-            Shadow color
-            <input
-              type="color"
-              value={text.shadowColor || "#000000"}
-              onChange={(e) => onChange({ shadowColor: e.target.value })}
-            />
-          </label>
+          <ColorPicker
+            label="Shadow color"
+            value={text.shadowColor || "#000000"}
+            onChange={(shadowColor) => onChange({ shadowColor })}
+          />
           <Range
             label="Shadow blur"
             resetValue={0.005}
@@ -230,17 +208,11 @@ export function TextStyleEditor({
           />
         </>
       )}
-      <label>
-        Exit animation
-        <select
-          value={text.animationOut || text.animation}
-          onChange={(e) => onChange({ animationOut: e.target.value })}
-        >
-          {["none", "fade", "pop", "zoom", "slide", "typewriter"].map((a) => (
-            <option key={a}>{a}</option>
-          ))}
-        </select>
-      </label>
+      <AnimationPicker
+        label="Exit animation"
+        value={text.animationOut || text.animation}
+        onChange={(animationOut) => onChange({ animationOut })}
+      />
       <Range
         label="Animation duration"
         resetValue={0.35}

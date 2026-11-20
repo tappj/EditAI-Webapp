@@ -252,7 +252,7 @@ export function PreviewHandles({
           <button
             key={text.id}
             className="preview-text-hit"
-            aria-label={`Edit text on video: ${text.text}`}
+            aria-label={`Edit text on video: ${text.text || "Text"}`}
             style={geometry(text)}
             onClick={() => editText(text.id)}
           />
@@ -264,6 +264,7 @@ export function PreviewHandles({
               ref={input}
               className="preview-text-input"
               aria-label="Edit text on video"
+              placeholder="Text"
               value={editing.value}
               style={{
                 fontFamily: `"${t?.font || "TikTok Sans"}"`,

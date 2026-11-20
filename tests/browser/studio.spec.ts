@@ -2329,7 +2329,18 @@ test("timeline toolbar, centered rename and inline microphone recording preserve
   await page
     .locator("input[type=file]")
     .first()
-    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+    .setInputFiles([
+      {
+        name: "voice-base-one.mp4",
+        mimeType: "video/mp4",
+        buffer: await readFile(join(process.cwd(), "outputs/fixture.mp4")),
+      },
+      {
+        name: "voice-base-two.mp4",
+        mimeType: "video/mp4",
+        buffer: await readFile(join(process.cwd(), "outputs/fixture.mp4")),
+      },
+    ]);
   await expect(
     page.getByRole("button", { name: "Add media", exact: true }),
   ).toHaveCount(0);
@@ -2401,6 +2412,104 @@ test("timeline toolbar, centered rename and inline microphone recording preserve
   }
   await page.screenshot({
     path: "outputs/editor-voice-toolbar.png",
+    fullPage: true,
+  });
+});
+
+test("compact stepped sliders, display-only text, visual animations, custom colors, copy paste and void cleanup", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await page.getByRole("button", { name: "Adjust workspace" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const heading = document
+          .querySelector(".advanced-adjustments > summary")!
+          .getBoundingClientRect();
+        const reset = document
+          .querySelector(".adjust-reset button")!
+          .getBoundingClientRect();
+        return Math.abs(
+          heading.y + heading.height / 2 - reset.y - reset.height / 2,
+        );
+      }),
+    )
+    .toBeLessThan(15);
+  const exposure = page.getByRole("slider", { name: /^Exposure/ });
+  await expect(exposure).toHaveAttribute("step", "any");
+  await expect(
+    page.getByRole("spinbutton", { name: "Exposure value", exact: true }),
+  ).toHaveCSS("border-top-width", "0px");
+  await exposure.fill("0.12345");
+  await expect(exposure).toHaveValue("0.12345");
+  await exposure.fill("0.001");
+  await exposure.dispatchEvent("pointerup", { altKey: false });
+  await expect(exposure).toHaveValue("0");
+  await exposure.fill("0.001");
+  await exposure.dispatchEvent("pointerup", { altKey: true });
+  await expect(exposure).toHaveValue("0.001");
+  await expect(page.locator(".range-ticks .major").first()).toBeVisible();
+  await page.screenshot({
+    path: "outputs/editor-slider-increments.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  const text = page.getByRole("textbox", { name: "Caption text", exact: true });
+  await expect(text).toHaveValue("");
+  await expect(text).toHaveAttribute("placeholder", "Text");
+  await text.pressSequentially("Hello");
+  await expect(text).toHaveValue("Hello");
+  await page
+    .getByRole("button", { name: "Animation: pop", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Animation: pop", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".animation-pop").first()).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Text color hex", exact: true })
+    .fill("#a12bf3");
+  await expect(
+    page.getByLabel("Custom text color", { exact: true }),
+  ).toHaveValue("#a12bf3");
+  await page.getByLabel("Timeline playhead", { exact: true }).fill("1");
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.keyboard.press("Control+c");
+  await page.keyboard.press("Control+v");
+  await expect(page.locator(".text-row .layer-clip")).toHaveCount(2);
+  await page.keyboard.press("Delete");
+  await expect(page.locator(".text-row .layer-clip")).toHaveCount(1);
+  await page.locator(".timeline-clip").click({ position: { x: 40, y: 30 } });
+  await page.keyboard.press("Control+c");
+  await page.keyboard.press("Control+v");
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  const layer = (await page.locator(".text-row .layer-clip").boundingBox())!;
+  const video = (await page.locator(".timeline-clip").boundingBox())!;
+  await page.mouse.move(layer.x + 20, layer.y + 16);
+  await page.mouse.down();
+  await page.mouse.move(video.x + video.width + 80, layer.y + 16, {
+    steps: 12,
+  });
+  await page.mouse.up();
+  await expect(page.locator(".text-row .layer-clip")).toHaveCount(0);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".text-row .layer-clip")).toHaveCount(1);
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Animation: pop", exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: "outputs/editor-text-slider-polish.png",
     fullPage: true,
   });
 });

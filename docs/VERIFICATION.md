@@ -545,3 +545,36 @@ All 33 studio scenarios pass against the fresh production build in Chromium (1.1
 and WebKit (2.4m), including real existing media export and microphone-generated
 recording checks. Changed-component lint passes without errors. The deployment
 verification script now follows the renamed My Edits action.
+
+## Slider and text refinement — November 20, 2026
+
+Adjust and Reset share one row. Shared editor sliders use slim rails/vertical thumbs,
+major/minor ticks, free precision, exact numeric entry and release-only snapping near
+major marks (Alt bypass). Speed/volume retain their steps; R resets remain supported.
+Text starts with an empty stored value and a Text display placeholder. Both inspector
+and preview typing replace the placeholder. Entry/exit animation cards show labeled
+animated samples and respect reduced motion. Text/outline/background/shadow colors
+have native full-color pickers and exact hex entry.
+
+Internal Ctrl/Cmd+C/V copies the selected media/text layer into the same edit at the
+cursor, with fresh item IDs and preserved source references/word IDs. Typing fields
+retain native copy/paste. Placement respects audio/text/video lane limits and rejects
+invalid pastes atomically. All paste/delete changes are undoable. Text fully past the
+video is removed on opening or shortening; partial text is clipped to the video end.
+Dropping text wholly into the timeline void deletes it; outside-suite drops cancel.
+
+Typecheck, 30 model/security/unit checks, 18 desktop checks and both production builds
+pass. New model coverage verifies text cleanup, copied source ranges/word IDs and
+bounded paste placement. The new browser scenario checks compact reset alignment,
+fine slider values, snap/bypass, placeholder typing, animation selection, custom hex,
+copy/paste/undo, void-drop deletion and restoration. Authentication and AI remain
+fixtures; these UI checks do not prove fresh real Publik connectivity. Shared desktop
+source/build is updated; this change does not publish a new signed installer.
+
+All 34 studio scenarios passed in Chromium. WebKit passed 33 in the full run; its
+existing microphone scenario hit the fixture's three-second auto-stop while editing.
+Using two real fixture clips gives that check adequate recording time; it then passed
+in isolation. The new refinement scenario also passes after the final theme/compact
+value CSS corrections in both engines. Screenshots of the actual increments and
+animation/color panel were inspected. Changed-component lint has no errors, with
+only the pre-existing Wordmark image optimization advisory.

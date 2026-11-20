@@ -94,7 +94,7 @@ export function Range({
   value,
   min,
   max,
-  step = 0.01,
+  step,
   resetValue,
   onChange,
 }: {
@@ -116,35 +116,87 @@ export function Range({
           ? 0.055
           : 0);
   const reset = () => onChange(Math.min(max, Math.max(min, neutral)));
+  const span = max - min;
+  const rough = span / 4;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const major = [1, 2, 5, 10].map((n) => n * power).find((n) => n >= rough)!;
+  const marks = Array.from(
+    { length: Math.ceil(span / (major / 5)) + 1 },
+    (_, i) => {
+      const n = Math.ceil(min / (major / 5)) * (major / 5) + (i * major) / 5;
+      return { n, large: Math.abs(n / major - Math.round(n / major)) < 0.001 };
+    },
+  ).filter((m) => m.n <= max + span * 0.0001);
+  const snap = (input: HTMLInputElement, alt: boolean) => {
+    if (alt || /speed|volume/i.test(label)) return;
+    const n = +input.value;
+    const nearest = Math.round(n / major) * major;
+    if (
+      nearest >= min &&
+      nearest <= max &&
+      (Math.abs(n - nearest) / span) * input.clientWidth <= 3
+    )
+      onChange(Number(nearest.toPrecision(10)));
+  };
   return (
     <label className="range-label">
       <span>
         {label}
-        <b>{Number(value.toFixed(2))}</b>
+        <input
+          className="range-value"
+          aria-label={`${label} value`}
+          type="number"
+          min={min}
+          max={max}
+          step="any"
+          value={Number(value.toFixed(5))}
+          onChange={(e) => {
+            const n = e.currentTarget.valueAsNumber;
+            if (Number.isFinite(n)) onChange(Math.max(min, Math.min(max, n)));
+          }}
+        />
       </span>
-      <input
-        type="range"
-        ref={(node) => {
-          if (node) (node as ResettableRange).editaiReset = reset;
-        }}
-        onKeyDown={(e) => {
-          if (
-            e.key.toLowerCase() === "r" &&
-            !e.metaKey &&
-            !e.ctrlKey &&
-            !e.altKey
-          ) {
-            e.preventDefault();
-            e.stopPropagation();
-            reset();
+      <span className="range-control">
+        <span className="range-ticks" aria-hidden="true">
+          {marks.map((m, i) => (
+            <i
+              key={i}
+              className={m.large ? "major" : "minor"}
+              style={{ left: `${((m.n - min) / span) * 100}%` }}
+            />
+          ))}
+        </span>
+        <input
+          type="range"
+          aria-label={label}
+          ref={(node) => {
+            if (node) (node as ResettableRange).editaiReset = reset;
+          }}
+          onKeyDown={(e) => {
+            if (
+              e.key.toLowerCase() === "r" &&
+              !e.metaKey &&
+              !e.ctrlKey &&
+              !e.altKey
+            ) {
+              e.preventDefault();
+              e.stopPropagation();
+              reset();
+            }
+          }}
+          min={min}
+          max={max}
+          step={/speed|volume/i.test(label) ? (step ?? 0.01) : "any"}
+          value={value}
+          style={
+            {
+              "--range-fill": `${((value - min) / span) * 100}%`,
+            } as React.CSSProperties
           }
-        }}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(+e.target.value)}
-      />
+          onPointerUp={(e) => snap(e.currentTarget, e.altKey)}
+          onChange={(e) => onChange(+e.target.value)}
+        />
+      </span>
     </label>
   );
 }

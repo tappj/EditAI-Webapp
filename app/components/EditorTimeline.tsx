@@ -18,7 +18,7 @@ const TRACK_HEADER = 112;
 function captionTracks(doc: Document) {
   const items = doc.texts
     .map((t) => ({ ...t, ...textTiming(doc, t) }))
-    .filter((t) => t.start >= 0 && t.end > t.start);
+    .filter((t) => t.start >= 0 && t.start < duration(doc) && t.end > t.start);
   const lanes = assignLanes(items, 7);
   return Array.from({ length: 7 }, (_, i) => ({
     name: "Text",
@@ -385,6 +385,24 @@ export function EditorTimeline({
       e.clientY >= rect.top &&
       e.clientY <= rect.bottom;
     if (
+      g?.track === "texts" &&
+      g.mode === "move" &&
+      inside &&
+      e.type !== "pointercancel" &&
+      g.base === doc
+    ) {
+      const text = g.base.texts.find((t) => t.id === g.id)!;
+      const rawStart =
+        textTiming(g.base, text).start +
+        (e.clientX - g.x + viewport.current!.scrollLeft - g.scroll) / pixels;
+      if (rawStart >= duration(g.base)) {
+        const next = structuredClone(g.base);
+        next.texts = next.texts.filter((t) => t.id !== g.id);
+        onChange(next);
+        return;
+      }
+    }
+    if (
       g?.latest &&
       g.base === doc &&
       e.type !== "pointercancel" &&
@@ -512,7 +530,13 @@ export function EditorTimeline({
                   <span>{row.name}</span>
                 </div>
                 {row.items.map((t) =>
-                  clip("texts", t.id, t.text, t.start, t.end),
+                  clip(
+                    "texts",
+                    t.id,
+                    t.text || "Text",
+                    t.start,
+                    Math.min(t.end, total),
+                  ),
                 )}
               </div>
             ))

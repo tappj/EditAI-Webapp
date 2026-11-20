@@ -249,7 +249,7 @@ function drawText(
   ctx.textBaseline = "middle";
   if ("letterSpacing" in ctx)
     ctx.letterSpacing = (t.letterSpacing ?? 0) * size + "px";
-  let text = t.text;
+  let text = t.text || "Text";
   if (animation === "typewriter")
     text = text.slice(
       0,

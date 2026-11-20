@@ -487,3 +487,82 @@ test("seven audio layers remain valid and an eighth is rejected atomically", asy
   );
   assert.equal(d.audio.length, 7);
 });
+
+test("timeline cleanup removes text beyond video and clips partially visible text", async () => {
+  const { fitLayers } = await import("../lib/editor/timeline.ts");
+  const d = captions(fixture());
+  const base = { ...d.texts[0], anchor: undefined };
+  d.texts = [
+    { ...base, id: "partial", start: 3, end: 9 },
+    { ...base, id: "void", start: 8, end: 10 },
+  ];
+  d.segments[0].end = 5;
+  fitLayers(d);
+  assert.deepEqual(
+    d.texts.map((t) => [t.id, t.start, t.end]),
+    [["partial", 3, 5]],
+  );
+});
+
+test("copy paste preserves source ranges, anchors and bounded layer placement atomically", async () => {
+  const { copyItem, pasteItem } = await import("../lib/editor/clipboard.ts");
+  const d = captions(fixture());
+  const copied = copyItem(d, "segments", d.segments[0].id);
+  const pasted = pasteItem(d, copied, 0);
+  assert.equal(pasted.doc.segments.length, 2);
+  assert.notEqual(pasted.id, copied.item.id);
+  assert.deepEqual(pasted.doc.words, d.words);
+  const text = copyItem(d, "texts", d.texts[0].id);
+  assert.equal((text.item as any).anchor, undefined);
+  const result = pasteItem(d, text, 9.5);
+  const added = result.doc.texts.find((t) => t.id === result.id)!;
+  assert.equal(added.start, 9.5);
+  assert.equal(added.end, 10);
+  assert.throws(() => pasteItem(d, text, 10), /before the end/);
+  assert.ok(d.texts.every((t) => !!t.anchor));
+});
+
+test("audio and overlay paste retain media settings and find available bounded tracks", async () => {
+  const { copyItem, pasteItem } = await import("../lib/editor/clipboard.ts");
+  const d = fixture();
+  d.audio = [
+    {
+      id: "sound",
+      sourceIndex: 0,
+      start: 0,
+      end: 2,
+      sourceStart: 1,
+      speed: 2,
+      volume: 0.4,
+      fadeIn: 0,
+      fadeOut: 0,
+      lane: 0,
+    },
+  ];
+  const audio = pasteItem(d, copyItem(d, "audio", "sound"), 1);
+  const sound = audio.doc.audio.find((a) => a.id === audio.id)!;
+  assert.equal(sound.lane, 1);
+  assert.equal(sound.sourceStart, 1);
+  assert.equal(sound.speed, 2);
+  assert.equal(sound.volume, 0.4);
+  d.overlays = [
+    {
+      id: "overlay",
+      sourceIndex: 0,
+      start: 0,
+      end: 2,
+      sourceStart: 1,
+      x: 0.5,
+      y: 0.5,
+      width: 0.3,
+      height: 0.2,
+      opacity: 0.6,
+    },
+  ];
+  const overlay = pasteItem(d, copyItem(d, "overlays", "overlay"), 9);
+  const item = overlay.doc.overlays.find((o) => o.id === overlay.id)!;
+  assert.equal(item.end, 10);
+  assert.equal(item.height, 0.2);
+  assert.equal(item.opacity, 0.6);
+  assert.equal(item.sourceStart, 1);
+});

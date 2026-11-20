@@ -124,6 +124,8 @@ import {
 } from "@/lib/editor/profile";
 import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
+import { AnimationPicker } from "./components/AnimationPicker";
+import { ColorPicker } from "./components/ColorPicker";
 import { TextStyleEditor } from "./components/TextStyleEditor";
 import { EditableProjectTitle } from "./components/EditableProjectTitle";
 import { VoiceRecorder } from "./components/VoiceRecorder";
@@ -133,6 +135,7 @@ import { CropEditor } from "./components/CropEditor";
 import { PreviewHandles } from "./components/PreviewHandles";
 import { EditorSourceLibrary } from "./components/EditorSourceLibrary";
 import { EditorTimeline } from "./components/EditorTimeline";
+import { copyItem, pasteItem, type EditorCopy } from "@/lib/editor/clipboard";
 import { fitLayers, layerAction, type Track } from "@/lib/editor/timeline";
 import { quietPauses } from "@/lib/editor/audio-evidence";
 type Screen =
@@ -190,6 +193,9 @@ export default function App({
   signedOut?: boolean;
 }) {
   const voiceStart = useRef(0);
+  const editorCopy = useRef<{ projectId: string; copy: EditorCopy } | null>(
+    null,
+  );
   const [session, setSession] = useState<any>(null),
     [gateError, setGateError] = useState(""),
     [pending, setPending] = useState(true),
@@ -628,6 +634,49 @@ export default function App({
         e.preventDefault();
         return;
       }
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.altKey &&
+        ["c", "v"].includes(e.key.toLowerCase())
+      ) {
+        if (e.key.toLowerCase() === "c") {
+          const selection =
+            selectedLayer ||
+            (selectedText
+              ? { track: "texts" as const, id: selectedText }
+              : { track: "segments" as const, id: selected });
+          if (!selection.id || !project) return;
+          e.preventDefault();
+          editorCopy.current = {
+            projectId: project.id,
+            copy: copyItem(project.document, selection.track, selection.id),
+          };
+        } else if (editorCopy.current && project) {
+          e.preventDefault();
+          try {
+            if (editorCopy.current.projectId !== project.id)
+              throw Error("Copy an item from this edit before pasting.");
+            const result = pasteItem(
+              project.document,
+              editorCopy.current.copy,
+              player.current?.time ?? playhead,
+            );
+            change(result.doc);
+            setSelectedLayer({ track: result.track, id: result.id });
+            if (result.track === "texts") {
+              setSelectedText(result.id);
+              setTool("captions");
+            } else {
+              setSelectedText("");
+              setTool("clip");
+              if (result.track === "segments") setSelected(result.id);
+            }
+          } catch (error) {
+            fail(error);
+          }
+        }
+        return;
+      }
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
@@ -719,7 +768,7 @@ export default function App({
     const start = Math.min(playhead, total - 0.1);
     const t: TextLayer = {
       id: crypto.randomUUID(),
-      text: "Your words here",
+      text: "",
       start,
       end: Math.min(total, start + 3),
       x: 0.5,
@@ -895,6 +944,7 @@ export default function App({
     }
   }
   async function openProject(p: Project) {
+    p = { ...p, document: fitLayers(structuredClone(p.document)) };
     await run("Opening your project", async () => {
       const next = { ...urlsRef.current };
       for (const s of p.document.sources) {
@@ -2601,6 +2651,7 @@ export default function App({
                         {textLayer && (
                           <textarea
                             aria-label="Caption text"
+                            placeholder="Text"
                             value={textLayer.text}
                             onChange={(e) =>
                               patch((d) => {
@@ -2686,6 +2737,11 @@ export default function App({
                                   />
                                 ))}
                               </div>
+                              <ColorPicker
+                                label="Text color"
+                                value={textLayer.color}
+                                onChange={(color) => updateTextStyle({ color })}
+                              />
                               <label className="checkbox">
                                 <input
                                   type="checkbox"
@@ -2698,24 +2754,13 @@ export default function App({
                                 />
                                 Text outline
                               </label>
-                              <select
-                                aria-label="Text animation"
+                              <AnimationPicker
+                                label="Animation"
                                 value={textLayer.animation}
-                                onChange={(e) =>
-                                  updateTextStyle({ animation: e.target.value })
+                                onChange={(animation) =>
+                                  updateTextStyle({ animation })
                                 }
-                              >
-                                {[
-                                  "none",
-                                  "fade",
-                                  "pop",
-                                  "zoom",
-                                  "slide",
-                                  "typewriter",
-                                ].map((a) => (
-                                  <option key={a}>{a}</option>
-                                ))}
-                              </select>
+                              />
                               <TextStyleEditor
                                 text={textLayer}
                                 timing={textTiming(doc, textLayer)}
@@ -3549,6 +3594,17 @@ export default function App({
                 outside the timeline to cancel. Drag edges to shorten or restore
                 footage. Use arrow keys on an edge for precise trims; Alt +
                 arrow moves a focused layer.
+              </dd>
+              <dt>Copy / paste</dt>
+              <dd>
+                Ctrl/Cmd + C copies the selected clip, text or audio. Ctrl/Cmd +
+                V pastes at the cursor in this edit. Typing fields keep normal
+                copy and paste.
+              </dd>
+              <dt>Sliders</dt>
+              <dd>
+                Drag freely; releasing near a major mark snaps to it. Hold Alt
+                to bypass snapping, or enter an exact value.
               </dd>
               <dt>Duplicate / delete</dt>
               <dd>

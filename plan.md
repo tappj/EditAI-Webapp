@@ -183,3 +183,16 @@ real recording into seekable mono PCM WAV and import at its starting cursor posi
 through normal persistent source storage and undo. Use current edits when the take
 finishes. Raise audio lanes to seven consistently across UI, placement, validation,
 gestures and AI contracts, while preserving atomic rejection of an eighth lane.
+
+## Precision sliders, text controls and copy/paste — November 20, 2026
+
+Keep Adjust and its reset icon on one row. Use slim slider rails and rounded vertical
+thumbs, subtle major/minor marks, free precision movement and exact numeric values.
+Snap near major marks only on release; Alt bypasses snapping. Preserve speed/volume
+steps and R resets. Empty new text displays Text as a placeholder, so initial typing
+replaces it. Label entry/exit animations with live visual samples and offer full RGB
+pickers/hex entry for text, outline, background and shadow. Copy/paste selected video,
+text, overlays and audio at the cursor with Ctrl/Cmd+C/V, preserving native typing
+shortcuts and undo. Fit text to video duration, remove wholly stray text on reopening
+or shortening, and delete text deliberately dropped into the timeline void. Keep
+other items bounded by video duration and preserve cancel-on-outside drops.

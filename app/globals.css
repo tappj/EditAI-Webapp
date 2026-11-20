@@ -2824,3 +2824,15 @@ html[data-desktop-platform="darwin"]:has(
 html[data-desktop-platform="darwin"] .m-header {
   top: 44px;
 }
+html[data-desktop-platform="darwin"] .is-editor .editor-top {
+  padding-left: 104px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+html[data-desktop-platform="darwin"]
+  .is-editor
+  .editor-top
+  :is(button, a, input, select, textarea, [contenteditable]) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

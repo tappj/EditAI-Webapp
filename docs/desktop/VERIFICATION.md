@@ -168,3 +168,25 @@ https://github.com/tappj/EditAI-Webapp/releases/tag/v0.2.6.
 Existing supported macOS arm64 distribution is updated; no new Windows distribution
 is introduced. Updater metadata is published, but a prior-version auto-update
 installation is not claimed exercised here.
+
+## Shared control corrections — 0.2.7 pending Apple credentials
+
+Runtime source 57678d019fd66481778134d67c8a584bb1c13635 restores Overlays/Adjust
+rail actions, Volume-before-Speed, straight Speed/accurately aligned ticks, compact
+square Edits and Home-only upload. Shared web version 92 is live. Typecheck, 31 web
+unit/security/model tests, 18 desktop tests, both builds, all 38 Chromium scenarios
+and the four affected WebKit scenarios pass; public-domain focused checks also pass.
+The 0.2.7 Developer ID app passes deep/strict signature verification and its packaged
+Publik self-test. The real installed acceptance helper now checks the restored
+shortcuts and playback ordering, ready for the new installed release.
+
+Apple notarization is blocked by a missing editai-notary Keychain profile, confirmed
+both through the default and explicit login Keychain paths. The owner has been
+asked to restore the profile securely or identify its replacement. The signed app
+and submission ZIP are staged, and v0.2.7 is a private draft (release ID 453120264).
+No new signed/notarized installer is published, no verification report is fabricated,
+and the verified 0.2.6 installed app/download/update metadata remains intact. Once
+the profile is restored, notarize/staple the staged app, package its ZIP/blockmap,
+assemble and notarize its matching DMG, verify archives/native source/updater
+metadata, install with the prior app preserved, run real export-only/UI acceptance,
+then use the guarded publisher and update the live homepage download metadata.

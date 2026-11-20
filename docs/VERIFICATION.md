@@ -702,3 +702,47 @@ All 31 web unit/model/security checks, 18 desktop checks, typecheck and producti
 builds pass. Evidence remains ignored under outputs/release026-*.log, the signing/
 installed-acceptance JSON reports, and desktop026-editor-controls.png. No iOS or
 older marketing project was modified.
+
+## Restored shortcuts and compact Edits — November 20, 2026
+
+Owner clarification applies each web/desktop request to the shared product unless
+explicitly limited. Restore Overlays to the left rail, keep Filter off the rail,
+and restore Adjust as a shortcut to the Adjust heading inside Filter. The shortcut
+preserves the left workspace and selects primary media if audio was selected. Crop
+stays in the timeline toolbar; the duplicate Overlays toolbar action is removed.
+
+Volume now precedes Speed. Only Volume uses the tapered track; Speed uses a straight
+rail. Native thumbs have an explicit eight-pixel border-box width. Tick centers,
+custom rails and fill use the same half-thumb inset and explicit input-width-minus-
+thumb travel. Exact numeric input is retained by step=any; bounded keyboard stepping
+still uses the control's intended increment. This fixes both endpoint drift and
+speed-entry quantization. Edits uses compact square thumbnails in desktop cards up
+to 176px, three phone columns, square list thumbnails, and high-contrast over-image
+actions. Remove the Edits Upload clips button; Home import remains available.
+
+Typecheck, 31 unit/model/security tests, 18 desktop tests and both production builds
+pass. All 38 studio scenarios pass in Chromium (1.2m). The four affected inspector/
+slider/library scenarios pass in WebKit (14.4s). The new regression checks the real
+DOM tick/rail travel geometry to 0.1px, exact Speed entry and keyboard stepping,
+Volume-before-Speed order, Adjust scrolling, unchanged overlay library, square
+176px desktop bounds, three phone columns, square list thumbnails, decoded artwork
+and Home-only import. Inspected actual slider and compact-grid captures. Component
+lint has no errors, with the existing Wordmark image advisory.
+
+Public Sites version 92 deploys source 57678d019fd66481778134d67c8a584bb1c13635
+at https://editai.it.com, preserving existing access/storage/secrets. The new workflow
+passes on the actual public domain in Chromium (4.3s, after one unchanged sign-in
+fixture timing rerun) and WebKit (3.5s). These are explicit browser auth/AI fixtures,
+not new real provider-connectivity or AI-quality evidence.
+
+Desktop source and version-pinned packaging contracts are prepared as 0.2.7. The
+Developer ID app passes deep/strict signature verification and packaged Publik
+self-test; its signed app is ready for Apple submission. Publication is pending:
+notarytool reports “No Keychain password item found for profile: editai-notary”,
+including with the explicit login Keychain path. The profile worked for 0.2.6 but
+is no longer available on this signing host. Asked the owner to restore it securely
+in Terminal or supply the name of its replacement; no credential was requested in
+chat or extracted from environment files. v0.2.7 remains a private draft, and the
+verified installed/downloadable desktop remains 0.2.6 until notarization, signed-DMG
+verification and installed acceptance can finish. Staging input:
+outputs/release027-notary-input.zip. No notarization or publication guard was bypassed.

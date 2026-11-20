@@ -70,3 +70,7 @@ Dragging into Applications still works, but Finder copying an app cannot trigger
 ## macOS window appearance (0.2.4)
 
 The native grey title strip is replaced by EditAI's own light/dark header surface. The standard Mac close, minimize and fullscreen buttons remain native. Drag the header to move the window; normal header buttons, project-title editing and inputs remain interactive. The editor reserves the same control space as Home and Settings. Browser, Windows and Linux window frames are unchanged.
+
+## Shared header labels (0.2.5)
+
+Web and desktop headers use EditAI's regular UI font with a clearer breadcrumb. The Web Studio / Desktop Studio badge has a soft blue/lavender treatment while remaining a non-interactive label, with no tab stop or button behavior. Colors adapt to the current theme.

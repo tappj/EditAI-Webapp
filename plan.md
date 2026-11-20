@@ -201,3 +201,20 @@ other items bounded by video duration and preserve cancel-on-outside drops.
 
 Display overlay tracks above the main video and captions/text below it, followed by
 audio. Preserve existing clip data, timing, lane allocation and editing behavior.
+
+## Shared inspector and slider controls — November 20, 2026
+
+Owner supersedes the earlier main-push restriction: commit and push completed
+changes to main. Remove Adjust/Filters/Overlays from the left rail; Filter now
+contains adjustments and percentage opacity. Overlay media and direct crop open
+from the timeline toolbar beside Split/Duplicate. Opening overlay media preserves
+the inspector; keep an empty overlay lane available so source cards can be dragged
+to either overlays or main video independently of the library mode. Remove Precision
+trim. Numeric slider fields accept temporary blank drafts and validate on blur or
+Enter, reverting invalid entries and cancelling with Escape. Volume/opacity display
+0–100, speed has a fixed x prefix, and values display at most two decimals while
+retaining exact typed precision. Dragging attracts to major/neutral marks within
+nine pixels, with Alt bypass. Speed/volume use tapered symmetric wedge tracks.
+Suppress the inner search focus ring while retaining whole-field border feedback.
+Shared web/Electron code and builds are updated; installer/public deployment status
+and verification evidence are recorded in docs/VERIFICATION.md.

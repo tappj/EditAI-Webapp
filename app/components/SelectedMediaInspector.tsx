@@ -67,6 +67,42 @@ export function SelectedMediaInspector({
     ) : (
       <AppearanceEditor
         mode="filters"
+        onResetAdjustments={() =>
+          update((x) => {
+            x.appearance = {
+              ...a,
+              brightness: 0,
+              contrast: 1,
+              saturation: 1,
+              warmth: 0,
+              adjustments: {},
+              opacity: 1,
+            };
+            if (overlay) x.opacity = 1;
+          })
+        }
+        opacityControl={
+          <Range
+            label="Opacity"
+            min={0}
+            max={1}
+            resetValue={1}
+            value={
+              overlay
+                ? (item as Document["overlays"][number]).opacity
+                : a.opacity
+            }
+            onChange={(n) =>
+              update((x) => {
+                if (overlay) x.opacity = n;
+                else {
+                  x.appearance ??= appearance();
+                  x.appearance.opacity = n;
+                }
+              })
+            }
+          />
+        }
         value={a}
         onChange={(value) =>
           update((x) => {
@@ -96,10 +132,6 @@ export function SelectedMediaInspector({
                   x.muted = false;
                   x.fadeIn = 0;
                   x.fadeOut = 0;
-                } else if (overlay) x.opacity = 1;
-                else {
-                  x.appearance ??= appearance();
-                  x.appearance.opacity = 1;
                 }
               })
             }
@@ -117,45 +149,6 @@ export function SelectedMediaInspector({
             <Layers size={15} />
             Move to overlay
           </Button>
-        )}
-        {!overlay && !audio && (
-          <details className="precision-trim">
-            <summary>Precision trim</summary>
-            <div className="timing-fields">
-              <label>
-                In
-                <input
-                  aria-label="Clip in point"
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  max={item.end - 0.1}
-                  value={Number(item.start.toFixed(2))}
-                  onChange={(e) =>
-                    update((x) => {
-                      x.start = +e.target.value;
-                    })
-                  }
-                />
-              </label>
-              <label>
-                Out
-                <input
-                  aria-label="Clip out point"
-                  type="number"
-                  step={0.1}
-                  min={item.start + 0.1}
-                  max={source.duration}
-                  value={Number(item.end.toFixed(2))}
-                  onChange={(e) =>
-                    update((x) => {
-                      x.end = +e.target.value;
-                    })
-                  }
-                />
-              </label>
-            </div>
-          </details>
         )}
         {source.kind !== "image" && (
           <>
@@ -199,28 +192,6 @@ export function SelectedMediaInspector({
             <AudioLines size={15} />
             Extract audio
           </Button>
-        )}
-        {!audio && (
-          <Range
-            label="Opacity"
-            min={0}
-            max={1}
-            resetValue={1}
-            value={
-              overlay
-                ? (item as Document["overlays"][number]).opacity
-                : a.opacity
-            }
-            onChange={(n) =>
-              update((x) => {
-                if (overlay) x.opacity = n;
-                else {
-                  x.appearance ??= appearance();
-                  x.appearance.opacity = n;
-                }
-              })
-            }
-          />
         )}
         {audio && (
           <>

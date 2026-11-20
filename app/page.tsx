@@ -34,6 +34,7 @@ import {
   Scissors,
   Settings,
   ShieldCheck,
+  Crop,
   SlidersHorizontal,
   Sparkles,
   Split,
@@ -2264,13 +2265,6 @@ export default function App({
                           label: "Auto",
                           icon: Subtitles,
                         },
-                        { id: "overlays", label: "Overlays", icon: Layers },
-                        { id: "filters", label: "Filters", icon: ImageIcon },
-                        {
-                          id: "adjust",
-                          label: "Adjust",
-                          icon: SlidersHorizontal,
-                        },
                         { id: "chat", label: "EditAI", icon: Sparkles },
                       ].map((item) => (
                         <button
@@ -2295,26 +2289,6 @@ export default function App({
                             if (item.id === "text" || item.id === "captions") {
                               setTool("captions");
                               setCaptionStyleOpen(true);
-                              scrollInspector();
-                            } else if (
-                              item.id === "filters" ||
-                              item.id === "adjust"
-                            ) {
-                              if (selectedLayer?.track === "audio") {
-                                setSelectedLayer({
-                                  track: "segments",
-                                  id: segment!.id,
-                                });
-                                setSelectedText("");
-                              }
-                              setTool(
-                                item.id === "filters" ? "filter" : "clip",
-                              );
-                              scrollInspector(
-                                item.id === "adjust" ? "adjust" : undefined,
-                              );
-                            } else {
-                              setTool("clip");
                               scrollInspector();
                             }
                           }}
@@ -2865,6 +2839,25 @@ export default function App({
                       />
                     </div>
                     <div className="timeline-edit-actions">
+                      <IconButton
+                        label="Overlays"
+                        onClick={() => setEditorPanel("overlays")}
+                      >
+                        <Layers size={20} />
+                      </IconButton>
+                      <IconButton
+                        label="Crop"
+                        disabled={mediaSelection.track === "audio"}
+                        onClick={() => {
+                          setTool("clip");
+                          scrollInspector("crop");
+                          player.current?.pause();
+                          setPlaying(false);
+                          setCropping(true);
+                        }}
+                      >
+                        <Crop size={20} />
+                      </IconButton>
                       <IconButton
                         label="Split"
                         onClick={() => {
@@ -3603,8 +3596,8 @@ export default function App({
               </dd>
               <dt>Sliders</dt>
               <dd>
-                Drag freely; releasing near a major mark snaps to it. Hold Alt
-                to bypass snapping, or enter an exact value.
+                Drag near a major mark to snap and hold its value. Hold Alt to
+                bypass snapping, or enter an exact value.
               </dd>
               <dt>Duplicate / delete</dt>
               <dd>

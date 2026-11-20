@@ -104,9 +104,7 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   await expect(page.locator(".timeline-clip")).toHaveCount(1);
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
-  await page
-    .getByRole("button", { name: "Adjust workspace", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
   await page.getByRole("slider", { name: /^Exposure/ }).fill("0.25");
   await page.getByLabel("Canvas aspect ratio").selectOption("1:1");
   await page.getByRole("button", { name: "Text", exact: true }).click();
@@ -302,9 +300,7 @@ test("overlay and imported audio appear in actual exported media", async ({
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await page
-    .getByRole("button", { name: "Overlays workspace", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Overlays", exact: true }).click();
   await page
     .getByRole("button", { name: "Import overlay", exact: true })
     .click({ noWaitAfter: true });
@@ -1501,7 +1497,7 @@ test("reference studio layout keeps monitor, source cards, caption lanes and aud
   await expect(
     page.locator(".audio-row .source-waveform path"),
   ).toHaveAttribute("d", /^M/);
-  await page.getByRole("button", { name: "Overlays workspace" }).click();
+  await page.getByRole("button", { name: "Overlays" }).click();
   await page
     .getByRole("button", { name: "Import overlay", exact: true })
     .click({ noWaitAfter: true });
@@ -1608,9 +1604,12 @@ test("clip audio extraction preserves trim and speed, undo redo, reload and real
   await expect(page.getByRole("dialog")).toContainText("Split");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByText("Precision trim", { exact: true }).click();
-  await page.getByLabel("Clip in point").fill("0.5");
-  await page.getByLabel("Clip out point").fill("3");
+  const startGrip = page.getByRole("button", { name: /^Trim start of/ });
+  const endGrip = page.getByRole("button", { name: /^Trim end of/ });
+  for (let i = 0; i < 5; i++) await startGrip.press("ArrowRight");
+  for (let i = 0; i < 10; i++) await endGrip.press("ArrowLeft");
+  await expect.poll(() => saved?.document?.segments[0].start).toBeCloseTo(0.5);
+  const trimmed = structuredClone(saved.document.segments[0]);
   await page.getByRole("slider", { name: /^Speed/ }).fill("1.5");
   await page
     .getByRole("button", { name: "Extract audio", exact: true })
@@ -1625,8 +1624,11 @@ test("clip audio extraction preserves trim and speed, undo redo, reload and real
   const document = saved.document;
   expect(document.segments[0].volume).toBe(0);
   expect(document.audio[0].speed).toBe(1.5);
-  expect(document.audio[0].sourceStart).toBe(0.5);
-  expect(document.audio[0].end).toBeCloseTo(2.5 / 1.5, 2);
+  expect(document.audio[0].sourceStart).toBeCloseTo(0.5);
+  expect(document.audio[0].end).toBeCloseTo(
+    (trimmed.end - trimmed.start) / 1.5,
+    2,
+  );
   expect(document.sources[document.audio[0].sourceIndex].kind).toBe("video");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
@@ -2152,7 +2154,7 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
     page.getByRole("button", { name: "Auto captions workspace" }),
   ).toHaveText("Auto");
   await expect(page.locator(".premium-sparkle")).toHaveCount(0);
-  await page.getByRole("button", { name: "Filters workspace" }).click();
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(
     page.locator(".visual-filters .filter-preview .clip-frames span").first(),
   ).toBeVisible();
@@ -2171,8 +2173,9 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
     [390, 844],
   ]) {
     await page.setViewportSize({ width, height });
-    await page.getByRole("button", { name: "Adjust workspace" }).click();
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
     const heading = page.locator(".advanced-adjustments > summary");
+    await heading.scrollIntoViewIfNeeded();
     await expect
       .poll(async () => {
         const h = (await heading.boundingBox())!,
@@ -2191,14 +2194,14 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
     ).toBe(true);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "Adjust workspace" }).click();
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
   const exposure = page.getByRole("slider", { name: /^Exposure/ });
   await exposure.fill("0.4");
   await exposure.press("r");
   await expect(exposure).toHaveValue("0");
   const brilliance = page.getByRole("slider", { name: /^Brilliance/ });
   await brilliance.fill("0.5");
-  await page.getByRole("button", { name: "Adjust workspace" }).focus();
+  await page.getByRole("button", { name: "Filter", exact: true }).focus();
   await brilliance.locator("..").hover();
   await page.keyboard.press("r");
   await expect(brilliance).toHaveValue("0");
@@ -2271,7 +2274,8 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
   await expect(page.locator(".selected-media-settings")).toHaveCount(1);
   await expect(
     page.locator(".selected-media-settings .range-label"),
-  ).toHaveCount(3);
+  ).toHaveCount(2);
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(page.getByRole("slider", { name: /^Opacity/ })).toBeVisible();
   await page.getByRole("slider", { name: /^Opacity/ }).fill("0.6");
   await page.getByRole("slider", { name: /^Opacity/ }).press("r");
@@ -2426,7 +2430,7 @@ test("compact stepped sliders, display-only text, visual animations, custom colo
     .locator("input[type=file]")
     .first()
     .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
-  await page.getByRole("button", { name: "Adjust workspace" }).click();
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -2512,4 +2516,115 @@ test("compact stepped sliders, display-only text, visual animations, custom colo
     path: "outputs/editor-text-slider-polish.png",
     fullPage: true,
   });
+});
+
+test("editable numeric drafts, percentage units, magnetic sliders and independent overlay library", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(
+    page.getByRole("button", { name: "Adjust workspace" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Filters workspace" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Precision trim", { exact: true })).toHaveCount(
+    0,
+  );
+  const volume = page.getByRole("spinbutton", {
+    name: "Volume value",
+    exact: true,
+  });
+  await expect(volume).toHaveValue("100");
+  await volume.fill("");
+  await expect(volume).toHaveValue("");
+  await volume.fill("37");
+  await volume.press("Enter");
+  await expect(
+    page.getByRole("slider", { name: "Volume", exact: true }),
+  ).toHaveValue("0.37");
+  await volume.fill("101");
+  await volume.press("Tab");
+  await expect(volume).toHaveValue("37");
+  await volume.fill("");
+  await volume.press("Tab");
+  await expect(volume).toHaveValue("37");
+  await volume.fill("18");
+  await volume.press("Escape");
+  await expect(volume).toHaveValue("37");
+  const speed = page.getByRole("spinbutton", {
+    name: "Speed value",
+    exact: true,
+  });
+  await expect(speed.locator("..")).toContainText("x");
+  await speed.fill("1.25");
+  await speed.press("Enter");
+  await expect(
+    page.getByRole("slider", { name: "Speed", exact: true }),
+  ).toHaveValue("1.25");
+  await expect(page.locator(".range-wedge")).toHaveCount(2);
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  const opacity = page.getByRole("spinbutton", {
+    name: "Opacity value",
+    exact: true,
+  });
+  await expect(opacity).toHaveValue("100");
+  await opacity.fill("62.5");
+  await opacity.press("Enter");
+  await expect(
+    page.getByRole("slider", { name: "Opacity", exact: true }),
+  ).toHaveValue("0.625");
+  const exposure = page.getByRole("slider", { name: "Exposure", exact: true });
+  await exposure.scrollIntoViewIfNeeded();
+  const box = (await exposure.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 5, box.y + box.height / 2, {
+    steps: 3,
+  });
+  await expect(exposure).toHaveValue("0");
+  await page.mouse.up();
+  const exact = page.getByRole("spinbutton", {
+    name: "Exposure value",
+    exact: true,
+  });
+  await exact.fill("0.013");
+  await exact.press("Enter");
+  await expect(exposure).toHaveValue("0.013");
+  await page.getByRole("button", { name: "Overlays", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Filter", exact: true }),
+  ).toHaveClass("selected");
+  await expect(
+    page.getByRole("heading", { name: "Overlay media", exact: true }),
+  ).toBeVisible();
+  const search = page.getByRole("textbox", { name: "Search source media" });
+  await search.focus();
+  await expect(search).toHaveCSS("outline-style", "none");
+  await expect(search).toHaveCSS("box-shadow", "none");
+  await page
+    .locator(".source-card")
+    .first()
+    .dragTo(page.locator("[data-track=overlays]").first());
+  await expect(
+    page.locator("[data-track=overlays] .sequence-item"),
+  ).toHaveCount(1);
+  await page
+    .locator(".source-card")
+    .first()
+    .dragTo(page.locator("[data-track=segments]").first());
+  await expect(page.locator(".timeline-clip")).toHaveCount(2);
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  await page.screenshot({
+    path: "outputs/editor-wedge-controls.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Crop", exact: true }).click();
+  await expect(page.locator(".crop-selection")).toBeVisible();
 });

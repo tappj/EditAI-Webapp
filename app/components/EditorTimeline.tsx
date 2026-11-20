@@ -524,7 +524,7 @@ export function EditorTimeline({
               (o) => overlayLanes.get(o.id) === lane,
             ),
           }))
-            .filter((row) => row.items.length)
+            .filter((row) => row.items.length || row.lane === 0)
             .map((row) => (
               <div
                 key={row.lane}

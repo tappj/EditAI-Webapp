@@ -2093,3 +2093,54 @@ body:has(.is-editor) .toast a {
   text-align: right;
   font-size: 12px;
 }
+
+/* Keep search focus on the complete field, without an inner blue ring. */
+.is-editor .library-search input:focus,
+.is-editor .library-search input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.is-editor .library-search:focus-within {
+  border-color: var(--muted);
+}
+.is-editor .range-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.is-editor .range-number .range-value {
+  width: 58px;
+}
+.is-editor .range-wedge .range-control::before {
+  content: "";
+  position: absolute;
+  inset: 2px 4px 9px;
+  clip-path: polygon(0 45%, 100% 0, 100% 100%, 0 55%);
+  background: linear-gradient(
+    to right,
+    var(--accent, #598fd9) var(--range-fill),
+    var(--border) var(--range-fill)
+  );
+  pointer-events: none;
+}
+.is-editor
+  .range-wedge
+  .range-control
+  input[type="range"]::-webkit-slider-runnable-track {
+  background: transparent;
+}
+.is-editor .range-wedge .range-control input[type="range"]::-moz-range-track,
+.is-editor
+  .range-wedge
+  .range-control
+  input[type="range"]::-moz-range-progress {
+  background: transparent;
+}
+.is-editor .range-wedge .range-control input[type="range"] {
+  position: relative;
+}
+.is-editor .range-wedge .range-ticks {
+  top: 21px;
+}

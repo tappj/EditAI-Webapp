@@ -108,3 +108,13 @@ Runtime source 1d17c96 restores normal opacity to EditAI Studio by targeting the
 Isolated typecheck, all 27 web tests, all 18 desktop tests and both builds pass. Browser visual/geometry checks at 1440/900/390px in light/dark verify the shared font, full-opacity namespace, non-interactive badge semantics, default cursor, static hover appearance and no horizontal overflow. The signed, notarized and Gatekeeper-accepted installed Mac 0.2.5 build passes the equivalent actual desktop checks at 1440/900px, including DESKTOP STUDIO text and a working Account action. Header screenshots were inspected in both themes. Web authentication in the browser presentation checks is fixture-scoped; desktop header checks used the genuine persisted account without provider fixtures, inference or preference changes. Public release follows disk-image and installed-export acceptance.
 
 0.2.5 publication: Mac disk-image assembly run 44716135951 succeeded from the exact signed ZIP. The DMG passed Developer ID signing, Apple notarization, stapling and Gatekeeper; the release verifier confirmed matching app/ZIP/DMG archive identity, native corresponding source, updater metadata and packaged Publik self-test. After these checks the installed app passed genuine account restoration and MP4 export in 1.319s, with both synthetic projects removed and no inference or preference changes. The guarded publisher released v0.2.5 and public download metadata now targets its verified DMG. Runtime source is 1d17c96; the shared header changes are applied to both web and native assets. Other subsequently committed web editor work is a separate runtime snapshot. The installed app is reopened for the owner.
+
+## Shared inspector and slider controls — November 20, 2026
+
+The shared Electron renderer includes Filter/Adjust/opacity consolidation, timeline
+Crop/Overlays actions, editable numeric drafts, 0–100 volume/opacity, fixed speed x,
+magnetic dragging and tapered speed/volume tracks. Typecheck, 30 web unit/model/
+security tests, 18 desktop tests and both builds pass. All 35 shared studio browser
+scenarios pass across the full runs plus the corrected Chromium trim/export rerun;
+see docs/VERIFICATION.md for exact evidence and fixture boundaries. Existing native
+FFmpeg extraction/export tests pass. No new signed installer is published here.

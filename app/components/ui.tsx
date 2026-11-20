@@ -1,6 +1,6 @@
 "use client";
 import type React from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 export function Button({
   children,
@@ -106,6 +106,25 @@ export function Range({
   resetValue?: number;
   onChange: (n: number) => void;
 }) {
+  const percent = /opacity|volume/i.test(label);
+  const speed = /speed/i.test(label);
+  const scale = percent ? 100 : 1;
+  const format = (n: number) => String(Number((n * scale).toFixed(2)));
+  const [draft, setDraft] = useState<string | null>(null);
+  const original = useRef(value);
+  const cancelled = useRef(false);
+  const dragging = useRef(false);
+  const bypassSnap = useRef(false);
+  const commit = () => {
+    if (cancelled.current) {
+      cancelled.current = false;
+      setDraft(null);
+      return;
+    }
+    const n = draft === null || !draft.trim() ? NaN : Number(draft) / scale;
+    onChange(Number.isFinite(n) && n >= min && n <= max ? n : original.current);
+    setDraft(null);
+  };
   const neutral =
     resetValue ??
     (/speed|contrast|saturation|opacity|volume/i.test(label)
@@ -127,36 +146,65 @@ export function Range({
       return { n, large: Math.abs(n / major - Math.round(n / major)) < 0.001 };
     },
   ).filter((m) => m.n <= max + span * 0.0001);
-  const snap = (input: HTMLInputElement, alt: boolean) => {
-    if (alt || /speed|volume/i.test(label)) return;
-    const n = +input.value;
-    const nearest = Math.round(n / major) * major;
-    if (
-      nearest >= min &&
-      nearest <= max &&
-      (Math.abs(n - nearest) / span) * input.clientWidth <= 3
-    )
-      onChange(Number(nearest.toPrecision(10)));
+  const snapped = (n: number, width: number, bypass: boolean) => {
+    if (bypass) return n;
+    const candidates = [
+      ...marks.filter((m) => m.large).map((m) => m.n),
+      min,
+      max,
+      neutral,
+    ];
+    const nearest = candidates.reduce((a, b) =>
+      Math.abs(n - a) < Math.abs(n - b) ? a : b,
+    );
+    return (Math.abs(n - nearest) / span) * width <= 9
+      ? Number(nearest.toPrecision(10))
+      : n;
   };
   return (
-    <label className="range-label">
+    <label
+      className={`range-label${speed || /volume/i.test(label) ? " range-wedge" : ""}`}
+    >
       <span>
         {label}
-        <input
-          className="range-value"
-          aria-label={`${label} value`}
-          type="number"
-          min={min}
-          max={max}
-          step="any"
-          value={Number(value.toFixed(5))}
-          onChange={(e) => {
-            const n = e.currentTarget.valueAsNumber;
-            if (Number.isFinite(n)) onChange(Math.max(min, Math.min(max, n)));
-          }}
-        />
+        <span className="range-number">
+          {speed && <span aria-hidden="true">x</span>}
+          <input
+            className="range-value"
+            style={{
+              width: `${Math.max(2, Math.min(12, (draft ?? format(value)).length))}ch`,
+            }}
+            aria-label={`${label} value`}
+            type="number"
+            min={min * scale}
+            max={max * scale}
+            step="any"
+            value={draft ?? format(value)}
+            onFocus={() => {
+              original.current = value;
+              setDraft(format(value));
+            }}
+            onChange={(e) => setDraft(e.currentTarget.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                cancelled.current = true;
+                e.currentTarget.blur();
+              }
+            }}
+          />
+          {percent && <span aria-hidden="true">%</span>}
+        </span>
       </span>
-      <span className="range-control">
+      <span
+        className="range-control"
+        style={
+          {
+            "--range-fill": `${((value - min) / span) * 100}%`,
+          } as React.CSSProperties
+        }
+      >
         <span className="range-ticks" aria-hidden="true">
           {marks.map((m, i) => (
             <i
@@ -193,8 +241,37 @@ export function Range({
               "--range-fill": `${((value - min) / span) * 100}%`,
             } as React.CSSProperties
           }
-          onPointerUp={(e) => snap(e.currentTarget, e.altKey)}
-          onChange={(e) => onChange(+e.target.value)}
+          onPointerDown={(e) => {
+            dragging.current = true;
+            bypassSnap.current = e.altKey;
+          }}
+          onPointerMove={(e) => {
+            bypassSnap.current = e.altKey;
+          }}
+          onPointerCancel={() => {
+            dragging.current = false;
+          }}
+          onPointerUp={(e) => {
+            dragging.current = false;
+            onChange(
+              snapped(
+                +e.currentTarget.value,
+                e.currentTarget.clientWidth,
+                e.altKey,
+              ),
+            );
+          }}
+          onChange={(e) =>
+            onChange(
+              dragging.current
+                ? snapped(
+                    +e.target.value,
+                    e.currentTarget.clientWidth,
+                    bypassSnap.current,
+                  )
+                : +e.target.value,
+            )
+          }
         />
       </span>
     </label>

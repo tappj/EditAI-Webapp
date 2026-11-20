@@ -586,3 +586,39 @@ audio last. This changes row rendering order only. Typecheck, 30 unit/model/secu
 checks, web build and shared desktop build pass. The existing real overlay/audio
 import/export browser check passes against a fresh production build with fixture
 authentication; it does not prove fresh Publik connectivity.
+
+## Inspector layout, numeric drafts and magnetic sliders — November 20, 2026
+
+Shared web/Electron editor changes remove Adjust/Filters/Overlays from the left
+rail and Precision trim from the inspector. Filter contains adjustments and opacity;
+Crop and Overlays sit next to Split/Duplicate in the timeline toolbar. Opening the
+overlay library preserves the right inspector. An empty overlay row accepts initial
+source drops; library mode does not override the user's chosen destination row.
+
+Numeric fields retain temporary blank/incomplete drafts, commit valid in-range
+numbers on Enter/blur, revert invalid values, and cancel with Escape. Volume and
+all opacity controls display percentages, speed has a separate fixed x, and numeric
+displays use at most two decimal places without rounding stored typed values.
+Dragging snaps within nine pixels of major marks, endpoints and the neutral value;
+Alt bypass and exact numeric entry remain available. Speed/volume have symmetric
+increasing tapered tracks. Search focus uses the surrounding border without an
+inner outline or shadow. Adjustment reset also resets opacity atomically.
+
+Validation: typecheck, all 30 web model/security/unit tests, all 18 desktop tests,
+and both production builds pass. Changed-component ESLint has no errors and only
+the existing Wordmark image advisory. Fresh production Worker on port 5191, freshly
+recorded fixture via scripts/make-fixture.mjs and FFmpeg conversion: WebKit passes
+all 35 studio cases (1.5m). Chromium passes 34 in the full run (1.3m); the remaining
+extraction case still referenced the intentionally removed Precision trim. Updated
+it to use keyboard-operated timeline handles and verify the actual trimmed source
+range; its unchanged product code then passes extraction, reopen and real MP4
+export in a focused rerun (5.9s). All 35 Chromium scenarios have therefore passed.
+The three focused inspector/slider cases also pass in both engines. Actual final
+wedge controls were visually inspected. Logs/capture: outputs/control-*.log and
+outputs/editor-wedge-controls.png (ignored).
+
+Authentication and AI are explicit fixtures in these browser checks; they do not
+prove fresh Publik connectivity. No production auth bypass or fake AI response was
+added. The shared desktop build is updated; this task does not publish a new signed
+installer or hosted deployment. The owner's newer standing instruction authorizes
+committing/pushing completed work to main, superseding the older branch restriction.

@@ -1,9 +1,9 @@
-# EditAI Desktop 0.2.1
+# EditAI Desktop 0.2.3
 
 Primary source: https://github.com/tappj/EditAI-Webapp/tree/codex/desktop-migration
 Web: https://editai-web.givingarmadillo8.chatgpt.site
 Desktop listing: https://publikhq.com/editai-desktop (submitted; held for review).
-macOS arm64 download: https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.1/EditAI-0.2.1-mac-arm64.dmg
+macOS arm64 download: https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.3/EditAI-0.2.3-mac-arm64.dmg
 
 ## Architecture and parity
 
@@ -61,7 +61,7 @@ The updater uses public GitHub Releases, checks only when requested in File → 
 
 Homepage metadata lives in lib/desktop-releases.json. Add only real versioned GitHub artifact URLs with `signed`, `tested` and (macOS) `notarized` verification after release acceptance. Windows stays hidden until a validated release exists. An installed-to-next-version updater exercise remains outstanding.
 
-## Guided Mac installation (0.2.3 source)
+## Guided Mac installation (0.2.3)
 
 Open the downloaded disk image and double-click EditAI. Choose **Install and Open** to move it into Applications and relaunch the installed copy automatically. If an older copy exists, EditAI asks before replacing it. Cancelling or a failed copy leaves manual installation available.
 

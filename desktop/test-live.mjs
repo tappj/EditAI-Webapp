@@ -26,6 +26,18 @@ app.process().stderr.on("data", (b) => {
 });
 try {
   const page = await app.firstWindow();
+  const testProjects = new Set();
+  page.on("request", (request) => {
+    if (
+      process.env.EDITAI_EXPORT_ONLY &&
+      !process.env.EDITAI_RESUME_TEST &&
+      request.method() === "POST" &&
+      new URL(request.url()).pathname === "/api/projects"
+    ) {
+      const body = request.postDataJSON();
+      if (body?.title?.includes("synthetic-speech")) testProjects.add(body.id);
+    }
+  });
   page.setDefaultTimeout(30000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   const home = page.getByRole("heading", {
@@ -89,13 +101,28 @@ try {
     await expect(page.getByRole("status")).toContainText("Preferences saved");
   }
   await page.getByRole("button", { name: "Home", exact: true }).click();
-  if (process.env.EDITAI_RESUME_TEST)
+  if (process.env.EDITAI_EXPORT_ONLY && !process.env.EDITAI_RESUME_TEST) {
+    await page.getByRole("button", { name: /^Batch edit/ }).click();
+    const inputs = page.locator(".batch-box input[type=file]");
+    await inputs.nth(0).setInputFiles(resolve("outputs/synthetic-speech.mp4"));
+    await inputs.nth(1).setInputFiles(resolve("outputs/synthetic-speech.mp4"));
+    await page
+      .getByRole("checkbox", { name: /Run AI editing for each project/ })
+      .uncheck();
+    await page.getByRole("button", { name: /Create 2 projects/ }).click();
     await page
       .locator(".project-card-title")
       .filter({ hasText: "synthetic-speech" })
       .first()
       .click();
-  else
+  } else if (process.env.EDITAI_RESUME_TEST) {
+    await page.getByRole("button", { name: "Edits", exact: true }).click();
+    await page
+      .locator(".project-card-title")
+      .filter({ hasText: "synthetic-speech" })
+      .first()
+      .click();
+  } else
     await page
       .locator("input[type=file]")
       .first()
@@ -191,6 +218,17 @@ try {
     fullPage: true,
   });
   console.log("Desktop real export passed:", report.exportSeconds, "seconds");
+  for (const id of testProjects) {
+    const status = await page.evaluate(
+      async (id) =>
+        (await fetch("/api/projects/" + id, { method: "DELETE" })).status,
+      id,
+    );
+    if (status !== 200)
+      throw Error("Could not remove an acceptance-test project.");
+  }
+  report.testProjectsRemoved = testProjects.size;
+  report.aiExercised = !process.env.EDITAI_EXPORT_ONLY;
 } catch (error) {
   report.error = error.message;
   console.log("Desktop test:", error.message);

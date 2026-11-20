@@ -1,9 +1,9 @@
-# EditAI Desktop 0.2.4
+# EditAI Desktop 0.2.5
 
 Primary source: https://github.com/tappj/EditAI-Webapp/tree/codex/desktop-migration
 Web: https://editai-web.givingarmadillo8.chatgpt.site
 Desktop listing: https://publikhq.com/editai-desktop (submitted; held for review).
-macOS arm64 download: https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.4/EditAI-0.2.4-mac-arm64.dmg
+macOS arm64 download: https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.5/EditAI-0.2.5-mac-arm64.dmg
 
 ## Architecture and parity
 

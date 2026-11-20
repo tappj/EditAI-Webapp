@@ -196,3 +196,8 @@ text, overlays and audio at the cursor with Ctrl/Cmd+C/V, preserving native typi
 shortcuts and undo. Fit text to video duration, remove wholly stray text on reopening
 or shortening, and delete text deliberately dropped into the timeline void. Keep
 other items bounded by video duration and preserve cancel-on-outside drops.
+
+## Timeline track order — November 20, 2026
+
+Display overlay tracks above the main video and captions/text below it, followed by
+audio. Preserve existing clip data, timing, lane allocation and editing behavior.

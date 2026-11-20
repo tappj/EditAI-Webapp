@@ -518,44 +518,34 @@ export function EditorTimeline({
               </span>
             ))}
           </div>
-          {textTracks.length ? (
-            textTracks.map((row, i) => (
+          {Array.from({ length: 7 }, (_, lane) => ({
+            lane,
+            items: shown.overlays.filter(
+              (o) => overlayLanes.get(o.id) === lane,
+            ),
+          }))
+            .filter((row) => row.items.length)
+            .map((row) => (
               <div
-                data-track="texts"
-                className="sequence-row text-row"
-                key={"text" + i}
+                key={row.lane}
+                data-track="overlays"
+                className="sequence-row overlay-row"
               >
                 <div className="track-label">
-                  <Subtitles size={16} />
-                  <span>{row.name}</span>
+                  <Layers size={16} />
+                  <span>Overlay {row.lane + 1}</span>
                 </div>
-                {row.items.map((t) =>
+                {row.items.map((o) =>
                   clip(
-                    "texts",
-                    t.id,
-                    t.text || "Text",
-                    t.start,
-                    Math.min(t.end, total),
+                    "overlays",
+                    o.id,
+                    shown.sources[o.sourceIndex].name,
+                    o.start,
+                    o.end,
                   ),
                 )}
               </div>
-            ))
-          ) : (
-            <div data-track="texts" className="sequence-row text-row">
-              <div className="track-label">
-                <Subtitles size={16} />
-                <span>Captions</span>
-              </div>
-              <button
-                className="empty-track-action"
-                style={{ left: TRACK_HEADER + 12 }}
-                onClick={onAddText}
-              >
-                <Plus size={13} />
-                Add text or captions
-              </button>
-            </div>
-          )}
+            ))}
           <div
             data-track="segments"
             className="sequence-row main-row"
@@ -595,34 +585,44 @@ export function EditorTimeline({
               <Plus size={18} />
             </button>
           </div>
-          {Array.from({ length: 7 }, (_, lane) => ({
-            lane,
-            items: shown.overlays.filter(
-              (o) => overlayLanes.get(o.id) === lane,
-            ),
-          }))
-            .filter((row) => row.items.length)
-            .map((row) => (
+          {textTracks.length ? (
+            textTracks.map((row, i) => (
               <div
-                key={row.lane}
-                data-track="overlays"
-                className="sequence-row overlay-row"
+                data-track="texts"
+                className="sequence-row text-row"
+                key={"text" + i}
               >
                 <div className="track-label">
-                  <Layers size={16} />
-                  <span>Overlay {row.lane + 1}</span>
+                  <Subtitles size={16} />
+                  <span>{row.name}</span>
                 </div>
-                {row.items.map((o) =>
+                {row.items.map((t) =>
                   clip(
-                    "overlays",
-                    o.id,
-                    shown.sources[o.sourceIndex].name,
-                    o.start,
-                    o.end,
+                    "texts",
+                    t.id,
+                    t.text || "Text",
+                    t.start,
+                    Math.min(t.end, total),
                   ),
                 )}
               </div>
-            ))}
+            ))
+          ) : (
+            <div data-track="texts" className="sequence-row text-row">
+              <div className="track-label">
+                <Subtitles size={16} />
+                <span>Captions</span>
+              </div>
+              <button
+                className="empty-track-action"
+                style={{ left: TRACK_HEADER + 12 }}
+                onClick={onAddText}
+              >
+                <Plus size={13} />
+                Add text or captions
+              </button>
+            </div>
+          )}
           {Array.from({ length: LANE_LIMITS.audio }, (_, i) => i)
             .filter(
               (lane) => lane === 0 || shown.audio.some((a) => a.lane === lane),

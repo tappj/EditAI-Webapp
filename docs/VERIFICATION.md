@@ -578,3 +578,11 @@ in isolation. The new refinement scenario also passes after the final theme/comp
 value CSS corrections in both engines. Screenshots of the actual increments and
 animation/color panel were inspected. Changed-component lint has no errors, with
 only the pre-existing Wordmark image optimization advisory.
+
+## Timeline track order — November 20, 2026
+
+Moved overlay rows above the main video and captions/text rows below it, keeping
+audio last. This changes row rendering order only. Typecheck, 30 unit/model/security
+checks, web build and shared desktop build pass. The existing real overlay/audio
+import/export browser check passes against a fresh production build with fixture
+authentication; it does not prove fresh Publik connectivity.

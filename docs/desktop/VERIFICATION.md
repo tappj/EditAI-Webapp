@@ -225,3 +225,39 @@ latest-mac.yml, matching native corresponding source and SHA256SUMS. Public rele
 https://github.com/tappj/EditAI-Webapp/releases/tag/v0.2.7. Download metadata now
 targets this verified release. Existing macOS arm64 distribution is updated; no
 Windows release or prior-version updater installation is claimed tested.
+
+
+## Original palette replacement — November 20, 2026
+
+The 0.2.8 light-illustration correction finished publication before the owner's
+interruption, but its download metadata was not activated on the live site before
+the new palette request. Owner rejects the broader blue-accent trial. Runtime
+1a3857d2acfafbfd58b0489caadd7d34fd1eb9f5 restores original feature/editor tokens,
+card colors, premium gradient, lavender drag ghosts and editor icon colors. Only
+the film illustration adapts in dark mode, using the original cards' cyan/lavender;
+light film artwork is unchanged. Functional editor refinements remain. Version-
+pinned build, CI, native self-test and guarded release contracts advance to 0.2.9.
+
+All required source checks/builds pass. Chromium's existing compact-media regression
+passes with original color expectations; Chromium and WebKit manual theme checks
+pass. Captures verify the original light artwork and original dark feature palette.
+The Developer ID 0.2.9 app is Apple-notarized, stapled, Gatekeeper accepted and
+installed under /Applications/EditAI.app. Previous app is preserved under
+outputs/release029-backup/EditAI.app. Guided-installer CI run is 44846597802.
+
+Final DMG is signed, Apple-notarized, stapled and Gatekeeper accepted. SHA-256:
+13510277bda8045193714b7d7ba5a9f0362f3d9334aa705eed8789743d8c7d51.
+The final verifier checks mounted-app identity against the ZIP and installed app,
+native corresponding source, packaged Publik self-test and updater hashes. Installed
+acceptance initially encountered an already-running app, then correctly rejected
+the old blue-gradient expectation. The acceptance helper now expects the restored
+original gradient. A clean rerun passes genuine existing-session restoration,
+shared UI/media-removal checks and real H.264/AAC export in 1.322 seconds. Four
+synthetic QA projects (including the interrupted check's pair) were cleaned up
+through the real UI. No user project was removed. No auth/provider fixture or
+external AI request was used; automation telemetry remained disabled.
+
+Guarded publisher released v0.2.9 with verified DMG, ZIP/blockmap, latest-mac.yml,
+corresponding native source and SHA256SUMS. Homepage metadata now targets this
+release. macOS arm64 only; no Windows release or prior-version auto-update
+installation is claimed tested.

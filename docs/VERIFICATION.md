@@ -815,3 +815,10 @@ Chromium/WebKit checks verify original light/dark Batch colors and theme-specifi
 film front/back colors; both captures were reviewed. These checks use explicit
 session fixtures and do not establish new real provider connectivity. Runtime
 packaging advances to 0.2.9, superseding the prior 0.2.8 illustration correction.
+
+The original palette correction is live at https://editai.it.com (Sites version 96).
+Installed desktop 0.2.9 passed real UI/media removal and native export in 1.322s
+after final signed/notarized DMG verification. The existing native acceptance
+gradient assertion was corrected from the rejected blue trial to the original
+premium gradient. All synthetic projects from the interrupted check and rerun
+were removed. See docs/desktop/VERIFICATION.md for provenance and fixture limits.

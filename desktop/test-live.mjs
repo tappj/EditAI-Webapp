@@ -237,7 +237,7 @@ try {
     ).toHaveAttribute("step", "1");
     await expect(
       page.getByRole("button", { name: "Open EditAI chat" }),
-    ).toHaveCSS("background-image", /168, 207, 255/);
+    ).toHaveCSS("background-image", /230, 224, 255/);
     await page.screenshot({
       path: "outputs/desktop027-editor-controls.png",
       fullPage: true,

@@ -315,3 +315,6 @@ changes. Restore the original premium gradient and lavender editor colors. Only
 the Home film illustration gets dark-specific cyan/lavender from the original
 feature cards; light artwork stays exactly original. Replace the superseded 0.2.8
 installer with a matching verified 0.2.9.
+
+Completed: original product palette is restored live; 0.2.9 is signed/notarized,
+installed, tested with real export and published. Only dark film artwork adapts.

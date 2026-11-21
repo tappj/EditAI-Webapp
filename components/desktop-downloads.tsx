@@ -26,7 +26,7 @@ export function DesktopDownloads({
   placement = "default",
 }: {
   openWeb?: boolean;
-  placement?: "default" | "hero";
+  placement?: "default" | "hero" | "topbar";
 }) {
   // Wait for device detection before rendering installers, including during SSR.
   const [preferred, setPreferred] = useState<string | null>(null);
@@ -43,6 +43,15 @@ export function DesktopDownloads({
       (a, b) =>
         Number(b.platform === preferred) - Number(a.platform === preferred),
     );
+  if (placement === "topbar") {
+    if (preferred !== "macos") return null;
+    const release = sorted.find((r) => r.platform === "macos");
+    return release ? (
+      <a className="topbar-mac-download" href={release.url}>
+        <Download size={13} aria-hidden="true" /> Download for Mac
+      </a>
+    ) : null;
+  }
   if (placement === "hero") {
     if (!preferred) return null;
     return (

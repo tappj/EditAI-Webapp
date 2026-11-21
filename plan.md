@@ -331,3 +331,20 @@ and matching verified desktop 0.2.10.
 
 Completed: bottom-right notification layout is live on web and installed desktop
 0.2.10; checks, Apple acceptance, final installer verification and real export pass.
+
+## Automatic Settings and scoped app themes — November 20, 2026
+
+Move editable display name and photo upload/removal directly into General, with
+app language, saved-edit count and the native support address. Remove profile
+color choices and both manual save buttons. Debounce and serialize automatic
+profile/preferences writes, retain failed values for Retry, preserve newer edits
+and flush before navigation/sign-out. Separate system/light/dark appearance from
+eight brand themes; copy native EditAI/Aurora/Sunset/Midnight palettes and extend
+with Rose/Ocean/Forest/Citrus. Scope theme changes to the logo, iOS badge, EditAI
+rail action and four Home cards. Preserve native dark page contrast and independent
+editor/export colors. Remove repeated Privacy & data footers; retain Settings and
+onboarding privacy access. Place media kind top-left, duration bottom-left and
+trash bottom-right; remove plus and In edit badges, preserving used-source safety.
+Fill the selected EditAI sparkle cyan/blue. Remove the raw-takes heading, move Mac
+download to the top bar, and use Your edits / View →. Shared desktop advances to
+0.2.11, pending final signed installer/installed acceptance and publication evidence.

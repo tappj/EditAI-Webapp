@@ -24,7 +24,6 @@ export function EditorSourceLibrary({
   urls,
   mode,
   onImport,
-  onAdd,
   onRemove,
   removing,
 }: {
@@ -32,7 +31,6 @@ export function EditorSourceLibrary({
   urls: Record<string, string>;
   mode: "all" | "audio" | "overlay";
   onImport: () => void;
-  onAdd: (index: number) => void;
   onRemove: (index: number) => void;
   removing?: boolean;
 }) {
@@ -166,21 +164,6 @@ export function EditorSourceLibrary({
                     .toString()
                     .padStart(2, "0")}
                 </span>
-                {used && <span className="source-used">In edit</span>}
-                <button
-                  className="source-append"
-                  aria-label={"Append " + s.name}
-                  title={
-                    mode === "overlay"
-                      ? "Add as overlay"
-                      : s.kind === "audio" || mode === "audio"
-                        ? "Add to audio track"
-                        : "Append to video track"
-                  }
-                  onClick={() => onAdd(index)}
-                >
-                  <Plus size={17} />
-                </button>
               </div>
               <strong title={s.name}>{s.name}</strong>
               <small>{fileSize(s.bytes)}</small>

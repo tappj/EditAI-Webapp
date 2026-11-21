@@ -29,7 +29,7 @@ try {
   page.setDefaultTimeout(30000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   const home = page.getByRole("heading", {
-    name: "Upload your raw takes here",
+    name: "Good footage. Great possibilities.",
   });
   const signIn = page.getByRole("button", {
     name: "Sign in with publik",
@@ -73,6 +73,16 @@ try {
   await expect(home).toBeVisible({ timeout: 30000 });
   report.authentication = true;
   await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByLabel("Display name")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Upload photo|Replace photo/ }),
+  ).toBeVisible();
+  await expect(page.locator(".app-theme-options input")).toHaveCount(8);
+  await expect(page.locator(".appearance-options input")).toHaveCount(3);
+  await expect(
+    page.getByRole("button", { name: /^Save (profile|preferences)$/ }),
+  ).toHaveCount(0);
+  await expect(page.locator(".app-footer")).toHaveCount(0);
   // Export-only release checks must preserve the person’s AI privacy choice.
   if (!process.env.EDITAI_EXPORT_ONLY)
     await page.getByRole("checkbox", { name: /Allow AI processing/ }).check();
@@ -80,10 +90,8 @@ try {
     await page
       .getByRole("checkbox", { name: /Share official usage events/ })
       .uncheck();
-    await page
-      .getByRole("button", { name: "Save preferences", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toContainText("Preferences saved");
+    await page.getByRole("heading", { name: "Settings", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("All changes saved");
   }
   await page.getByRole("button", { name: "Home", exact: true }).click();
   if (process.env.EDITAI_EXPORT_ONLY && !process.env.EDITAI_RESUME_TEST) {
@@ -218,8 +226,21 @@ try {
     await page.locator(".source-remove:not(:disabled)").first().click();
     expect((await deletion).ok()).toBe(true);
     await expect(page.locator(".source-card")).toHaveCount(1);
+    await expect(page.locator(".source-append, .source-used")).toHaveCount(0);
+    const media = page.locator(".source-preview").first();
+    const mediaBox = await media.boundingBox();
+    const kindBox = await media.locator(".source-kind").boundingBox();
+    const timeBox = await media.locator(".source-duration").boundingBox();
+    const trashBox = await media.locator(".source-remove").boundingBox();
+    expect(kindBox.y).toBeLessThan(mediaBox.y + mediaBox.height / 2);
+    expect(timeBox.y).toBeGreaterThan(mediaBox.y + mediaBox.height / 2);
+    expect(trashBox.y).toBeGreaterThan(mediaBox.y + mediaBox.height / 2);
     report.mediaRemoval = true;
     await page.getByRole("button", { name: "Open EditAI chat" }).click();
+    await expect(page.locator(".editai-tool.selected svg").first()).toHaveCSS(
+      "fill",
+      "rgb(168, 240, 240)",
+    );
     for (const name of [
       "Add captions",
       "Give it a warmer look",
@@ -237,7 +258,7 @@ try {
     ).toHaveAttribute("step", "1");
     await expect(
       page.getByRole("button", { name: "Open EditAI chat" }),
-    ).toHaveCSS("background-image", /230, 224, 255/);
+    ).toHaveCSS("background-image", /linear-gradient/);
     await page.screenshot({
       path: "outputs/desktop027-editor-controls.png",
       fullPage: true,
@@ -352,7 +373,7 @@ try {
     }
     await page.reload();
     await expect(
-      page.getByRole("heading", { name: "Upload your raw takes here" }),
+      page.getByRole("heading", { name: "Good footage. Great possibilities." }),
     ).toBeVisible();
     await expect(
       page

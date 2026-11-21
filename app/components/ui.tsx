@@ -323,7 +323,23 @@ export function Range({
 export function Wordmark() {
   return (
     <span className="wordmark">
-      <img src="/brand/editai-icon-192.png" width={32} height={32} alt="" />
+      <span className="wordmark-icon">
+        <img src="/brand/editai-icon-192.png" width={32} height={32} alt="" />
+        <svg viewBox="0 0 192 192" width={32} height={32} aria-hidden="true">
+          <filter id="editai-scissors-ink" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1 -1 -1 0 2"
+            />
+          </filter>
+          <image
+            href="/brand/editai-icon-192.png"
+            width="192"
+            height="192"
+            filter="url(#editai-scissors-ink)"
+          />
+        </svg>
+      </span>
       <span>EditAI</span>
     </span>
   );

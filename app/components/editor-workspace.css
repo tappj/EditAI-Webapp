@@ -2247,10 +2247,10 @@
   color: #fff;
 }
 .is-editor .source-remove:disabled {
-  opacity: 0.35;
+  opacity: 0.65;
 }
 .is-editor .source-preview.audio .source-kind {
-  display: none;
+  display: flex;
 }
 .is-editor .source-preview.audio > svg {
   width: 26px;
@@ -2303,8 +2303,47 @@
   font-size: 10px;
 }
 .is-editor .source-preview.audio .source-duration {
-  top: 5px;
-  bottom: auto;
+  top: auto;
+  bottom: 5px;
   left: 5px;
   right: auto;
+}
+
+.is-editor .source-preview .source-duration {
+  top: auto;
+  bottom: 5px;
+  left: 5px;
+  right: auto;
+  min-height: 24px;
+  align-items: center;
+}
+.is-editor .source-preview .source-kind {
+  display: flex;
+}
+.is-editor .source-remove {
+  top: auto;
+  bottom: 5px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.is-editor .source-preview .source-remove > svg {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+}
+.is-editor .studio-tool-rail .editai-tool,
+.is-editor .studio-tool-rail .editai-tool.selected {
+  background: var(--app-brand);
+  color: var(--app-brand-ink);
+}
+.is-editor .studio-tool-rail .editai-tool svg {
+  color: var(--app-brand-ink);
+}
+.is-editor .studio-tool-rail .editai-tool > span:last-child {
+  color: var(--app-brand-ink);
+}
+.is-editor .studio-tool-rail .editai-tool.selected svg {
+  fill: #a8f0f0;
+  color: #326ab4;
 }

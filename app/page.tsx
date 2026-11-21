@@ -119,14 +119,18 @@ import { ProjectCard } from "./components/ProjectCard";
 import { StudioAccount, StudioOnboarding } from "./components/StudioOnboarding";
 import {
   ProfileAvatar,
-  ProfileCustomization,
+  ProfileFields,
 } from "./components/ProfileCustomization";
 import {
+  appearances,
+  avatarPresets,
   validAppearance,
   validPreset,
   type AvatarPreset,
   type ProfileAppearance,
 } from "@/lib/editor/profile";
+import { appThemeStyle, type AppColorTheme } from "@/lib/editor/app-theme";
+import { useSettingsAutosave } from "./components/useSettingsAutosave";
 import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
 import { AnimationPicker } from "./components/AnimationPicker";
@@ -243,6 +247,8 @@ export default function App({
     [consent, setConsent] = useState(false),
     [telemetry, setTelemetry] = useState(true),
     [theme, setTheme] = useState<ProfileAppearance>("system"),
+    [appTheme, setAppTheme] = useState<AppColorTheme>("editAI"),
+    [darkAppearance, setDarkAppearance] = useState(false),
     [avatarPreset, setAvatarPreset] = useState<AvatarPreset>("editAI"),
     [language, setLanguage] = useState("auto"),
     [summary, setSummary] = useState<any>(null),
@@ -443,6 +449,43 @@ export default function App({
     setAuthPurpose(null);
     setBlockedAuthURL("");
   }, [gateAdvanced, authPurpose]);
+  const settingsSave = useSettingsAutosave(
+    remoteOwner.current,
+    async (patch) => {
+      await api("settings", patch);
+      setSession((current: any) => ({
+        ...current,
+        profile: {
+          ...current.profile,
+          ...Object.fromEntries(
+            Object.entries(patch).filter(([key]) => key !== "ownKey"),
+          ),
+          ...(patch.ownKey ? { hasOwnKey: true, choice: "own_key" } : {}),
+          ...(typeof patch.consent === "boolean"
+            ? { consentDecided: true }
+            : {}),
+        },
+      }));
+      if (patch.ownKey)
+        setOwnKey((value) => (value === patch.ownKey ? "" : value));
+    },
+  );
+  useEffect(() => {
+    if (!ownKey.trim()) return;
+    const timer = setTimeout(() => {
+      if (ownKey.trim().length >= 12)
+        settingsSave.schedule({ ownKey: ownKey.trim() });
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [ownKey, settingsSave.schedule]);
+  function updateName(value: string) {
+    setProfileName(value);
+    settingsSave.schedule({ displayName: value, avatar });
+  }
+  function updatePhoto(value: string | null) {
+    setAvatar(value);
+    settingsSave.schedule({ displayName: profileName, avatar: value });
+  }
   const refresh = useCallback(async () => {
     try {
       const s = await api("session");
@@ -470,6 +513,7 @@ export default function App({
     } catch {}
     if (validAppearance(p.theme)) setTheme(p.theme);
     setLanguage(p.language || "auto");
+    if (validPreset(p.appTheme)) setAppTheme(p.appTheme);
   }, [refresh, signedOut]);
   useEffect(() => {
     const preference = matchMedia("(prefers-color-scheme: dark)");
@@ -477,15 +521,16 @@ export default function App({
       const dark =
         theme === "dark" || (theme === "system" && preference.matches);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
+      setDarkAppearance(dark);
     };
     apply();
     preference.addEventListener("change", apply);
     localStorage.setItem(
       "editai-preferences",
-      JSON.stringify({ theme, language }),
+      JSON.stringify({ theme, language, appTheme }),
     );
     return () => preference.removeEventListener("change", apply);
-  }, [theme, language]);
+  }, [theme, language, appTheme]);
   useEffect(() => {
     if (!renaming) return;
     renameDialog.current?.showModal();
@@ -992,6 +1037,7 @@ export default function App({
     }
   }
   async function signOut(forget = false) {
+    if (!(await settingsSave.flush())) return;
     try {
       player.current?.pause();
       setPlaying(false);
@@ -1720,30 +1766,6 @@ export default function App({
       setConsentSaving(false);
     }
   }
-  async function saveProfile() {
-    await run("Saving your profile", async () => {
-      await api("settings", {
-        displayName: profileName,
-        avatar,
-        avatarPreset,
-        appearance: theme,
-      });
-      await refresh();
-      setNotice("Profile saved.");
-    });
-  }
-  async function saveSettings() {
-    await run("Saving your preferences", async () => {
-      await api("settings", {
-        ownKey: ownKey || undefined,
-        consent: consent !== session.profile.consent ? consent : undefined,
-        telemetry,
-      });
-      setOwnKey("");
-      await refresh();
-      setNotice("Preferences saved.");
-    });
-  }
   function startRename(p: Project) {
     setRenameTitle(p.title);
     setRenameError("");
@@ -1807,6 +1829,7 @@ export default function App({
     }
   }
   const nav = async (s: Screen) => {
+    if (!(await settingsSave.flush())) return;
     if (
       screen === "record" &&
       recordingDirty.current &&
@@ -1834,7 +1857,7 @@ export default function App({
       }
     }
     setScreen(s);
-    if (s === "settings") void refresh();
+    if (s === "settings") void settingsSave.flush();
     setMenu(false);
   };
   const accountGate = (
@@ -1993,7 +2016,7 @@ export default function App({
                 192,
               );
               image.close();
-              setAvatar(c.toDataURL("image/jpeg", 0.8));
+              updatePhoto(c.toDataURL("image/jpeg", 0.8));
             });
           e.target.value = "";
         }}
@@ -2052,7 +2075,11 @@ export default function App({
           </section>
         </main>
       ) : (
-        <div className={`app-shell ${screen === "editor" ? "is-editor" : ""}`}>
+        <div
+          className={`app-shell ${screen === "editor" ? "is-editor" : ""}`}
+          data-app-theme={appTheme}
+          style={appThemeStyle(appTheme, darkAppearance) as React.CSSProperties}
+        >
           <aside className={`sidebar ${menu ? "open" : ""}`}>
             <button
               className="logo-button"
@@ -2088,7 +2115,7 @@ export default function App({
               <button
                 className="profile-row"
                 aria-label="Open profile customization"
-                onClick={() => nav("profile")}
+                onClick={() => nav("settings")}
               >
                 <ProfileAvatar
                   name={profileName || session.profile.handle || ""}
@@ -2127,9 +2154,7 @@ export default function App({
                 </strong>
               </div>
               <div className="topbar-right">
-                <span className="web-badge">
-                  {desktop() ? "DESKTOP STUDIO" : "WEB STUDIO"}
-                </span>
+                {!desktop() && <DesktopDownloads placement="topbar" />}
                 {screen === "home" && (
                   <Button secondary onClick={() => nav("settings")}>
                     <UserRound size={16} /> Account
@@ -2139,10 +2164,6 @@ export default function App({
             </header>
             {screen === "home" && (
               <main className="dashboard">
-                <div className="page-heading upload-heading">
-                  <h1>Upload your raw takes here</h1>
-                  {!desktop() && <DesktopDownloads />}
-                </div>
                 <div className="dashboard-grid">
                   <section
                     className="upload-card"
@@ -2237,12 +2258,12 @@ export default function App({
                   </div>
                 </div>
                 <div className="section-heading">
-                  <h2>Pick up where you left off</h2>
+                  <h2>Your edits</h2>
                   <button
                     className="text-button"
                     onClick={() => nav("library")}
                   >
-                    All edits
+                    View <ArrowRight size={14} aria-hidden="true" />
                   </button>
                 </div>
                 {projects.length ? (
@@ -2626,7 +2647,6 @@ export default function App({
                             replacingAudio.current = null;
                             extraInput.current?.click();
                           }}
-                          onAdd={addLibrarySource}
                           onRemove={(index) => void removeLibraryMedia(index)}
                           removing={removingMedia || !!busy}
                         />
@@ -3266,35 +3286,70 @@ export default function App({
                 )}
               </main>
             )}
-            {screen === "profile" && (
-              <ProfileCustomization
-                name={profileName}
-                handle={session.profile.handle}
-                photo={avatar}
-                preset={avatarPreset}
-                appearance={theme}
-                onName={setProfileName}
-                onPreset={setAvatarPreset}
-                onAppearance={setTheme}
-                choosePhoto={() => avatarInput.current?.click()}
-                removePhoto={() => setAvatar(null)}
-                save={() => void saveProfile()}
-              />
-            )}
             {screen === "settings" && (
               <main className="dashboard settings-page">
                 <div className="page-heading">
-                  <div>
-                    <h1>Settings</h1>
+                  <h1>Settings</h1>
+                  <div
+                    className="settings-save-state"
+                    role={settingsSave.status === "error" ? "alert" : "status"}
+                  >
+                    {settingsSave.status === "saving" ? (
+                      "Saving…"
+                    ) : settingsSave.status === "saved" ? (
+                      "All changes saved"
+                    ) : settingsSave.status === "error" ? (
+                      <>
+                        Changes couldn't be saved. {settingsSave.error.message}{" "}
+                        {settingsSave.error.url && (
+                          <a
+                            href={settingsSave.error.url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Top up
+                          </a>
+                        )}{" "}
+                        <button
+                          className="text-button"
+                          onClick={() => void settingsSave.flush()}
+                        >
+                          Retry
+                        </button>
+                      </>
+                    ) : (
+                      "Changes save automatically"
+                    )}
                   </div>
                 </div>
                 <div className="settings-grid">
                   <section className="settings-card">
                     <h2>General</h2>
-                    <Button secondary onClick={() => nav("profile")}>
-                      <UserRound size={16} />
-                      Customize profile
-                    </Button>
+                    <ProfileFields
+                      name={profileName}
+                      handle={session.profile.handle}
+                      photo={avatar}
+                      preset={avatarPreset}
+                      onName={updateName}
+                      choosePhoto={() => avatarInput.current?.click()}
+                      removePhoto={() => updatePhoto(null)}
+                    />
+                    <dl className="general-details">
+                      <div>
+                        <dt>App language</dt>
+                        <dd>English</dd>
+                      </div>
+                      <div>
+                        <dt>Saved edits</dt>
+                        <dd>{projects.length}</dd>
+                      </div>
+                    </dl>
+                    <a
+                      className="text-button"
+                      href="mailto:editaiapp@gmail.com"
+                    >
+                      Feedback &amp; help
+                    </a>
                     <label>
                       Spoken language
                       <select
@@ -3330,6 +3385,59 @@ export default function App({
                       Sign out keeps your encrypted Publik connection on this
                       device for your next visit. Use another account
                       disconnects it. Neither action deletes your saved videos.
+                    </p>
+                  </section>
+                  <section className="settings-card appearance-card">
+                    <h2>Appearance</h2>
+                    <fieldset className="appearance-options">
+                      <legend>Display mode</legend>
+                      {appearances.map((value) => (
+                        <label key={value}>
+                          <input
+                            type="radio"
+                            name="appearance"
+                            checked={theme === value}
+                            onChange={() => {
+                              setTheme(value);
+                              settingsSave.schedule({
+                                avatarPreset,
+                                appearance: value,
+                              });
+                            }}
+                          />
+                          {value[0].toUpperCase() + value.slice(1)}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <fieldset className="app-theme-options">
+                      <legend>App theme</legend>
+                      {(Object.keys(avatarPresets) as AppColorTheme[]).map(
+                        (value) => (
+                          <label key={value}>
+                            <input
+                              type="radio"
+                              name="app-theme"
+                              checked={appTheme === value}
+                              onChange={() => setAppTheme(value)}
+                            />
+                            <span
+                              className="theme-swatch"
+                              style={{
+                                background: appThemeStyle(
+                                  value,
+                                  darkAppearance,
+                                )["--app-brand"],
+                              }}
+                              aria-hidden="true"
+                            />
+                            {avatarPresets[value].label}
+                          </label>
+                        ),
+                      )}
+                    </fieldset>
+                    <p>
+                      Choose colors for the EditAI logo, iOS badge, EditAI tool
+                      and Home cards.
                     </p>
                   </section>
                   <section className="settings-card">
@@ -3396,6 +3504,10 @@ export default function App({
                         autoComplete="off"
                         value={ownKey}
                         onChange={(e) => setOwnKey(e.target.value)}
+                        onBlur={() => {
+                          if (ownKey.trim())
+                            settingsSave.schedule({ ownKey: ownKey.trim() });
+                        }}
                         placeholder={
                           session.profile.hasOwnKey
                             ? "A key is securely saved"
@@ -3430,7 +3542,10 @@ export default function App({
                       <input
                         type="checkbox"
                         checked={consent}
-                        onChange={(e) => setConsent(e.target.checked)}
+                        onChange={(e) => {
+                          setConsent(e.target.checked);
+                          settingsSave.schedule({ consent: e.target.checked });
+                        }}
                       />
                       Allow AI processing of audio, transcripts and attached
                       reference frames
@@ -3448,7 +3563,12 @@ export default function App({
                       <input
                         type="checkbox"
                         checked={telemetry}
-                        onChange={(e) => setTelemetry(e.target.checked)}
+                        onChange={(e) => {
+                          setTelemetry(e.target.checked);
+                          settingsSave.schedule({
+                            telemetry: e.target.checked,
+                          });
+                        }}
                       />
                       Share official usage events with publik
                     </label>
@@ -3530,10 +3650,6 @@ export default function App({
                     </button>
                   </section>
                 </div>
-                <Button onClick={() => void saveSettings()}>
-                  <Check size={17} />
-                  Save preferences
-                </Button>
               </main>
             )}
             {screen === "record" && (
@@ -3641,9 +3757,6 @@ export default function App({
                 }}
               />
             )}
-            <footer className="app-footer">
-              <button onClick={() => setPrivacy(true)}>Privacy & data</button>
-            </footer>
           </div>
         </div>
       )}

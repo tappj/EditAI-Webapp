@@ -954,7 +954,6 @@ function ClosingCtaFooter({ onPrivacy }: { onPrivacy: () => void }) {
             </div>
             <div>
               <h3>LEGAL & SUPPORT</h3>
-              <button onClick={onPrivacy}>Privacy & data</button>
               <a href={content.links.app}>Privacy choices</a>
               <a href={content.links.support}>Support</a>
               <a
@@ -1078,7 +1077,6 @@ export function MarketingSignIn({
         </div>
       </main>
       <footer>
-        <button onClick={onPrivacy}>Privacy & data</button>
         <a href={content.links.support}>Support</a>
         <a href={content.links.home}>EditAI home</a>
       </footer>

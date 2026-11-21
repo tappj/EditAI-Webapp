@@ -204,7 +204,7 @@ input[type="radio"] {
 .sign-in-logo {
   border-radius: 23%;
 }
-.wordmark > span {
+.wordmark > span:last-child {
   background: var(--brand-gradient);
   background-clip: text;
   -webkit-background-clip: text;
@@ -2292,6 +2292,123 @@ progress {
   height: 100%;
   object-fit: cover;
 }
+
+/* Brand themes are intentionally scoped to these four product surfaces. */
+.app-shell .wordmark > span:last-child {
+  background-image: var(--app-logo);
+}
+.wordmark-icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.app-shell .wordmark-icon {
+  background: var(--app-brand);
+}
+.wordmark-icon svg {
+  display: none;
+}
+.app-shell .wordmark-icon img {
+  display: none;
+}
+.app-shell .wordmark-icon svg {
+  display: block;
+}
+.app-shell[data-app-theme="midnight"] .wordmark-icon svg {
+  filter: invert(1);
+}
+.app-shell .sidebar-note {
+  background: var(--app-brand);
+  color: var(--app-brand-ink);
+}
+.app-shell .quick-tools {
+  --tile-record: var(--app-tile-record);
+  --tile-batch: var(--app-tile-batch);
+  --tile-analyze: var(--app-tile-analyze);
+  --tile-transcribe: var(--app-tile-transcribe);
+  --tile-label: var(--app-brand-ink);
+  --tile-description: var(--app-tile-muted);
+}
+.app-shell .tool-card h3,
+.app-shell .tool-card-icon svg {
+  color: var(--tile-label);
+}
+.app-shell .tool-card-icon {
+  background: #ffffffc7;
+}
+.app-shell[data-app-theme="midnight"] .tool-card-icon {
+  background: #101216c7;
+}
+.topbar-mac-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+.topbar-mac-download:hover {
+  color: var(--ink);
+}
+.settings-save-state {
+  color: var(--muted);
+  font-size: 12px;
+}
+.general-details {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.general-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.general-details dt {
+  color: var(--muted);
+}
+.general-details dd {
+  margin: 0;
+}
+.settings-card fieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.settings-card fieldset legend {
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+.appearance-options {
+  grid-template-columns: repeat(3, 1fr);
+}
+.app-theme-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.appearance-card fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.appearance-card fieldset label:has(input:checked) {
+  border-color: var(--control);
+  color: var(--ink);
+}
+.theme-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
 .avatar-editor {
   display: flex;
   align-items: center;
@@ -3055,4 +3172,10 @@ html[data-desktop-platform="darwin"]
 :root[data-theme="dark"] .app-shell .film-strip.back {
   background: #b4a4e3;
   border-color: #cdc2ee;
+}
+
+.appearance-card fieldset input {
+  width: auto;
+  flex-shrink: 0;
+  margin: 0;
 }

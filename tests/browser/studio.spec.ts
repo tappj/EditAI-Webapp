@@ -53,7 +53,7 @@ async function openStudio(page: import("@playwright/test").Page) {
   // File inputs exist before the async sign-in gate finishes. Wait for the
   // visible studio that a real user reaches before choosing their media.
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
 }
 test("public first page requires Publik sign-in; responsive and no secret exposure", async ({
@@ -583,7 +583,7 @@ test("Publik popup remains official, has no opener, and approval opens the studi
   linked = true;
   await page.bringToFront();
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible({ timeout: 15000 });
   if (!popup.isClosed()) await popup.close();
   // The authenticated dashboard still offers supported desktop downloads.
@@ -714,7 +714,7 @@ for (const device of [
       await authenticated(page);
       await openStudio(page);
       await expect(
-        page.getByRole("link", { name: /Download for macOS/ }),
+        page.locator(".topbar").getByRole("link", { name: /Download for Mac/ }),
       ).toHaveCount(device.downloads ? 1 : 0);
     } finally {
       await context.close();
@@ -745,7 +745,7 @@ test("own-key users land on Home and can open secure settings without a Publik s
   });
   await page.goto("/sign-in");
   const home = page.getByRole("heading", {
-    name: "Upload your raw takes here",
+    name: "Good footage. Great possibilities.",
   });
   await expect(home).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -759,14 +759,12 @@ test("own-key users land on Home and can open secure settings without a Publik s
     "No Publik subscription is needed",
   );
   await input.fill("fixture-only-openai-key");
-  await page
-    .getByRole("button", { name: "Save preferences", exact: true })
-    .click();
+  await input.blur();
   await expect(input).toHaveValue("");
   await expect(input).toHaveAttribute("placeholder", "A key is securely saved");
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
 });
 
@@ -801,7 +799,7 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
   await page.route("**/api/settings", (r) => {
     const body = r.request().postDataJSON();
     expect(body).not.toHaveProperty("telemetry");
-    profile = body;
+    profile = { ...profile, ...body };
     return r.fulfill({ json: { ok: true } });
   });
   await page.route("**/api/projects", (r) => {
@@ -838,7 +836,7 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
   );
   await page.getByRole("button", { name: "Allow", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
   await expect(page.locator(".sidebar-note")).toHaveText("iOS coming soon");
   await expect(page.locator(".sidebar-note a")).toHaveCount(0);
@@ -905,30 +903,25 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
     page.getByRole("checkbox", { name: /Share official usage/ }),
   ).not.toBeChecked();
 
-  await page
-    .getByRole("button", { name: "Customize profile", exact: true })
-    .click();
   await expect(
-    page.getByRole("heading", { name: "Customize profile" }),
+    page.getByRole("heading", { name: "General", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^Save (profile|preferences)$/ }),
+  ).toHaveCount(0);
+  await expect(page.locator(".app-footer")).toHaveCount(0);
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await page
     .getByRole("button", { name: "Open profile customization" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Customize profile" }),
+    page.getByRole("heading", { name: "Settings", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Display name").fill("Taylor Editor");
   await page.getByRole("radio", { name: /Midnight/ }).check();
   await page.getByRole("radio", { name: "Dark", exact: true }).check();
-  await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page.getByRole("status")).toContainText("Profile saved");
+  await expect(page.getByRole("status")).toContainText("All changes saved");
   await expect(page.locator(".progress-modal")).toHaveCount(0);
-  const notification = (await page.getByRole("status").boundingBox())!;
-  expect(notification.x + notification.width).toBe(
-    page.viewportSize()!.width - 16,
-  );
-  expect(notification.height).toBeLessThan(80);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const profileButton = page.getByRole("button", {
@@ -1097,7 +1090,7 @@ test("first-time onboarding resumes, hands Google sign-in to Publik, and opens t
   await page.getByRole("button", { name: "Open studio for free" }).click();
   expect(choice).toBe("publik");
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
 });
 
@@ -1196,7 +1189,7 @@ test("signing out from the web studio returns to the public homepage", async ({
   });
   await page.goto("/sign-in");
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
@@ -1450,7 +1443,7 @@ test("same account resumes consent and playable local footage after repeated sig
       .getByRole("button", { name: "Continue with your Publik account" })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Upload your raw takes here" }),
+      page.getByRole("heading", { name: "Good footage. Great possibilities." }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Allow AI processing?" }),
@@ -1473,7 +1466,7 @@ test("same account resumes consent and playable local footage after repeated sig
     .getByRole("button", { name: "Use another Publik account" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Upload your raw takes here" }),
+    page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
   await expect(page.locator(".project-card")).toHaveCount(0);
 });
@@ -3065,6 +3058,30 @@ test("compact shaped media, integer volume, row-local drops and permanent unused
   expect(audioBox.height).toBe(94);
   await page.getByRole("button", { name: "Media workspace" }).click();
   await expect.poll(() => saved?.document?.sources.length).toBe(3);
+  await expect(page.locator(".source-append, .source-used")).toHaveCount(0);
+  for (const preview of await page.locator(".source-preview").all()) {
+    const box = (await preview.boundingBox())!;
+    const kind = (await preview.locator(".source-kind").boundingBox())!;
+    const time = (await preview.locator(".source-duration").boundingBox())!;
+    const trash = (await preview.locator(".source-remove").boundingBox())!;
+    expect(kind.x).toBeLessThan(box.x + box.width / 2);
+    expect(kind.y).toBeLessThan(box.y + box.height / 2);
+    expect(time.x).toBeLessThan(box.x + box.width / 2);
+    expect(time.y).toBeGreaterThan(box.y + box.height / 2);
+    expect(trash.x).toBeGreaterThan(box.x + box.width / 2);
+    expect(trash.y).toBeGreaterThan(box.y + box.height / 2);
+    await expect(preview.locator(".source-remove svg")).toHaveCSS(
+      "color",
+      "rgb(255, 255, 255)",
+    );
+  }
+  await page.getByRole("button", { name: "Open EditAI chat" }).click();
+  await expect(page.locator(".editai-tool.selected svg").first()).toHaveCSS(
+    "fill",
+    "rgb(168, 240, 240)",
+  );
+  await page.getByRole("button", { name: "Media workspace" }).click();
+  await expect(page.locator(".editai-tool.selected")).toHaveCount(0);
   const videoId = saved.document.sources[0].id;
   const transfer = await page.evaluateHandle((id) => {
     const data = new DataTransfer();
@@ -3162,5 +3179,157 @@ test("compact shaped media, integer volume, row-local drops and permanent unused
   await page.screenshot({
     path: "outputs/media-blue-home-dark.png",
     fullPage: true,
+  });
+});
+
+test("automatic settings retain latest name and photo, retry failures, and scope all brand themes", async ({
+  page,
+  browserName,
+}) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  let profile: Record<string, unknown> = {};
+  let failNext = false;
+  const writes: Record<string, unknown>[] = [];
+  await page.route("**/api/session", (r) =>
+    r.fulfill({
+      json: {
+        ...session,
+        profile: { ...session.profile, consentDecided: true, ...profile },
+      },
+    }),
+  );
+  await page.route("**/api/settings", async (r) => {
+    const body = r.request().postDataJSON();
+    writes.push(body);
+    if (failNext) {
+      failNext = false;
+      return r.fulfill({
+        status: 503,
+        json: { error: "Settings temporarily unavailable" },
+      });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    profile = { ...profile, ...body };
+    return r.fulfill({ json: { ok: true } });
+  });
+  await openStudio(page);
+  await expect(
+    page.getByText("Upload your raw takes here", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Your edits", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".section-heading").getByRole("button", { name: "View" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: /^Save (profile|preferences)$/ }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Avatar color", { exact: true })).toHaveCount(0);
+  const name = page.getByLabel("Display name");
+  await name.fill("First draft");
+  await expect.poll(() => writes.length).toBe(1);
+  await name.fill("Latest name");
+  await expect(page.getByRole("status")).toContainText("All changes saved");
+  expect(profile.displayName).toBe("Latest name");
+  await page
+    .locator('input[type=file][accept="image/png,image/jpeg,image/webp"]')
+    .setInputFiles("outputs/overlay.png");
+  await expect(page.locator(".avatar-editor img")).toBeVisible();
+  await expect.poll(() => typeof profile.avatar).toBe("string");
+  await page.reload();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(name).toHaveValue("Latest name");
+  await expect(page.locator(".avatar-editor img")).toHaveAttribute(
+    "src",
+    /^data:image\/jpeg/,
+  );
+  await page.getByRole("button", { name: "Remove photo", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("All changes saved");
+  expect(profile.avatar).toBeNull();
+  failNext = true;
+  await name.fill("Retry this name");
+  await expect(page.getByRole("alert")).toContainText("couldn't be saved");
+  await expect(name).toHaveValue("Retry this name");
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("All changes saved");
+  expect(profile.displayName).toBe("Retry this name");
+  await page.getByRole("checkbox", { name: /Allow AI processing/ }).uncheck();
+  await page.getByRole("checkbox", { name: /Share official usage/ }).check();
+  await expect(page.getByRole("status")).toContainText("All changes saved");
+  expect(profile.consent).toBe(false);
+  expect(profile.telemetry).toBe(true);
+  await page.getByLabel("Spoken language").selectOption("es");
+  for (const mode of ["Light", "Dark"]) {
+    await page.getByRole("radio", { name: mode, exact: true }).check();
+    await expect(page.getByRole("status")).toContainText("All changes saved");
+    const unthemed = await page.locator(".app-shell").evaluate((el) => {
+      const c = getComputedStyle(el);
+      return [
+        c.getPropertyValue("--action-gradient"),
+        c.getPropertyValue("--control"),
+        c.getPropertyValue("--canvas"),
+      ];
+    });
+    for (const theme of [
+      "EditAI",
+      "Aurora",
+      "Sunset",
+      "Rose",
+      "Ocean",
+      "Forest",
+      "Citrus",
+      "Midnight",
+    ]) {
+      await page.getByRole("radio", { name: theme, exact: true }).check();
+      const selected = await page.locator(".app-shell").evaluate((el) => {
+        const c = getComputedStyle(el);
+        return [
+          c.getPropertyValue("--action-gradient"),
+          c.getPropertyValue("--control"),
+          c.getPropertyValue("--canvas"),
+        ];
+      });
+      expect(selected).toEqual(unthemed);
+      await page.getByRole("button", { name: "Home", exact: true }).click();
+      const colors = await page.locator(".tool-card").evaluateAll((cards) =>
+        cards.map((el) => ({
+          bg: getComputedStyle(el).backgroundColor,
+          fg: getComputedStyle(el.querySelector("h3")!).color,
+        })),
+      );
+      expect(
+        colors.every(
+          ({ fg }) =>
+            fg ===
+            (theme === "Midnight" ? "rgb(255, 255, 255)" : "rgb(17, 17, 17)"),
+        ),
+      ).toBe(true);
+      await page.screenshot({
+        path: `outputs/settings-themes/${browserName}-${mode}-${theme}.png`,
+      });
+      await page.getByRole("button", { name: "Settings", exact: true }).click();
+    }
+  }
+  await page.reload();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(
+    page.getByRole("radio", { name: "Midnight", exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Dark", exact: true }),
+  ).toBeChecked();
+  await expect(page.getByLabel("Spoken language")).toHaveValue("es");
+  await expect(page.locator(".app-footer")).toHaveCount(0);
+  await page.getByRole("radio", { name: "EditAI", exact: true }).check();
+  await page.screenshot({
+    path: `outputs/settings-themes/${browserName}-general-dark.png`,
+  });
+  await page.getByRole("radio", { name: "Light", exact: true }).check();
+  await expect(page.getByRole("status")).toContainText("All changes saved");
+  await page.screenshot({
+    path: `outputs/settings-themes/${browserName}-general-light.png`,
   });
 });

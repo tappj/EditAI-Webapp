@@ -847,3 +847,41 @@ Notification layout is live at https://editai.it.com (Sites version 98). Desktop
 0.2.10 is signed/notarized, installed and published after matching mounted-DMG
 verification and real installed-app export in 0.821s. Detailed provenance and
 fixture limits are recorded in docs/desktop/VERIFICATION.md.
+
+## Automatic Settings, brand themes and media controls — November 20, 2026
+
+General now contains display name, bounded/cropped photo upload and removal,
+app language, saved-edit count and the native feedback address. Remove the separate
+profile page's color choices and manual save actions. Automatic saves coalesce
+changes, serialize in-flight requests, retain the latest inputs on errors, expose
+Retry and the server error/payment link, and flush before navigation/sign-out.
+Name/photo, appearance, own-key, AI consent and telemetry save through the existing
+authenticated settings endpoint. Language and brand themes persist on the device,
+matching the native theme store; no authentication/storage schema change.
+
+Copy native EditAI/Aurora/Sunset/Midnight light/dark palettes; add Rose, Ocean,
+Forest and Citrus from the existing native avatar palette references. Scope brand
+variables exclusively to the logo (preserving original scissors artwork), iOS
+badge, EditAI tool and four Home tiles. System/light/dark remains independent.
+Dark page/surface/ink/muted/border tokens match AppTheme.swift. Main controls,
+export gradients and media/content colors are unaffected. The selected sparkle
+fills #a8f0f0 with the existing blue outline.
+
+Remove shared, login and marketing Privacy & data footer buttons. Settings retains
+privacy details/choices and onboarding retains its explicit disclosure. Source
+cards remove append/In edit badges, retain used-source deletion protection and
+place kind top-left, duration bottom-left, trash bottom-right with visible white
+icons. Home removes its raw-takes heading, uses Your edits / View → and exposes a
+compact Mac download in the top bar with existing mobile/device gating.
+
+Typecheck, 33 web tests, 18 desktop contracts and both production builds pass.
+Browser cases cover genuine decoding/export with explicit auth/provider fixtures;
+they do not prove fresh Publik connectivity or AI quality. New regressions cover
+coalesced/in-flight name changes, uploaded photo reload/removal, failed-save Retry,
+consent/telemetry persistence, all eight themes in both modes without changing
+control/export tokens, theme/language reload, footer removal, media control geometry
+and selected sparkle fill. Targeted Chromium and WebKit cases pass; light/dark
+Home, General and 390px Settings captures are inspected without horizontal overflow.
+A broad run passed 39 cases but its final reload hit stale assets during a rebuild;
+a fresh production server passes the affected cases. Final suite/publication evidence
+follows. Desktop 0.2.11 signed/notarized acceptance is pending.

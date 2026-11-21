@@ -354,3 +354,7 @@ and published desktop 0.2.11. Real installed controls/media/export acceptance pa
 (0.824s), with all synthetic projects removed. Download metadata is updated; final
 web publication incorporates the provider/photo preservation refinements and release
 link. See both verification records for exact evidence and fixture boundaries.
+
+Final web: Sites version 103 is live at editai.it.com with source 7eaf950 and the
+verified 0.2.11 installer link. Public Chromium 7/7 and WebKit 3/3 pass; installer
+HTTP 200 confirmed. Shared web and installed/published Mac updates are complete.

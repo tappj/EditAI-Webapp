@@ -917,3 +917,11 @@ native H.264/AAC export in 0.824s and both synthetic projects removed. No infere
 or provider/auth fixture was used in installed acceptance; automated telemetry was
 disabled and privacy choices preserved. Download metadata targets the verified
 release. See docs/desktop/VERIFICATION.md for hashes, CI and platform limits.
+
+Final public Sites version 103 publishes source
+7eaf9502adb24a7aa9cf58240d35b76ea9fd8686 at https://editai.it.com, including all
+provider/photo save refinements, selected #c4e0ff sparkle and the verified 0.2.11
+download. Final public checks pass 7/7 Chromium (22.0s) and 3/3 WebKit (17.7s).
+Direct installer HEAD resolves to HTTP 200. Existing public audience, D1/R2 and
+runtime secrets are preserved. Both main and codex/desktop-migration are pushed;
+only documentation changes follow this deployed runtime.

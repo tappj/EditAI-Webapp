@@ -1017,3 +1017,13 @@ the final checks use the numeric main-clip Volume control and a fresh server.
 Browser authentication and provider boundaries remain explicit isolated fixtures;
 these tests do not establish new real Publik connectivity. Final full-suite,
 hosted and signed/installed desktop publication evidence follows.
+
+Final isolated Sites version 105 publishes source
+937a7a322e6cfdd7160a2fceb3afa45ada9c7e00 at https://editai.it.com with the
+verified 0.2.12 installer link. Final public checks pass 3/3 Chromium (22.8s) and
+2/2 WebKit (22.4s), including real browser exports, crop/resize interactions and
+Mac download device gating. Installer HEAD returns HTTP 200. The actual installed
+animated export is H.264/AAC, 854×480, 19.1 seconds. Concurrent audio-library work
+was excluded from the build and preserved; it is a separate subsequent change.
+Existing Site access, D1/R2 and secrets are unchanged. Main and the working branch
+contain the completed motion/fade implementation and verification records.

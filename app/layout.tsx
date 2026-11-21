@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "./web-unslop.css";
 export const metadata: Metadata = {
   title: "EditAI: #1 Video Editor",
   openGraph: {
@@ -25,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-web-ui="unslop-trial">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

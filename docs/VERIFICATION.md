@@ -847,22 +847,3 @@ Notification layout is live at https://editai.it.com (Sites version 98). Desktop
 0.2.10 is signed/notarized, installed and published after matching mounted-DMG
 verification and real installed-app export in 0.821s. Detailed provenance and
 fixture limits are recorded in docs/desktop/VERIFICATION.md.
-
-## Browser-only Unslop trial — November 20, 2026
-
-The requested browser-only experiment loads app/web-unslop.css exclusively from
-app/layout.tsx, gated by its data-web-ui attribute. Electron does not import the
-layout or stylesheet; the installed/downloadable desktop stays at 0.2.10. Unslop
-by Damir Sokolovsky (https://github.com/heydamir/unslop, CC BY 4.0) supplies the
-workflow; docs/WEB-UNSLOP-TRIAL.md records attribution and rollback.
-
-Typecheck, 33 unit/security tests and the production web build pass. Chromium's
-six focused studio cases pass, including actual MP4 export and reopen, AI-error
-recovery, own-key settings, onboarding, editor panel geometry and slider controls.
-WebKit's five focused cases pass, including media export and layout. Manual
-Chromium/WebKit checks verify landing widths 1536/1024/768/390/375 and light/dark
-Home at 1440/768/390 with no document overflow. Final actual landing and dark Home
-captures were inspected after contrast corrections. Marketing checks replace the
-removed glyph/marquee effects with static review access and solid readable text.
-Authentication/AI routes in these tests are explicit fixtures; no new real Publik
-connectivity or AI-quality claim is made. No paid inference requests were needed.

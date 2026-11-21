@@ -293,3 +293,8 @@ Preserve the actual logo artwork, user content and custom color/filter choices.
 The previously missing notarization profile is available again. Rebuild the pending
 0.2.7 release from this complete current source, then publish/install through the
 existing signed/notarized acceptance workflow and update the live Site.
+
+Completed: runtime 9f49c95 is live in shared web and signed/notarized installed
+desktop 0.2.7. All required checks and browser regressions pass. Mac CI 44841429707,
+final mounted-DMG verification and real installed media-removal/export acceptance
+pass. Published v0.2.7 assets and updated homepage download metadata.

@@ -746,3 +746,39 @@ chat or extracted from environment files. v0.2.7 remains a private draft, and th
 verified installed/downloadable desktop remains 0.2.6 until notarization, signed-DMG
 verification and installed acceptance can finish. Staging input:
 outputs/release027-notary-input.zip. No notarization or publication guard was bypassed.
+
+
+## Compact media, precise volume and blue accents — November 20, 2026
+
+Shared runtime source 9f49c95dd01492225229a356c36bc6bf3b7877a9 rounds Volume
+to integer percentages, improves dark Home artwork contrast, and applies the trial
+EditAI blue to feature/editor surfaces. Actual logo artwork and user content colors
+remain intact. Source cards use bounded media aspect ratios, compact fitted names,
+94px audio squares and 36px audio timeline rows. External drag previews identify
+the destination row/time with a short marker and honor explicit overlay/audio lanes.
+
+Unused sources have a direct permanent-delete action without a confirmation or
+success notice. Used media stays protected until its timeline instances are removed.
+Deletion compacts source indexes, preserves stable word IDs, serializes project
+saves before purging, clears undo resurrection paths and retains files referenced
+by other saved projects. App-managed local/cloud copies are deleted; external
+original files remain. Authenticated API tests cover used-asset retention and
+unused-asset removal; model tests cover source remapping and explicit drop lanes.
+
+Typecheck, 33 unit/model/security tests, 18 native desktop contracts and both
+production builds pass. Full Chromium: 39/39; affected WebKit: 4/4. Final focused
+Chromium workflow: 1/1. Public-domain new workflow passes in Chromium (3.7s) and
+WebKit (5.6s). Checks cover integer entry, bounded source geometry, audio sizing,
+track-local previews, silent library removal, used-source protection, remaining
+playback and dark Home/blue contrasts. Captures were inspected. Browser fixture
+authentication does not establish real Publik connectivity or AI quality.
+
+Sites version 93 publishes this runtime at https://editai.it.com. No sibling iOS
+or older marketing source was modified.
+
+Desktop 0.2.7 is now published and installed, resolving the earlier missing-Keychain
+profile blocker. Final Mac CI 44841429707, Apple acceptance and mounted-image checks
+verify the matching signed/notarized installer. Installed real acceptance restores
+the genuine session, exercises unused-media removal and exports H.264/AAC in 0.821s;
+no auth/AI fixture or inference request is used. Detailed provenance and limits are
+in docs/desktop/VERIFICATION.md. Homepage metadata now links the verified 0.2.7 DMG.

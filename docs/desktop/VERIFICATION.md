@@ -190,3 +190,38 @@ the profile is restored, notarize/staple the staged app, package its ZIP/blockma
 assemble and notarize its matching DMG, verify archives/native source/updater
 metadata, install with the prior app preserved, run real export-only/UI acceptance,
 then use the guarded publisher and update the live homepage download metadata.
+
+
+## Resolved 0.2.7 notarization and current blue editor — November 20, 2026
+
+The editai-notary Keychain profile is available again. Rebuild the pending 0.2.7
+from current shared runtime 9f49c95dd01492225229a356c36bc6bf3b7877a9, including
+the prior shortcut/slider corrections and compact media, integer Volume, permanent
+unused-source deletion, track-aware drop previews and blue feature/editor accents.
+Typecheck, 33 web unit/model/security tests, 18 native contracts and both production
+builds pass. Full Chromium passes 39/39 and affected WebKit passes 4/4. See the
+shared verification document for browser fixture boundaries and implementation details.
+
+Developer ID app is Apple-notarized, stapled and Gatekeeper accepted. Mac CI run
+44841429707 assembled the guided DMG from signed ZIP SHA-256
+1c0e79698858c3220c1dfca5d1401c00820b71169028d186202afe3961bcdfaf.
+The DMG was signed, Apple-notarized (Accepted), stapled and Gatekeeper accepted.
+Its final SHA-256 is 612c43c84e518d6bd64b2b60640df80df3f12fe1759afc9b8f776b5b17e547d4.
+Final verifier confirms app/ZIP/mounted-DMG archive identity, corresponding native
+source, packaged Publik self-test and updater hashes. Installed /Applications/EditAI.app
+matches the archive; prior 0.2.6 is preserved in outputs/release027-blue-backup/EditAI.app.
+
+After final DMG verification, actual installed 0.2.7 acceptance passed existing genuine
+Publik session restoration, shared control checks, integer Volume, blue surfaces,
+real source thumbnails, second-clip removal and permanent unused-media deletion.
+A native H.264/AAC export of the remaining 19.075-second source completed in 0.821
+seconds. No provider/auth fixtures or external AI requests were used. DNT/disabled
+telemetry excluded automated engagement; privacy preferences were preserved. Both
+synthetic batch projects were removed. This proves session restoration and native
+export, not new real AI quality or a fresh sign-in flow.
+
+Guarded publisher released v0.2.7 with signed/notarized DMG and ZIP, ZIP blockmap,
+latest-mac.yml, matching native corresponding source and SHA256SUMS. Public release:
+https://github.com/tappj/EditAI-Webapp/releases/tag/v0.2.7. Download metadata now
+targets this verified release. Existing macOS arm64 distribution is updated; no
+Windows release or prior-version updater installation is claimed tested.

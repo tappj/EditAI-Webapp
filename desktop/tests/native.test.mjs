@@ -213,6 +213,78 @@ await test("native media and real FFmpeg pipeline", async (t) => {
         );
       },
     );
+    await t.test(
+      "a sole delayed CC0 music track stays audible with primary muted",
+      async () => {
+        const musicId = randomUUID();
+        store.retain(
+          musicId,
+          resolve("public/audio-library/make-funk.m4a"),
+          "audio/mp4",
+        );
+        const music = structuredClone(doc);
+        music.sources.push({
+          ...music.sources[0],
+          id: musicId,
+          name: "Make Funk",
+          kind: "audio",
+          duration: 163.009,
+          type: "audio/mp4",
+        });
+        music.segments = [newSegment(0, 4)];
+        music.segments[0].volume = 0;
+        music.audio = [
+          {
+            id: randomUUID(),
+            sourceIndex: 1,
+            sourceStart: 0,
+            start: 0.5,
+            end: 4,
+            volume: 0.7,
+            lane: 0,
+            fadeIn: 0,
+            fadeOut: 0,
+          },
+        ];
+        const job = await native.begin(music, 320, 180, 30);
+        await native.finish(job.id);
+        const probe = JSON.parse(
+          (
+            await runBinary(ffprobe, [
+              "-v",
+              "error",
+              "-select_streams",
+              "a",
+              "-show_entries",
+              "stream=start_time,duration",
+              "-of",
+              "json",
+              destination,
+            ])
+          ).output,
+        );
+        assert.ok(
+          Number(probe.streams[0].duration) > 3,
+          "music must not collapse into a tiny silent stream",
+        );
+        const audio = await runBinary(ffmpeg, [
+          "-hide_banner",
+          "-i",
+          destination,
+          "-af",
+          "volumedetect",
+          "-f",
+          "null",
+          "-",
+        ]);
+        const mean = /mean_volume: (-?[\d.]+) dB/.exec(audio.error);
+        assert.ok(
+          mean && Number(mean[1]) > -50,
+          "the sole delayed music track must be audible",
+        );
+        assert.equal(native.jobs.size, 0);
+      },
+    );
     await t.test("compositor PNG frames encode with audio", async () => {
       const png = join(directory, "frame.png");
       await runBinary(ffmpeg, [

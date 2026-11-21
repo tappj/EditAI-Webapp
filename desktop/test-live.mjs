@@ -379,6 +379,11 @@ try {
       compositorExportRequired: true,
     };
   }
+  const destination = resolve("outputs/desktop-real-export.mp4");
+  await app.evaluate(({ dialog }, file) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
+  }, destination);
+  console.log("Installed acceptance: export destination prepared.");
   if (process.env.EDITAI_VERIFY_AUDIO_LIBRARY) {
     await page.locator(".timeline-clip").first().click();
     await page.getByRole("button", { name: "Clip", exact: true }).click();
@@ -407,11 +412,18 @@ try {
       .getByRole("button", { name: "Add Make Funk to timeline", exact: true })
       .click();
     await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+    await expect(
+      page.getByRole("button", {
+        name: "Add Make Funk to timeline",
+        exact: true,
+      }),
+    ).toBeEnabled();
     await page.getByRole("button", { name: "Your audio", exact: true }).click();
     await expect(page.locator(".source-card")).toHaveCount(1);
-    await page
-      .getByRole("button", { name: "Import audio", exact: true })
-      .click({ noWaitAfter: true });
+    // Verify real file import without opening a native modal during CDP automation.
+    await expect(
+      page.getByRole("button", { name: "Import audio", exact: true }),
+    ).toBeVisible();
     await page
       .locator("input[type=file]")
       .nth(1)
@@ -421,16 +433,18 @@ try {
       .getByRole("checkbox", { name: "Mute audio", exact: true })
       .check();
     await expect(page.locator(".source-card")).toHaveCount(2);
+    await expect(page.locator(".operation-status")).toHaveCount(0, {
+      timeout: 30000,
+    });
+    console.log(
+      "Installed acceptance: music preview, add and file import passed.",
+    );
     report.audioLibrary = {
       preview: true,
       added: true,
       importsPreserved: true,
     };
   }
-  const destination = resolve("outputs/desktop-real-export.mp4");
-  await app.evaluate(({ dialog }, file) => {
-    dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
-  }, destination);
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await page
     .getByRole("combobox", { name: /Export resolution/ })

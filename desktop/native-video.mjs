@@ -476,9 +476,14 @@ export class NativeVideo {
         ...inputs.flatMap((path) => [...localInput, "-i", path]),
       ];
     if (labels.length) {
+      // A single delayed input does not need mixing. FFmpeg can collapse its
+      // timestamps into a tiny silent AAC stream when passed through amix=1.
       filters.push(
         labels.join("") +
-          `amix=inputs=${labels.length}:normalize=0,apad,atrim=duration=${cursor}[mixed]`,
+          (labels.length > 1
+            ? `amix=inputs=${labels.length}:normalize=0,`
+            : "") +
+          `apad,atrim=duration=${cursor}[mixed]`,
       );
       args.push(
         "-filter_complex",

@@ -3653,6 +3653,12 @@ test("free music previews, filters, imports, persists and exports real audio", a
     .getByRole("button", { name: "Add Make Funk to timeline", exact: true })
     .click();
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", {
+      name: "Add Make Funk to timeline",
+      exact: true,
+    }),
+  ).toBeEnabled();
   await expect(page.locator(".audio-row")).toContainText("Make Funk");
   await page.getByRole("button", { name: "Your audio", exact: true }).click();
   await expect(page.locator(".source-card")).toHaveCount(1);

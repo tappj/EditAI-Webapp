@@ -1036,3 +1036,15 @@ Public Chromium music/import-export checks pass 2/2 (19.5s); public WebKit music
 workflow passes (14.7s), including retry, persistence, previews and measured music
 in the exported MP4. Signed-app inspection verifies all 19 packaged recordings
 against the exact catalog hashes. Installed desktop 0.2.13 acceptance follows.
+
+Installed acceptance exposed an existing native single-input mixing edge: when
+primary/imported tracks are muted and the only audible clip begins later,
+FFmpeg's amix=1 can collapse AAC timestamps into a tiny silent stream. Native
+export now skips the unnecessary mixer for one audible input while preserving
+mixing for multiple inputs. The actual library-recording regression checks stream
+duration and decoded loudness; all 20 native contracts pass. Isolated export of
+the failing document changes from -91 dB silence to -13.4 dB music. Typecheck,
+38 web tests and web build pass. The private 0.2.13 package is being rebuilt with
+this correction before publication. Acceptance waits for each import/save to
+finish before the next action; desktop file-input automation leaves the physical
+OS picker outside the verified scope.

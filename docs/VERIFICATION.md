@@ -1048,3 +1048,11 @@ the failing document changes from -91 dB silence to -13.4 dB music. Typecheck,
 this correction before publication. Acceptance waits for each import/save to
 finish before the next action; desktop file-input automation leaves the physical
 OS picker outside the verified scope.
+
+Corrected desktop 0.2.13 is now signed/notarized, installed and published. Genuine
+existing-session library playback, add, file import and native compositor export
+passed without provider/auth fixtures or inference. Original/imported audio were
+muted; the bundled song is audible at -13.4 dB mean level in the actual MP4 export
+(13.957s). Both synthetic projects were removed. Matching installer/archive/source
+verification and all 19 signed-app music hashes pass. Desktop download metadata
+now targets the verified public release; final web-link publication follows.

@@ -364,7 +364,35 @@ Shared renderer includes the 19 CC0 Holizna recordings, source/license notices,
 search, categories, previews, add-to-timeline and the preserved import control.
 Every signed-app asset matches lib/audio-library.json's reviewed SHA-256 digest.
 Web/native checks and both builds pass; Apple has accepted the 0.2.13 app.
-Installer assembly uses macOS CI run 44889827704 from the exact signed ZIP
-SHA-256 d35c215332367d96475f0a6b19ef374275a64a732734d3736142d0d3b157e2f7.
+Installer assembly uses macOS CI run 44891358542 from the corrected signed ZIP
+SHA-256 3803337a3e58cdbe6e237e6776d142b899b42829d803c2f2ad2b10218bbbcd66.
 Final notarized installer and installed-session music/import/export acceptance
 must pass before the guarded publisher enables the public release.
+
+Final 0.2.13 app/ZIP/DMG are signed, Apple-notarized, stapled and Gatekeeper
+accepted. Guided installer CI 44891358542 passed and the mounted app archive
+matches the ZIP and installed /Applications/EditAI.app. Final DMG SHA-256:
+86f599c16de038fd1f1183ee016f3966ae2dd0d227f138a3b047ea1dbb4376bc.
+Installed archive SHA-256:
+2c93003674c364957452b09791fefe8bc6131fbef7be88227430bca683105f15.
+
+Genuine existing-session acceptance passed with no auth/provider fixtures or
+inference: preview the bundled music, add it to the timeline, import a WAV through
+the real file input, preserve both sources, mute primary/imported audio and export
+a 19-second animated video. Actual native export took 13.957s; FFmpeg measured
+-13.4 dB mean volume from the sole audible bundled track. Both synthetic projects
+were removed; no browser errors occurred and automated telemetry was disabled.
+The physical OS file picker is outside this automated acceptance. Installed
+acceptance waits for media saves before further imports/export. The first private
+package was withheld after an amix=1 timestamp failure; the corrected runtime
+skips mixing a lone audible input and passes all 20 native tests, including a
+recording-based stream-duration/loudness regression.
+
+The guarded publisher released v0.2.13 with the verified DMG, ZIP, blockmap,
+updater manifest, corresponding native source and checksums:
+https://github.com/tappj/EditAI-Webapp/releases/tag/v0.2.13.
+Source is 457bf346035958307b940b746b6bec049b89b0ea. All 19 packaged music hashes
+match reviewed catalog provenance. Web CI passed; broad Windows CI still reports
+an existing Mac installer-path assertion, and broad macOS CI has not completed.
+No Windows release or cross-platform CI pass is claimed. Local shipping-Mac tests
+and signed installer/installed acceptance pass independently.

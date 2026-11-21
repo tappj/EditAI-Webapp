@@ -2,8 +2,8 @@
   {
     "platform": "macos",
     "arch": "arm64",
-    "version": "0.2.12",
-    "url": "https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.12/EditAI-0.2.12-mac-arm64.dmg",
+    "version": "0.2.13",
+    "url": "https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.13/EditAI-0.2.13-mac-arm64.dmg",
     "signed": true,
     "notarized": true,
     "tested": true

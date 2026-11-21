@@ -762,6 +762,31 @@ export function createApi(env: ApiEnvironment, provider = defaultPublik) {
         const id = path.split("/")[1];
         if (!/^[a-f0-9-]{36}$/.test(id))
           throw new ApiError(400, "Invalid media ID.");
+        if (req.method === "DELETE") {
+          const asset = await db
+            .prepare("SELECT mime,bytes FROM assets WHERE id=? AND owner=?")
+            .bind(id, owner)
+            .first();
+          if (!asset) return result({ ok: true });
+          const projects = await db
+            .prepare("SELECT document FROM projects WHERE owner=?")
+            .bind(owner)
+            .all<{ document: string }>();
+          if (
+            projects.results.some((p) =>
+              JSON.parse(p.document).sources.some(
+                (s: { id: string }) => s.id === id,
+              ),
+            )
+          )
+            return result({ ok: true, retained: true });
+          await env.BUCKET.delete(owner + "/" + id);
+          await db
+            .prepare("DELETE FROM assets WHERE id=? AND owner=?")
+            .bind(id, owner)
+            .run();
+          return result({ ok: true });
+        }
         if (req.method === "PUT") {
           await limit(db, "upload:" + owner, 60, 3600);
           const size = Number(req.headers.get("content-length"));

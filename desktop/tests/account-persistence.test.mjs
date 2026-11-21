@@ -135,6 +135,21 @@ test("sign-out revokes active sessions; explicit verified resume retains consent
     );
     const bytes = new Uint8Array([1, 2, 3, 4, 5]);
     assert.equal((await request("assets/" + source, bytes, "PUT")).status, 200);
+    const retained = await request("assets/" + source, undefined, "DELETE");
+    assert.equal(retained.status, 200);
+    assert.equal((await retained.json()).retained, true);
+    assert.equal((await request("assets/" + source)).status, 200);
+    const unusedSource = crypto.randomUUID();
+    assert.equal(
+      (await request("assets/" + unusedSource, bytes, "PUT")).status,
+      200,
+    );
+    assert.equal(
+      (await request("assets/" + unusedSource, undefined, "DELETE")).status,
+      200,
+    );
+    assert.equal((await request("assets/" + unusedSource)).status, 404);
+
     const signedOut = await request("logout", {});
     assert.equal(signedOut.status, 200);
     assert.ok(

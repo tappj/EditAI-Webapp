@@ -89,8 +89,12 @@ try {
   if (process.env.EDITAI_EXPORT_ONLY && !process.env.EDITAI_RESUME_TEST) {
     await page.getByRole("button", { name: /^Batch edit/ }).click();
     const inputs = page.locator(".batch-box input[type=file]");
-    await inputs.nth(0).setInputFiles(resolve("outputs/synthetic-speech.mp4"));
-    await inputs.nth(1).setInputFiles(resolve("outputs/synthetic-speech.mp4"));
+    const source = resolve("outputs/synthetic-speech.mp4");
+    const sources = process.env.EDITAI_VERIFY_EDITOR_UI
+      ? [source, source]
+      : source;
+    await inputs.nth(0).setInputFiles(sources);
+    await inputs.nth(1).setInputFiles(sources);
     await page
       .getByRole("checkbox", { name: /Run AI editing for each project/ })
       .uncheck();
@@ -200,6 +204,21 @@ try {
         timeout: 15000,
       })
       .toBeGreaterThan(0);
+    const libraryPreview = await page
+      .locator(".source-preview")
+      .first()
+      .boundingBox();
+    expect(libraryPreview.width).toBeLessThanOrEqual(136);
+    await page.locator(".timeline-clip").nth(1).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    const deletion = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/assets/") && r.request().method() === "DELETE",
+    );
+    await page.locator(".source-remove:not(:disabled)").first().click();
+    expect((await deletion).ok()).toBe(true);
+    await expect(page.locator(".source-card")).toHaveCount(1);
+    report.mediaRemoval = true;
     await page.getByRole("button", { name: "Open EditAI chat" }).click();
     for (const name of [
       "Add captions",
@@ -213,6 +232,12 @@ try {
       page.getByRole("button", { name: "Open EditAI chat" }),
     ).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
     await page.getByRole("button", { name: "Clip", exact: true }).click();
+    await expect(
+      page.getByRole("spinbutton", { name: "Volume value", exact: true }),
+    ).toHaveAttribute("step", "1");
+    await expect(
+      page.getByRole("button", { name: "Open EditAI chat" }),
+    ).toHaveCSS("background-image", /168, 207, 255/);
     await page.screenshot({
       path: "outputs/desktop027-editor-controls.png",
       fullPage: true,

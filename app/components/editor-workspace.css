@@ -1392,7 +1392,7 @@ body:has(.is-editor) .toast a {
   color: var(--control);
 }
 .is-editor .studio-tool-rail .editai-tool {
-  background: linear-gradient(135deg, #d5f1fa, #e8ddff 55%, #fae2de);
+  background: linear-gradient(135deg, #c8eef5, #a8cfff 55%, #c4e0ff);
   border-radius: 10px;
   margin: 5px 3px;
   padding-left: 0;
@@ -1400,12 +1400,12 @@ body:has(.is-editor) .toast a {
 }
 .is-editor .studio-tool-rail .editai-tool > span:last-child {
   background: none;
-  color: #4b4266;
+  color: #234d78;
   -webkit-text-fill-color: currentColor;
   font-weight: 700;
 }
 .is-editor .studio-tool-rail .editai-tool .tool-icon {
-  color: #4b4266;
+  color: #234d78;
   background: none;
 }
 .is-editor .studio-tool-rail button > span:last-child {
@@ -1433,7 +1433,7 @@ body:has(.is-editor) .toast a {
   overflow: hidden;
   border-radius: 7px;
   border: 2px solid var(--blue, #598fd9);
-  background: #e4dcf4;
+  background: var(--accent, #c4e0ff);
   box-shadow: 0 12px 30px #24345055;
   transform: rotate(-1deg) translateY(-5px);
   opacity: 0.95;
@@ -2181,22 +2181,22 @@ body:has(.is-editor) .toast a {
   border-radius: 0;
   background: var(
     --premium-gradient,
-    linear-gradient(135deg, #d5f1fa, #e8ddff 55%, #fae2de)
+    linear-gradient(135deg, #c8eef5, #a8cfff 55%, #c4e0ff)
   );
   border-color: transparent;
   box-shadow: none;
   outline: none;
-  color: #4b4266;
+  color: #234d78;
 }
 .is-editor .studio-tool-rail .editai-tool.selected::after {
   display: none;
 }
 .is-editor .studio-tool-rail .editai-tool svg {
-  color: #4b4266;
+  color: #234d78;
   stroke: currentColor;
 }
 .is-editor .studio-tool-rail .editai-tool:focus-visible {
-  outline: 1px solid #4b4266;
+  outline: 1px solid #234d78;
   outline-offset: -4px;
 }
 .is-editor .source-preview {
@@ -2226,4 +2226,131 @@ body:has(.is-editor) .toast a {
 
 .is-editor .studio-tool-rail {
   padding-inline: 0;
+}
+
+/* Compact, source-shaped library cards share one bounded grid. */
+.is-editor .source-grid {
+  grid-template-columns: repeat(auto-fill, minmax(106px, 136px));
+  gap: 12px;
+  align-items: start;
+}
+.is-editor .source-preview {
+  width: 100%;
+  max-height: 210px;
+}
+.is-editor .source-preview.audio {
+  width: 94px;
+  height: 94px;
+  aspect-ratio: 1 !important;
+}
+.is-editor .source-card > strong {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.is-editor .source-card > small {
+  display: block;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.is-editor .source-append {
+  width: 25px;
+  height: 25px;
+  right: 5px;
+  bottom: 5px;
+}
+.is-editor .source-kind {
+  top: 5px;
+  left: 5px;
+  padding: 3px;
+}
+.is-editor .source-duration {
+  top: auto;
+  bottom: 35px;
+  right: 5px;
+  font-size: 9px;
+}
+.is-editor .source-used {
+  left: 5px;
+  bottom: 5px;
+  font-size: 8px;
+}
+.is-editor .source-remove {
+  position: absolute;
+  z-index: 3;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border-radius: 6px;
+  background: #152332d9;
+  color: #fff;
+}
+.is-editor .source-remove:disabled {
+  opacity: 0.35;
+}
+.is-editor .source-preview.audio .source-kind {
+  display: none;
+}
+.is-editor .source-preview.audio > svg {
+  width: 26px;
+  height: 26px;
+}
+.timeline-drop-marker {
+  bottom: auto;
+  width: 3px;
+  border-radius: 2px;
+  transition: none;
+}
+.timeline-drop-marker::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 72px;
+  border: 1px dashed var(--control);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.timeline-drop-marker > span {
+  z-index: 1;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 3px 5px;
+  font-size: 10px;
+}
+.timeline-drop-marker.invalid {
+  background: var(--danger);
+}
+.timeline-drop-marker.invalid::after {
+  border-color: var(--danger);
+}
+.timeline-drop-marker.invalid > span {
+  background: var(--danger);
+}
+.is-editor .sequence-row.audio-row {
+  height: 36px;
+}
+.is-editor .audio-row .sequence-item {
+  top: 3px;
+  bottom: 3px;
+  padding: 3px 8px;
+}
+.is-editor .audio-row .source-waveform {
+  height: 18px;
+  bottom: 1px;
+}
+.is-editor .audio-row .sequence-item strong {
+  font-size: 10px;
+}
+.is-editor .source-preview.audio .source-duration {
+  top: 5px;
+  bottom: auto;
+  left: 5px;
+  right: auto;
 }

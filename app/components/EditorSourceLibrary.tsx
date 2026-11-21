@@ -7,8 +7,10 @@ import {
   Plus,
   Search,
   Upload,
+  Trash2,
 } from "lucide-react";
 import type { Document } from "@/lib/editor/model";
+import { sourceIsUsed } from "@/lib/editor/library";
 import { Button } from "./ui";
 import { ClipFrames } from "./ClipFrames";
 function fileSize(bytes?: number) {
@@ -23,12 +25,16 @@ export function EditorSourceLibrary({
   mode,
   onImport,
   onAdd,
+  onRemove,
+  removing,
 }: {
   doc: Document;
   urls: Record<string, string>;
   mode: "all" | "audio" | "overlay";
   onImport: () => void;
   onAdd: (index: number) => void;
+  onRemove: (index: number) => void;
+  removing?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -98,10 +104,11 @@ export function EditorSourceLibrary({
       )}
       <div className="source-grid">
         {sources.map(({ source: s, index }) => {
-          const used =
-            doc.segments.some((c) => c.sourceIndex === index) ||
-            doc.audio.some((c) => c.sourceIndex === index) ||
-            doc.overlays.some((c) => c.sourceIndex === index);
+          const used = sourceIsUsed(doc, index);
+          const ratio =
+            s.kind === "audio"
+              ? 1
+              : Math.max(0.65, Math.min(1.6, (s.width || 1) / (s.height || 1)));
           return (
             <div
               className="source-item source-card"
@@ -114,9 +121,25 @@ export function EditorSourceLibrary({
                 }
                 e.dataTransfer.effectAllowed = "copy";
                 e.dataTransfer.setData("application/x-editai-source", s.id);
+                e.dataTransfer.setData(
+                  "application/x-editai-kind-" + s.kind,
+                  "1",
+                );
               }}
             >
-              <div className={`source-preview ${s.kind}`}>
+              <div
+                className={`source-preview ${s.kind}`}
+                style={{ aspectRatio: ratio }}
+              >
+                <button
+                  className="source-remove"
+                  aria-label={"Delete media " + s.name}
+                  title={used ? "Remove timeline clips first" : "Delete media"}
+                  disabled={used || removing}
+                  onClick={() => onRemove(index)}
+                >
+                  <Trash2 size={13} />
+                </button>
                 {s.kind !== "audio" ? (
                   <ClipFrames
                     library

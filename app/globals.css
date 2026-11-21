@@ -3022,3 +3022,63 @@ body:has(.is-editor) .notification-stack .toast.error + .toast {
 .project-grid:not(.project-list) .project-card-actions .icon-button {
   color: #fff;
 }
+
+/* Blue-accent trial is scoped to product surfaces; preserve the brand artwork. */
+.app-shell {
+  --lavender: #d8eaff;
+  --premium-gradient: linear-gradient(135deg, #bdebf3, #a8cfff);
+}
+:root[data-theme="dark"] .app-shell {
+  --lavender: #223b58;
+}
+.app-shell .quick-tools {
+  --tile-batch: #d5e8ff;
+}
+:root[data-theme="dark"] .app-shell .quick-tools {
+  --tile-batch: #8cbcf0;
+}
+.app-shell .film-strip {
+  border-color: #aac8e9;
+  color: #174d83;
+  background: linear-gradient(145deg, #96d9e8, #6ba4e4);
+}
+.app-shell .film-strip.back {
+  background: #6498d5;
+  border-color: #9ebfe8;
+}
+:root[data-theme="dark"] .app-shell .film-strip {
+  color: #fff;
+  border-color: #315a87;
+  background: linear-gradient(145deg, #27718d, #285e9e);
+}
+:root[data-theme="dark"] .app-shell .film-strip.back {
+  background: #254e7d;
+  border-color: #396795;
+}
+.app-shell .tool-card-icon svg {
+  color: #18314b;
+}
+:root[data-theme="dark"] .app-shell .tool-card-icon svg {
+  color: #f3f8ff;
+}
+.app-shell .text-row .sequence-item,
+.app-shell .overlay-row .sequence-item,
+.clip-drag-ghost {
+  background: var(--lavender, #d8eaff);
+}
+.app-shell .studio-tool-rail .editai-tool,
+.app-shell .studio-tool-rail .editai-tool.selected {
+  background: var(--premium-gradient);
+}
+.app-shell .studio-tool-rail .editai-tool > span:last-child,
+.app-shell .studio-tool-rail .editai-tool .tool-icon,
+.app-shell .studio-tool-rail .editai-tool svg {
+  color: #234d78;
+}
+body:has(.app-shell) {
+  --lavender: #d8eaff;
+  --premium-gradient: linear-gradient(135deg, #bdebf3, #a8cfff);
+}
+:root[data-theme="dark"] body:has(.app-shell) {
+  --lavender: #223b58;
+}

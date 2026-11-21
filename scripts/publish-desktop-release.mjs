@@ -111,7 +111,7 @@ try {
     notes,
     "EditAI Desktop 0.2.7 for macOS " +
       arch +
-      ". Restored Overlays and Adjust shortcuts in the left tool rail. Volume precedes the standard Speed slider; ticks, thumb travel and tapered volume tracks share exact bounds. Compact square Edits cards retain grid/list views, and Edits no longer duplicates Upload clips. Includes the prior shared editor, recording and caption refinements. Includes integrated native Mac controls, guided installation, local media and native FFmpeg. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
+      ". Blue feature/editor accents, compact oriented media cards, whole-number volume, row-local drop previews and permanent unused-media removal. Restored Overlays and Adjust shortcuts in the left tool rail. Volume precedes the standard Speed slider; ticks, thumb travel and tapered volume tracks share exact bounds. Compact square Edits cards retain grid/list views, and Edits no longer duplicates Upload clips. Includes the prior shared editor, recording and caption refinements. Includes integrated native Mac controls, guided installation, local media and native FFmpeg. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
   );
   // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
   // Keep it private until every release artifact and the installed app pass.

@@ -7,7 +7,7 @@ import {
   type Document,
 } from "./model.ts";
 export type MediaTrack = "segments" | "audio" | "overlays";
-export type MediaDrop = { track: MediaTrack; time: number };
+export type MediaDrop = { track: MediaTrack; time: number; lane?: number };
 export function insertionIndex(doc: Document, time: number) {
   let offset = 0;
   for (let i = 0; i < doc.segments.length; i++) {
@@ -26,7 +26,18 @@ export function placeSource(doc: Document, index: number, drop: MediaDrop) {
     if (source.kind === "image")
       throw Error("Choose a sound or video for an audio track.");
     const end = Math.min(total, start + source.duration);
-    const lane = Array.from({ length: LANE_LIMITS.audio }, (_, i) => i).find(
+    if (
+      drop.lane !== undefined &&
+      (!Number.isInteger(drop.lane) ||
+        drop.lane < 0 ||
+        drop.lane >= LANE_LIMITS.audio)
+    )
+      throw Error("Invalid audio lane.");
+    const lane = (
+      drop.lane === undefined
+        ? Array.from({ length: LANE_LIMITS.audio }, (_, i) => i)
+        : [drop.lane]
+    ).find(
       (l) =>
         !doc.audio.some((a) => a.lane === l && a.start < end && a.end > start),
     );
@@ -59,6 +70,7 @@ export function placeSource(doc: Document, index: number, drop: MediaDrop) {
       y: 0.5,
       width: 0.5,
       opacity: 1,
+      ...(drop.lane === undefined ? {} : { lane: drop.lane }),
     });
   } else {
     doc.segments.splice(

@@ -590,3 +590,66 @@ test("relaxed source trims restore removed words without replacing IDs or appear
   );
   assert.deepEqual(cut, before);
 });
+
+test("permanent unused-source removal preserves retained word IDs and remaps every source reference", async () => {
+  const { removeUnusedSource } = await import("../lib/editor/library.ts");
+  const d = fixture();
+  d.sources.unshift({
+    ...d.sources[0],
+    id: crypto.randomUUID(),
+    name: "unused.mp4",
+  });
+  d.segments[0].sourceIndex = 1;
+  d.words = d.words.map((w) => ({ ...w, clip: 1 }));
+  d.words.unshift({
+    id: "removed-word",
+    clip: 0,
+    start: 0,
+    end: 0.1,
+    text: "Unused",
+  });
+  d.quietCuts = [
+    { clip: 0, start: 1, end: 2 },
+    { clip: 1, start: 2, end: 3 },
+  ];
+  const before = structuredClone(d);
+  const out = removeUnusedSource(d, 0);
+  assert.equal(out.sources.length, 1);
+  assert.equal(out.segments[0].sourceIndex, 0);
+  assert.deepEqual(
+    out.words.map((w) => w.id),
+    before.words.slice(1).map((w) => w.id),
+  );
+  assert.ok(out.words.every((w) => w.clip === 0));
+  assert.deepEqual(out.quietCuts, [{ clip: 0, start: 2, end: 3 }]);
+  assert.deepEqual(d, before);
+  assert.throws(() => removeUnusedSource(d, 1), /timeline clips/);
+});
+
+test("audio source drops honor the hovered lane and reject a collision", async () => {
+  const { placeSource } = await import("../lib/editor/placement.ts");
+  const d = fixture();
+  d.audio.push({
+    id: crypto.randomUUID(),
+    sourceIndex: 0,
+    sourceStart: 0,
+    start: 0,
+    end: 3,
+    lane: 0,
+    volume: 1,
+    fadeIn: 0,
+    fadeOut: 0,
+  });
+  const out = placeSource(structuredClone(d), 0, {
+    track: "audio",
+    time: 0,
+    lane: 2,
+  });
+  assert.equal(out.audio.at(-1)!.lane, 2);
+  assert.throws(() =>
+    placeSource(structuredClone(d), 0, { track: "audio", time: 0, lane: 0 }),
+  );
+  assert.throws(() =>
+    placeSource(structuredClone(d), 0, { track: "audio", time: 0, lane: 7 }),
+  );
+});

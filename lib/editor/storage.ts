@@ -152,3 +152,27 @@ export const clearStorage = async () => {
     if (String(k).startsWith(owner + ":")) await d.delete("media", k);
   for (const p of await listProjects(owner)) await d.delete("projects", p.id);
 };
+
+export const deleteUnusedMedia = async (id: string) => {
+  const owner = scope;
+  if (
+    (await listProjects(owner)).some((p) =>
+      p.document.sources.some((s) => s.id === id),
+    )
+  )
+    return;
+  if (desktop()) {
+    await desktop()!.deleteMedia([id]);
+    return;
+  }
+  const d = await db(),
+    root = owner + ":" + id;
+  const media = await d.get("media", root);
+  const tx = d.transaction("media", "readwrite");
+  if (media?.format === "editai-media-chunks-v1")
+    for (const key of media.keys)
+      if (typeof key === "string" && key.startsWith(root + ":chunk:"))
+        await tx.store.delete(key);
+  await tx.store.delete(root);
+  await tx.done;
+};

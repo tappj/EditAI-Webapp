@@ -81,8 +81,12 @@ export function EditorTimeline({
     height: number;
     marker: number;
     valid: boolean;
+    rowTop: number;
+    rowHeight: number;
   } | null>(null);
-  const [dropView, setDropView] = useState<MediaDrop | null>(null);
+  const [dropView, setDropView] = useState<
+    (MediaDrop & { rowTop: number; rowHeight: number; valid: boolean }) | null
+  >(null);
   const cursor = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -224,27 +228,79 @@ export function EditorTimeline({
     }
     return () => cancelAnimationFrame(frame);
   }, [stationaryTime, pixels, playing, getPlaybackTime, total]);
-  function dropAt(e: {
-    clientX: number;
-    target: EventTarget | null;
-  }): MediaDrop {
-    const row = (e.target as HTMLElement).closest<HTMLElement>("[data-track]");
-    const track = row?.dataset.track;
-    const time = Math.max(
-      0,
-      Math.min(
-        total,
-        (e.clientX -
-          content.current!.getBoundingClientRect().left -
-          TRACK_HEADER) /
-          pixels,
+  function mediaRow(track: string | undefined, y: number) {
+    const rows = [
+      ...content.current!.querySelectorAll<HTMLElement>(
+        ".sequence-row[data-track]",
       ),
+    ].filter(
+      (row) =>
+        (["segments", "audio", "overlays"].includes(row.dataset.track!) ||
+          row.dataset.track === track) &&
+        (!track || row.dataset.track === track),
     );
+    return rows.reduce<HTMLElement | undefined>((nearest, row) => {
+      const box = row.getBoundingClientRect();
+      const distance = Math.max(box.top - y, y - box.bottom, 0);
+      if (!nearest) return row;
+      const previous = nearest.getBoundingClientRect();
+      return distance < Math.max(previous.top - y, y - previous.bottom, 0)
+        ? row
+        : nearest;
+    }, undefined);
+  }
+  function rowGeometry(row?: HTMLElement) {
     return {
-      track: track === "audio" || track === "overlays" ? track : "segments",
-      time,
+      rowTop: row
+        ? row.getBoundingClientRect().top -
+          content.current!.getBoundingClientRect().top
+        : 26,
+      rowHeight: row?.getBoundingClientRect().height || 42,
     };
   }
+  function dropAt(e: {
+    clientX: number;
+    clientY: number;
+    target: EventTarget | null;
+    dataTransfer: DataTransfer;
+  }): MediaDrop & { rowTop: number; rowHeight: number; valid: boolean } {
+    const audio =
+      e.dataTransfer.types.includes("application/x-editai-kind-audio") ||
+      (e.dataTransfer.items.length > 0 &&
+        [...e.dataTransfer.items].every((item) =>
+          item.type.startsWith("audio/"),
+        ));
+    const row = mediaRow(audio ? "audio" : undefined, e.clientY);
+    const track = row?.dataset.track;
+    const image =
+      e.dataTransfer.types.includes("application/x-editai-kind-image") ||
+      (e.dataTransfer.items.length > 0 &&
+        [...e.dataTransfer.items].every((item) =>
+          item.type.startsWith("image/"),
+        ));
+    return {
+      track:
+        track === "audio" || track === "overlays"
+          ? track
+          : ("segments" as const),
+      time: Math.max(
+        0,
+        Math.min(
+          total,
+          (e.clientX -
+            content.current!.getBoundingClientRect().left -
+            TRACK_HEADER) /
+            pixels,
+        ),
+      ),
+      ...(row?.dataset.lane === undefined
+        ? {}
+        : { lane: Number(row.dataset.lane) }),
+      ...rowGeometry(row),
+      valid: !(image && track === "audio"),
+    };
+  }
+
   function markerTime(drop: MediaDrop) {
     return drop.track === "segments"
       ? doc.segments
@@ -361,6 +417,7 @@ export function EditorTimeline({
           width: g.width,
           height: g.height,
           marker,
+          ...rowGeometry(mediaRow(g.track, e.clientY)),
           valid:
             e.clientX >= rect.left + TRACK_HEADER &&
             e.clientX <= rect.right &&
@@ -474,8 +531,9 @@ export function EditorTimeline({
           )
             return;
           e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-          setDropView(dropAt(e));
+          const drop = dropAt(e);
+          e.dataTransfer.dropEffect = drop.valid ? "copy" : "none";
+          setDropView(drop);
         }}
         onDragLeave={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null))
@@ -486,6 +544,7 @@ export function EditorTimeline({
           e.stopPropagation();
           const drop = dropAt(e);
           setDropView(null);
+          if (!drop.valid) return;
           const id = e.dataTransfer.getData("application/x-editai-source");
           if (id) onSourceDrop(id, drop);
           else if (e.dataTransfer.files.length)
@@ -529,6 +588,7 @@ export function EditorTimeline({
               <div
                 key={row.lane}
                 data-track="overlays"
+                data-lane={row.lane}
                 className="sequence-row overlay-row"
               >
                 <div className="track-label">
@@ -631,6 +691,7 @@ export function EditorTimeline({
               <div
                 key={lane}
                 data-track="audio"
+                data-lane={lane}
                 className="sequence-row audio-row"
                 aria-label={`Audio lane ${lane + 1}`}
               >
@@ -680,14 +741,23 @@ export function EditorTimeline({
           </div>
           {(dropView || dragView?.valid) && (
             <div
-              className="timeline-drop-marker"
+              className={`timeline-drop-marker ${dropView && !dropView.valid ? "invalid" : ""}`}
+              data-drop-track={dropView?.track || dragView!.track}
               style={{
+                top: (dropView || dragView)!.rowTop + 3,
+                height: Math.max(12, (dropView || dragView)!.rowHeight - 6),
                 left:
                   TRACK_HEADER +
                   (dropView ? markerTime(dropView) : dragView!.marker) * pixels,
               }}
             >
-              <span>{dropView ? "Drop media" : "Drop here"}</span>
+              <span>
+                {dropView
+                  ? dropView.valid
+                    ? `${dropView.track === "segments" ? "Insert video" : dropView.track === "audio" ? "Drop audio" : "Drop overlay"} · ${stamp(markerTime(dropView))}`
+                    : "Use video or overlays"
+                  : "Drop here"}
+              </span>
             </div>
           )}
           <input

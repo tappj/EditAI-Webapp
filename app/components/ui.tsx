@@ -97,7 +97,7 @@ export function Range({
   max,
   step,
   resetValue,
-  onChange,
+  onChange: applyValue,
 }: {
   label: string;
   value: number;
@@ -107,10 +107,14 @@ export function Range({
   resetValue?: number;
   onChange: (n: number) => void;
 }) {
+  const volume = /volume/i.test(label);
   const percent = /opacity|volume/i.test(label);
   const speed = /speed/i.test(label);
   const scale = percent ? 100 : 1;
-  const format = (n: number) => String(Number((n * scale).toFixed(2)));
+  const quantize = (n: number) => (volume ? Math.round(n * 100) / 100 : n);
+  const onChange = (n: number) => applyValue(quantize(n));
+  const format = (n: number) =>
+    String(Number((n * scale).toFixed(volume ? 0 : 2)));
   const [draft, setDraft] = useState<string | null>(null);
   const original = useRef(value);
   const cancelled = useRef(false);
@@ -123,7 +127,11 @@ export function Range({
       return;
     }
     const n = draft === null || !draft.trim() ? NaN : Number(draft) / scale;
-    onChange(Number.isFinite(n) && n >= min && n <= max ? n : original.current);
+    onChange(
+      Number.isFinite(n) && n >= min && n <= max
+        ? quantize(n)
+        : original.current,
+    );
     setDraft(null);
   };
   const neutral =
@@ -156,7 +164,7 @@ export function Range({
       marks.push({ n, large: true });
   }
   const snapped = (n: number, width: number, bypass: boolean) => {
-    if (bypass) return n;
+    if (bypass) return quantize(n);
     const candidates = [
       ...marks.filter((m) => m.large).map((m) => m.n),
       min,
@@ -169,8 +177,8 @@ export function Range({
     return (Math.abs(n - nearest) / span) *
       Math.max(1, width - RANGE_THUMB_SIZE) <=
       9
-      ? Number(nearest.toPrecision(10))
-      : n;
+      ? quantize(Number(nearest.toPrecision(10)))
+      : quantize(n);
   };
   return (
     <label
@@ -189,7 +197,7 @@ export function Range({
             type="number"
             min={min * scale}
             max={max * scale}
-            step="any"
+            step={volume ? 1 : "any"}
             value={draft ?? format(value)}
             onFocus={() => {
               original.current = value;
@@ -212,7 +220,7 @@ export function Range({
         className="range-control"
         style={
           {
-            "--range-fill": `${((value - min) / span) * 100}%`,
+            "--range-fill": `${((quantize(value) - min) / span) * 100}%`,
             "--range-thumb-size": `${RANGE_THUMB_SIZE}px`,
           } as React.CSSProperties
         }
@@ -269,11 +277,11 @@ export function Range({
           }}
           min={min}
           max={max}
-          step="any"
-          value={value}
+          step={volume ? 0.01 : "any"}
+          value={quantize(value)}
           style={
             {
-              "--range-fill": `${((value - min) / span) * 100}%`,
+              "--range-fill": `${((quantize(value) - min) / span) * 100}%`,
             } as React.CSSProperties
           }
           onPointerDown={(e) => {
@@ -304,7 +312,7 @@ export function Range({
                     e.currentTarget.clientWidth,
                     bypassSnap.current,
                   )
-                : +e.target.value,
+                : quantize(+e.target.value),
             )
           }
         />

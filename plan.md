@@ -272,3 +272,24 @@ thumbnails in bounded 176px desktop cards and three columns on phones, with squa
 list thumbnails and accessible over-image actions. Remove Upload clips from Edits;
 Home import remains available. Prepare/publish matching 0.2.7 native assets and the
 live Site after checks, preserving source anchors and existing authentication.
+
+## Compact media, track-aware drops and blue accent trial — November 20, 2026
+
+Apply changes to shared web/desktop surfaces. Volume displays/commits integer
+percentages. Use bounded source-shaped video/image thumbnails with fitted filenames,
+universal 94px audio squares and 36px audio timeline rows. Unused library media has
+a direct permanent delete action without confirmation/success notifications; used
+media must be removed from the timeline first. Purge app-owned local/cloud copies
+only when no saved project references them, preserve other projects and original
+files, retain source word IDs while remapping indexes, and prevent undo resurrection.
+Serialize project writes before purging assets and keep new word IDs collision-free.
+
+Choose drop targets by pointer row geometry, honor explicit audio/overlay lanes,
+and show a short marker/preview with track/time inside the destination row. Keep
+main-video boundary insertion; reject images on audio rows. Improve dark Home icon
+contrast and replace purple feature/editor accents with EditAI blues, including
+Batch, text/overlay lanes, EditAI tool, audio-library tiles and transient surfaces.
+Preserve the actual logo artwork, user content and custom color/filter choices.
+The previously missing notarization profile is available again. Rebuild the pending
+0.2.7 release from this complete current source, then publish/install through the
+existing signed/notarized acceptance workflow and update the live Site.

@@ -2970,3 +2970,195 @@ test("restored rail shortcuts, volume-first controls, aligned ticks and compact 
     page.getByRole("button", { name: "Upload clips", exact: true }).first(),
   ).toBeVisible();
 });
+
+test("compact shaped media, integer volume, row-local drops and permanent unused media removal", async ({
+  page,
+}) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  let saved: any;
+  const deleted: string[] = [];
+  await page.route("**/api/projects", (r) => {
+    if (r.request().method() === "POST") saved = r.request().postDataJSON();
+    return r.fulfill({
+      json: r.request().method() === "GET" ? { projects: [] } : { ok: true },
+    });
+  });
+  await page.route("**/api/assets/*", (r) => {
+    if (r.request().method() === "DELETE")
+      deleted.push(r.request().url().split("/").at(-1)!);
+    return r.fulfill({
+      status: ["PUT", "DELETE"].includes(r.request().method()) ? 200 : 404,
+      json: { ok: true },
+    });
+  });
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-i",
+      "outputs/fixture.mp4",
+      "-vf",
+      "scale=-2:480,crop=270:480",
+      "-c:v",
+      "libx264",
+      "-c:a",
+      "aac",
+      "outputs/compact-portrait.mp4",
+    ],
+    { stdio: "ignore" },
+  );
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=frequency=440:duration=1",
+      "outputs/compact-audio.wav",
+    ],
+    { stdio: "ignore" },
+  );
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles([
+      join(process.cwd(), "outputs/fixture.mp4"),
+      join(process.cwd(), "outputs/compact-portrait.mp4"),
+    ]);
+  await expect(page.locator(".source-card")).toHaveCount(2);
+  const landscape = (await page
+    .locator(".source-preview.video")
+    .nth(0)
+    .boundingBox())!;
+  const portrait = (await page
+    .locator(".source-preview.video")
+    .nth(1)
+    .boundingBox())!;
+  expect(landscape.width).toBeLessThanOrEqual(136);
+  expect(landscape.width).toBeGreaterThan(landscape.height);
+  expect(portrait.height).toBeGreaterThan(portrait.width);
+  expect(portrait.height).toBeLessThanOrEqual(210);
+  const volumeValue = page.getByRole("spinbutton", {
+    name: "Volume value",
+    exact: true,
+  });
+  await volumeValue.fill("51.4");
+  await volumeValue.press("Enter");
+  await expect(volumeValue).toHaveValue("51");
+  await expect(
+    page.getByRole("slider", { name: "Volume", exact: true }),
+  ).toHaveValue("0.51");
+  await page.getByRole("button", { name: "Audio workspace" }).click();
+  await page.getByRole("button", { name: "Import audio", exact: true }).click();
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles(join(process.cwd(), "outputs/compact-audio.wav"));
+  await expect(page.locator(".source-preview.audio")).toBeVisible();
+  const audioBox = (await page.locator(".source-preview.audio").boundingBox())!;
+  expect(audioBox.width).toBe(94);
+  expect(audioBox.height).toBe(94);
+  await page.getByRole("button", { name: "Media workspace" }).click();
+  await expect.poll(() => saved?.document?.sources.length).toBe(3);
+  const videoId = saved.document.sources[0].id;
+  const transfer = await page.evaluateHandle((id) => {
+    const data = new DataTransfer();
+    data.setData("application/x-editai-source", id);
+    data.setData("application/x-editai-kind-video", "1");
+    return data;
+  }, videoId);
+  for (const track of ["overlays", "audio", "segments"]) {
+    const row = page.locator(`.sequence-row[data-track="${track}"]`).first();
+    const box = (await row.boundingBox())!;
+    await row.dispatchEvent("dragover", {
+      dataTransfer: transfer,
+      clientX: box.x + 180,
+      clientY: box.y + box.height / 2,
+    });
+    const marker = page.locator(".timeline-drop-marker");
+    await expect(marker).toHaveAttribute("data-drop-track", track);
+    const markerBox = (await marker.boundingBox())!;
+    expect(markerBox.y).toBeGreaterThanOrEqual(box.y);
+    expect(markerBox.height).toBeLessThanOrEqual(box.height);
+    expect(markerBox.y + markerBox.height).toBeLessThanOrEqual(
+      box.y + box.height,
+    );
+  }
+  await page
+    .locator(".sequence-viewport")
+    .dispatchEvent("dragleave", { relatedTarget: null });
+  await page.locator(".timeline-clip").nth(1).click();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  await expect(page.locator(".source-card")).toHaveCount(3);
+  const sourceId = saved.document.sources.find(
+    (s: any) => s.name === "compact-portrait.mp4",
+  ).id;
+  for (const label of ["Dismiss error", "Dismiss notification"])
+    if (await page.getByRole("button", { name: label, exact: true }).count())
+      await page.getByRole("button", { name: label, exact: true }).click();
+  let dialogs = 0;
+  page.on("dialog", (d) => {
+    dialogs++;
+    void d.dismiss();
+  });
+  await page
+    .getByRole("button", {
+      name: "Delete media compact-portrait.mp4",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".source-card")).toHaveCount(2);
+  await expect.poll(() => deleted).toContain(sourceId);
+  await expect(
+    page.getByRole("button", { name: "Undo", exact: true }),
+  ).toBeDisabled();
+  await expect(page.locator(".toast")).toHaveCount(0);
+  expect(dialogs).toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Delete media fixture.mp4", exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel("Timeline playhead", { exact: true }).fill("0");
+  await expect
+    .poll(() =>
+      page
+        .locator('canvas[aria-label="Video preview"]')
+        .evaluate((node: HTMLCanvasElement) => {
+          const pixel = node
+            .getContext("2d")!
+            .getImageData(
+              Math.floor(node.width / 4),
+              Math.floor(node.height / 4),
+              1,
+              1,
+            ).data;
+          return pixel[0] + pixel[1] + pixel[2];
+        }),
+    )
+    .toBeGreaterThan(300);
+  await page.evaluate(() =>
+    document.documentElement.setAttribute("data-theme", "dark"),
+  );
+  await expect(page.locator(".app-shell")).toHaveCSS("--lavender", "#223b58");
+  await page.screenshot({
+    path: "outputs/media-blue-library-drops.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(page.locator(".tool-card.lavender")).toHaveCSS(
+    "background-color",
+    "rgb(140, 188, 240)",
+  );
+  await expect(page.locator(".film-strip.front")).toHaveCSS(
+    "color",
+    "rgb(255, 255, 255)",
+  );
+  await page.screenshot({
+    path: "outputs/media-blue-home-dark.png",
+    fullPage: true,
+  });
+});

@@ -94,6 +94,7 @@ import {
   saveProject,
   listProjects,
   deleteProject,
+  deleteUnusedMedia,
   clearStorage,
   setStorageScope,
 } from "@/lib/editor/storage";
@@ -137,6 +138,7 @@ import { LANE_LIMITS } from "@/lib/editor/lanes";
 import { SelectedMediaInspector } from "./components/SelectedMediaInspector";
 import { CropEditor } from "./components/CropEditor";
 import { PreviewHandles } from "./components/PreviewHandles";
+import { removeUnusedSource } from "@/lib/editor/library";
 import { EditorSourceLibrary } from "./components/EditorSourceLibrary";
 import { EditorTimeline } from "./components/EditorTimeline";
 import { copyItem, pasteItem, type EditorCopy } from "@/lib/editor/clipboard";
@@ -218,6 +220,7 @@ export default function App({
     [selected, setSelected] = useState(""),
     [tool, setTool] = useState("clip"),
     [editorPanel, setEditorPanel] = useState("media"),
+    [removingMedia, setRemovingMedia] = useState(false),
     [selectedLayer, setSelectedLayer] = useState<{
       track: Track;
       id: string;
@@ -266,6 +269,22 @@ export default function App({
     );
   }, []);
   const operationActive = useRef(false);
+  const remoteOwner = useRef("");
+  remoteOwner.current =
+    session?.profile.ownerId || session?.profile.handle || "";
+  const remoteProjectWrite = useRef<Promise<unknown>>(Promise.resolve());
+  function persistRemoteProject(p: Project) {
+    const owner = remoteOwner.current;
+    const write = remoteProjectWrite.current
+      .catch(() => {})
+      .then(() =>
+        owner === remoteOwner.current
+          ? api("projects", { id: p.id, title: p.title, document: p.document })
+          : undefined,
+      );
+    remoteProjectWrite.current = write;
+    return write;
+  }
   const persistedProject = useRef<Project | null>(null);
   const renameInput = useRef<HTMLInputElement>(null);
   const renameDialog = useRef<HTMLDialogElement>(null);
@@ -559,11 +578,7 @@ export default function App({
       persistedProject.current = project;
       setProjects(await listProjects());
       if (session?.screen.id === "ready")
-        api("projects", {
-          id: p.id,
-          title: p.title,
-          document: p.document,
-        }).catch(() => {});
+        persistRemoteProject(p).catch(() => {});
     }, 700);
     return () => clearTimeout(timer);
   }, [project, session?.screen.id]);
@@ -824,6 +839,40 @@ export default function App({
       fail(e);
     }
   }
+  async function removeLibraryMedia(index: number) {
+    const current = projectRef.current;
+    if (!current || removingMedia || operationActive.current) return;
+    setRemovingMedia(true);
+    operationActive.current = true;
+    try {
+      const id = current.document.sources[index].id;
+      const next = {
+        ...current,
+        document: removeUnusedSource(current.document, index),
+        updatedAt: Date.now(),
+      };
+      setHistory([]);
+      setFuture([]);
+      editorCopy.current = null;
+      projectRef.current = next;
+      persistedProject.current = next;
+      setProject(next);
+      await saveProject(next);
+      await persistRemoteProject(next);
+      await api("assets/" + id, undefined, "DELETE");
+      await deleteUnusedMedia(id);
+      const nextUrls = { ...urlsRef.current };
+      if (nextUrls[id]?.startsWith("blob:")) URL.revokeObjectURL(nextUrls[id]);
+      delete nextUrls[id];
+      setUrls(nextUrls);
+      setProjects(await listProjects());
+    } catch (e) {
+      fail(e);
+    } finally {
+      operationActive.current = false;
+      setRemovingMedia(false);
+    }
+  }
   function deleteSelection() {
     if (!doc) return;
     try {
@@ -953,6 +1002,7 @@ export default function App({
         await saveProject(saved, owner);
         // Finish the last edit before invalidating its session. Local media is
         // retained even if a cloud request is unavailable during sign-out.
+        await remoteProjectWrite.current.catch(() => {});
         await api("projects", {
           id: saved.id,
           title: saved.title,
@@ -1338,6 +1388,8 @@ export default function App({
     }
     const out = structuredClone(d),
       words: Word[] = [...d.words];
+    const wordIds = new Set(words.map((word) => word.id));
+    let wordOrdinal = words.length;
     for (let i = 0; i < d.sources.length; i++) {
       const s = d.sources[i];
       if (s.kind !== "video" || s.transcribed) continue;
@@ -1363,8 +1415,11 @@ export default function App({
           )
             throw Error("Speech recognition returned unsafe word timing.");
           previous = a;
+          let wordId = `${i}:${wordOrdinal++}`;
+          while (wordIds.has(wordId)) wordId = `${i}:${wordOrdinal++}`;
+          wordIds.add(wordId);
           words.push({
-            id: `${i}:${words.length}`,
+            id: wordId,
             clip: i,
             start: a,
             end: Math.min(s.duration, b),
@@ -2572,6 +2627,8 @@ export default function App({
                             extraInput.current?.click();
                           }}
                           onAdd={addLibrarySource}
+                          onRemove={(index) => void removeLibraryMedia(index)}
+                          removing={removingMedia || !!busy}
                         />
                       </>
                     )}

@@ -3239,8 +3239,10 @@ test("automatic settings retain latest name and photo, retry failures, and scope
   await expect(page.getByRole("status")).toContainText("All changes saved");
   expect(profile.displayName).toBe("Latest name");
   await name.fill("Latest provider name");
-  await page.getByLabel("AI provider", { exact: true }).selectOption("publik");
-  await expect(page.getByLabel("AI provider", { exact: true })).toHaveValue(
+  await page
+    .getByRole("combobox", { name: /AI provider/ })
+    .selectOption("publik");
+  await expect(page.getByRole("combobox", { name: /AI provider/ })).toHaveValue(
     "publik",
   );
   await expect(name).toHaveValue("Latest provider name");

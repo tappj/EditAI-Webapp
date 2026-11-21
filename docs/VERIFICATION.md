@@ -899,5 +899,7 @@ Final refinement prevents an AI-provider switch from refreshing over pending pro
 inputs: finish pending settings writes and update only provider state. A delayed-save
 regression covers changing the name immediately before selecting another provider.
 The selected sparkle now uses Export's blue stop #c4e0ff. These changes are rebuilt
-for web and desktop; affected own-key, media and autosave/theme checks pass in both
-Chromium and WebKit (3/3 each). Required typecheck/unit/native checks are repeated.
+for web and desktop; affected own-key and media checks pass in both engines; the new provider-switch
+assertion initially used an incorrect exact label locator. With the accessible
+combobox locator corrected, the final full autosave/theme/provider scenario passes
+in Chromium and WebKit (11.4s each). Required typecheck/unit/native checks pass again.

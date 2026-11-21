@@ -973,3 +973,19 @@ engines report no horizontal overflow and zero running sample animations with
 reduced motion enabled. Component quality review has no reported issues. These
 browser checks remain fixture-authenticated; they do not prove fresh provider
 connectivity. Native installed animation/compositor acceptance is pending.
+
+Sites version 104 publishes runtime bd3515543b7d977465a3404294c8b009061afb7c
+at https://editai.it.com. Public Chromium workflow/crop/drop checks pass 3/3
+(25.1s); public WebKit workflow/crop checks pass 2/2 (22.4s), including actual
+exported pixel/audio checks and font/selection persistence. Authentication/AI are
+explicit browser fixtures. No fresh provider connectivity is claimed. The matching
+0.2.12 app is Apple-notarized; installer/installed acceptance remains pending.
+
+Desktop 0.2.12 is signed/notarized, installed and published. Genuine existing-session
+acceptance verified audio fades, clip/text animation, font order and thin selection,
+then completed an actual animated H.264/AAC compositor export in 12.968s. Both
+synthetic projects were removed. No inference or fixture authentication/provider
+response was used in this installed check; automated telemetry was disabled and
+privacy choices preserved. See the desktop verification record for hashes and CI.
+The final download-metadata build is isolated from concurrent audio-library work;
+that separate uncommitted feature is preserved and excluded from this release.

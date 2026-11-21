@@ -324,3 +324,36 @@ Guarded publisher released v0.2.11 with DMG, ZIP/blockmap, latest-mac.yml,
 corresponding native source and SHA256SUMS. Download manifest now targets the
 verified release. macOS arm64 only; no Windows release or prior-version automatic
 update installation is claimed tested.
+
+## Slim selections, fades and animations — November 21, 2026
+
+Shared runtime bd3515543b7d977465a3404294c8b009061afb7c adds thin selection
+outlines and transparent resize targets, ordered Split/Overlay/Crop/Duplicate/Delete,
+a collapsed Canvas menu, Clip audio fades and independent Text/Filter animations.
+Motion samples share the renderer's native easing, and font selection stays in place.
+Both production builds, typecheck, 37 web tests, 19 desktop contracts and the full
+41-case Chromium suite pass. Final WebKit crop/motion/drop checks pass 3/3; public
+checks pass 3/3 Chromium and 2/2 WebKit. Browser checks use explicit auth/AI fixtures.
+
+0.2.12 Developer ID app and guided installer are Apple-notarized, stapled and
+Gatekeeper accepted. Installer CI 44888872729 used signed ZIP SHA-256
+3a63361d54ba85d87cddaf5087263a8ee12b005e2013f0aa8c959f724c834f1b.
+Final DMG SHA-256 95b5981f8f46cd064894c6d50ded43db97322b4bb1ad94fe2833d19474eba9bc.
+The verifier checks mounted-DMG/ZIP identity, matching native source, packaged
+Publik self-test and updater metadata. Installed app archive SHA-256:
+a853a4ef0cd70757d6f9f076e87ed9b996db209b53c26a7d2512763187700efc.
+
+Installed /Applications/EditAI.app matches the verified archive; prior app is
+preserved at outputs/release0212-backup/EditAI.app. Real genuine-session acceptance
+checks the new toolbar, Canvas, selection, fade controls, clip/text entrance and
+exit choices, and stable font order. An actual animated compositor export with
+primary audio fades completed in 12.968 seconds. Both synthetic projects were
+removed. This exercises the actual frame renderer and native audio mix without
+AI inference, fixture authentication or provider fixtures. Privacy preferences
+are preserved and automated telemetry is disabled. Plain neutral clips retain the
+native fast path; animated clips use the compositor to match preview.
+
+Guarded publication released v0.2.12 with signed DMG/ZIP, blockmap, updater metadata,
+corresponding native source and SHA256SUMS. The publisher requires this installed
+motion/fade acceptance. The download manifest targets the verified macOS arm64
+release. No Windows release or previous-version updater installation is claimed.

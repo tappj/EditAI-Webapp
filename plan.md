@@ -392,6 +392,6 @@ Publish the live web update and matching verified installed Mac release 0.2.13.
 Completed: the 19-track CC0 library is live on web and installed/published in Mac
 0.2.13. Imports, persistence and audible exports pass in both browser engines and
 the genuine installed desktop session. Native delayed-solo music mixing is fixed
-and covered by measured audio regression tests. Activate the final verified Mac
-download link in the web publication; detailed evidence is in both verification
-records.
+and covered by measured audio regression tests. Sites version 107 activates the verified Mac
+download link at https://editai.it.com. Final public music/export checks and
+installer-link checks pass; detailed evidence is in both verification records.

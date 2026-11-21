@@ -1056,3 +1056,13 @@ muted; the bundled song is audible at -13.4 dB mean level in the actual MP4 expo
 (13.957s). Both synthetic projects were removed. Matching installer/archive/source
 verification and all 19 signed-app music hashes pass. Desktop download metadata
 now targets the verified public release; final web-link publication follows.
+
+Final web publication: Sites version 107, source
+dab41edeb646d45779b3499a715e64078a98f40b, is live at https://editai.it.com with
+the verified 0.2.13 Mac download. Final public Chromium library/import/export
+checks pass 2/2 (21.8s); WebKit library workflow passes (14.8s). Mac user-agent
+DOM verification sees the versioned installer link after hydration; installer
+HEAD resolves to HTTP 200. Public audience, D1/R2 and runtime secrets remain
+unchanged. Browser authentication/AI are isolated fixtures; installed desktop
+acceptance above uses the genuine existing session. Both requested platforms
+are published, and the installed Mac app matches the verified public release.

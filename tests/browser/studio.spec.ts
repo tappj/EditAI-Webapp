@@ -3645,7 +3645,7 @@ test("free music previews, filters, imports, persists and exports real audio", a
   await page
     .getByRole("button", { name: "Add Make Funk to timeline", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.locator(".audio-catalog").getByRole("alert")).toContainText(
     "Couldn't load this track",
   );
   await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);

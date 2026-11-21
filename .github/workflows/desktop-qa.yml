@@ -54,7 +54,7 @@ jobs:
           if (-not (Test-Path "$destination/EditAI.exe")) { throw 'Installed executable missing' }
           $env:PUBLIK_SELF_TEST = '1'
           $result = & "$destination/EditAI.exe" 2>&1 | Out-String
-          if ($result -notmatch 'publik self-test: ok editai-desktop 0.2.9') { throw 'Packaged Publik self-test failed' }
+          if ($result -notmatch 'publik self-test: ok editai-desktop 0.2.10') { throw 'Packaged Publik self-test failed' }
           Write-Output 'Packaged Publik self-test passed. Windows interactive editing/install is not yet certified.'
       - if: runner.os == 'Windows'
         shell: pwsh

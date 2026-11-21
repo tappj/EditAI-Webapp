@@ -15,7 +15,7 @@ try {
     );
   const dir = resolve("desktop/release"),
     arch = process.arch,
-    tag = "v0.2.9",
+    tag = "v0.2.10",
     app = resolve(
       dir,
       "mac" + (arch === "arm64" ? "-arm64" : "") + "/EditAI.app",
@@ -43,7 +43,7 @@ try {
     !accepted.runtime.sandbox ||
     !accepted.runtime.contextIsolation ||
     accepted.runtime.nodeIntegration ||
-    accepted.runtime.version !== "0.2.9"
+    accepted.runtime.version !== "0.2.10"
   )
     throw Error("Installed application acceptance has not passed.");
   const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -62,7 +62,7 @@ try {
   const names = (await readdir(dir)).filter(
     (n) =>
       n === "latest-mac.yml" ||
-      (n.startsWith(`EditAI-0.2.9-mac-${arch}.`) &&
+      (n.startsWith(`EditAI-0.2.10-mac-${arch}.`) &&
         /\.(dmg|zip|blockmap)$/.test(n) &&
         !n.endsWith(".dmg.blockmap")),
   );
@@ -98,7 +98,7 @@ try {
       signed.artifactSha256?.[name] !== sha(await readFile(resolve(dir, name)))
     )
       throw Error("Release artifacts changed after verification.");
-  const sourceName = "EditAI-0.2.9-native-corresponding-source.tar.xz";
+  const sourceName = "EditAI-0.2.10-native-corresponding-source.tar.xz";
   await copyFile(source, resolve(dir, sourceName));
   names.push(sourceName);
   const checksums = [];
@@ -109,9 +109,9 @@ try {
   const notes = resolve("outputs/desktop-release-notes.md");
   await writeFile(
     notes,
-    "EditAI Desktop 0.2.9 for macOS " +
+    "EditAI Desktop 0.2.10 for macOS " +
       arch +
-      ". Restores the original EditAI feature and editor palette. Only the Home film illustration adapts to dark mode using the original cyan and lavender feature-card colors; light mode retains its original pastel artwork. Includes the current shared editor refinements. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
+      ". Cleans up notification spacing and close-button alignment, and places all notifications at the bottom right across Home, Settings and the editor. Retains the original EditAI palette. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
   );
   // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
   // Keep it private until every release artifact and the installed app pass.
@@ -119,7 +119,7 @@ try {
     "release", "view", tag, "--repo", "tappj/EditAI-Webapp", "--json", "isDraft,assets",
   ]));
   if (!draft.isDraft) throw Error("Expected a private draft release before publication.");
-  const zipName = `EditAI-0.2.9-mac-${arch}.zip`;
+  const zipName = `EditAI-0.2.10-mac-${arch}.zip`;
   const remoteZip = draft.assets.find((asset) => asset.name === zipName);
   if (!remoteZip || remoteZip.size !== (await readFile(resolve(dir, zipName))).length)
     throw Error("Draft signed ZIP is missing or differs in size.");
@@ -135,7 +135,7 @@ try {
   ))) throw Error("Draft release is missing an uploaded artifact.");
   github([
     "release", "edit", tag, "--repo", "tappj/EditAI-Webapp",
-    "--title", "EditAI Desktop 0.2.9", "--notes-file", notes, "--draft=false",
+    "--title", "EditAI Desktop 0.2.10", "--notes-file", notes, "--draft=false",
   ]);
   const dmg = names.find((n) => n.endsWith(".dmg"));
   await writeFile(
@@ -145,7 +145,7 @@ try {
         {
           platform: "macos",
           arch,
-          version: "0.2.9",
+          version: "0.2.10",
           url: `https://github.com/tappj/EditAI-Webapp/releases/download/${tag}/${dmg}`,
           signed: true,
           notarized: true,

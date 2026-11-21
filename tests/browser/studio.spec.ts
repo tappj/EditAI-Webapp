@@ -925,7 +925,9 @@ test("first-run Allow persists and Edits shows a frame, size and a rename action
   await expect(page.getByRole("status")).toContainText("Profile saved");
   await expect(page.locator(".progress-modal")).toHaveCount(0);
   const notification = (await page.getByRole("status").boundingBox())!;
-  expect(notification.x).toBe(16);
+  expect(notification.x + notification.width).toBe(
+    page.viewportSize()!.width - 16,
+  );
   expect(notification.height).toBeLessThan(80);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

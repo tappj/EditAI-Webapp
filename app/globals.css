@@ -2934,54 +2934,77 @@ html[data-desktop-platform="darwin"]
   background: var(--canvas);
   border-radius: 6px;
 }
-/* One compact, nonblocking notification stack across all screens. */
+/* Shared notification layout for Home, Settings and the editor. */
 .notification-stack {
   position: fixed;
-  bottom: 16px;
-  left: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
+  left: auto;
   z-index: 120;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
   width: min(360px, calc(100vw - 32px));
   pointer-events: none;
 }
-.notification-stack .toast,
-body:has(.is-editor) .notification-stack .toast,
-body:has(.is-editor) .notification-stack .toast.error,
-body:has(.is-editor) .notification-stack .toast.error + .toast {
+.notification-stack .toast {
   position: relative;
   inset: auto;
-  width: 100%;
-  max-width: none;
-  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 24px;
+  align-items: start;
+  width: fit-content;
+  max-width: 100%;
+  padding: 9px 10px;
   gap: 9px;
   border-radius: 10px;
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.5;
   box-shadow: 0 4px 18px #0002;
   background: var(--bg);
+  pointer-events: auto;
+}
+.notification-stack .toast > p,
+.notification-stack .toast > div {
+  min-width: 0;
+  padding-block: 3px;
+  overflow-wrap: anywhere;
 }
 .notification-stack .toast p {
   margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
 }
 .notification-stack .toast > svg {
   width: 16px;
   height: 16px;
-  flex: none;
+  align-self: start;
+  margin-top: 4px;
 }
 .notification-stack .toast .icon-button {
+  display: grid;
+  place-items: center;
+  align-self: start;
   width: 24px;
   height: 24px;
   min-width: 24px;
-  padding: 3px;
-  pointer-events: auto;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.notification-stack .toast .icon-button svg {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 .notification-stack .toast a {
-  pointer-events: auto;
+  overflow-wrap: anywhere;
 }
-.notification-stack .operation-status > div {
-  flex: 1;
+.notification-stack .operation-status {
+  width: 100%;
 }
 .notification-stack progress {
   width: 100%;

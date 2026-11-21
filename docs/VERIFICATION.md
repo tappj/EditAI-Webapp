@@ -822,3 +822,23 @@ after final signed/notarized DMG verification. The existing native acceptance
 gradient assertion was corrected from the rejected blue trial to the original
 premium gradient. All synthetic projects from the interrupted check and rerun
 were removed. See docs/desktop/VERIFICATION.md for provenance and fixture limits.
+
+
+## Compact bottom-right notification stack — November 20, 2026
+
+One shared stack anchors success, errors and operation progress at bottom-right
+with safe-area offsets. Short notices fit their text; long messages wrap within
+360px or the viewport minus 32px. A three-column grid aligns the leading icon,
+message and fixed 24px close button. Remove all legacy editor/mobile toast position
+overrides. Preserve status/alert roles, cancellation, error links and existing
+colors/timers. Existing profile-save regression now expects the right edge.
+
+Typecheck, 33 web tests, 18 desktop contracts and both production builds pass.
+Chromium's profile-save, AI-error recovery and compact-media scenarios pass (3/3).
+Manual Chromium/WebKit checks exercise actual profile saving/dismissal, verifying
+a 44px-high content-sized notice and aligned close control. Explicit visual
+fixtures check stacked long error/link and progress notices at 1280px/390px in
+both themes: 16px right/bottom inset, no overlap and no horizontal overflow.
+Captures were inspected. These browser checks use session/provider fixtures and
+do not establish real Publik connectivity. Shared native packaging advances to
+0.2.10; editor and product color palettes remain intact.

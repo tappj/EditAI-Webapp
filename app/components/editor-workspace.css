@@ -831,21 +831,6 @@
 .sequence-seek {
   z-index: 9;
 }
-body:has(.is-editor) .toast {
-  top: 76px;
-  bottom: auto;
-  max-width: 370px;
-  font-size: 12px;
-  padding: 14px 16px;
-  z-index: 40;
-  box-shadow: var(--shadow);
-}
-body:has(.is-editor) .toast.error {
-  top: 76px;
-}
-body:has(.is-editor) .toast.error + .toast {
-  top: 170px;
-}
 @media (min-width: 1800px) {
   .is-editor .editor-workspace {
     grid-template-columns: minmax(360px, 25%) minmax(0, 1fr) 350px;
@@ -1063,18 +1048,6 @@ body:has(.is-editor) .toast.error + .toast {
   .sequence-options input {
     width: 80px;
   }
-  body:has(.is-editor) .toast {
-    top: 68px;
-    left: 12px;
-    right: 12px;
-    max-width: none;
-  }
-  body:has(.is-editor) .toast.error {
-    top: 68px;
-  }
-  body:has(.is-editor) .toast.error + .toast {
-    top: 154px;
-  }
 }
 @media (min-width: 1100px) and (max-height: 680px) {
   .is-editor .editor {
@@ -1092,25 +1065,6 @@ body:has(.is-editor) .toast.error + .toast {
   .is-editor .studio-library {
     padding: 12px;
   }
-}
-/* Notifications stay readable without swallowing editing gestures. */
-body:has(.is-editor) .toast {
-  top: auto;
-  bottom: 14px;
-  right: 18px;
-  pointer-events: none;
-}
-body:has(.is-editor) .toast.error {
-  top: auto;
-  bottom: 114px;
-}
-body:has(.is-editor) .toast.error + .toast {
-  top: auto;
-  bottom: 14px;
-}
-body:has(.is-editor) .toast button,
-body:has(.is-editor) .toast a {
-  pointer-events: auto;
 }
 .is-editor .sequence-item.timeline-clip > .source-waveform {
   top: auto;

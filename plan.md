@@ -318,3 +318,13 @@ installer with a matching verified 0.2.9.
 
 Completed: original product palette is restored live; 0.2.9 is signed/notarized,
 installed, tested with real export and published. Only dark film artwork adapts.
+
+
+## Compact bottom-right notifications — November 20, 2026
+
+Use one shared notification layout across Home, Settings and editor. Anchor the
+stack bottom-right with safe-area spacing. Short notices fit their content; long
+errors wrap within a bounded width. Align leading icon, text and a fixed square
+close button; remove legacy editor placement overrides. Preserve existing themes,
+notification timing, cancel actions and error recovery links. Publish shared web
+and matching verified desktop 0.2.10.

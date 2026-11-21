@@ -910,3 +910,10 @@ while typing another name, then verifies saved name/photo and reload. Final own-
 media-control and autosave/theme/provider/photo scenarios pass 3/3 in Chromium
 (14.2s) and WebKit (14.9s). Typecheck, all 33 web tests, 18 native contracts and both
 production builds pass on this final renderer. No provider inference is performed.
+
+Desktop 0.2.11 is signed/notarized, installed and published. Final installer/archive
+verification and genuine existing-session UI/media/export acceptance pass, with
+native H.264/AAC export in 0.824s and both synthetic projects removed. No inference
+or provider/auth fixture was used in installed acceptance; automated telemetry was
+disabled and privacy choices preserved. Download metadata targets the verified
+release. See docs/desktop/VERIFICATION.md for hashes, CI and platform limits.

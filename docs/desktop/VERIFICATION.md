@@ -289,3 +289,38 @@ fixture or external AI request was used; automated telemetry remained disabled.
 Guarded publisher released v0.2.10 with DMG, ZIP/blockmap, latest-mac.yml, corresponding
 native source and SHA256SUMS. Homepage metadata targets this verified macOS arm64
 release. No Windows release or prior-version update installation is claimed tested.
+
+## Automatic Settings and scoped themes — November 20, 2026
+
+Shared runtime 24d08a8f15db3c546ef05503712ca33c71886ece includes General's
+name/photo controls and automatic saves, separate appearance and eight scoped
+brand themes, native dark contrasts, compact Home download/copy, no Privacy & data
+footer, bottom media controls without plus/In edit badges and a filled blue
+selected EditAI sparkle. Autosave preserves in-flight name edits, asynchronous
+photo/name changes and provider switches. Existing auth/AI/editor contracts remain.
+
+Typecheck, 33 web tests, 18 desktop contracts and both production builds pass.
+The full Chromium suite passed 40/40 before final refinements; final affected
+own-key/media/autosave/theme/provider/photo checks pass 3/3 per engine. Browser
+checks use explicit auth/provider fixtures and do not prove new Publik connectivity.
+
+0.2.11 Developer ID app and guided DMG are Apple-notarized, stapled and Gatekeeper
+accepted. Installer CI run 44855399095 assembled the matching DMG from signed ZIP
+SHA-256 f16e7f9b3790b05d6c000aa4038cb08ffe3eb4a2137d6b328e7fb0138323afbf.
+Final DMG SHA-256 dd33060cf555b276ab1dca1324c718e7adbef3786d3acdced50cb1d127a0940c.
+Verifier confirms mounted-DMG/ZIP/archive identity, corresponding native source,
+packaged Publik self-test and updater metadata. App archive SHA-256:
+bb0c16632c94fe9a14e5e1d1b052c6b2338bb82dddc6b3baae478c5bb0bbaef2.
+
+Installed /Applications/EditAI.app matches the verified archive; previous app is
+preserved at outputs/release0211-backup/EditAI.app. Real installed acceptance
+restored the genuine existing session, inspected General/appearance/theme controls,
+verified media control placement and selected blue sparkle, removed unused media,
+and exported actual H.264/AAC in 0.824 seconds. Both synthetic projects were removed.
+AI inference was not exercised; privacy choices were preserved and automated
+telemetry was disabled. No authentication/provider fixture was used in this acceptance.
+
+Guarded publisher released v0.2.11 with DMG, ZIP/blockmap, latest-mac.yml,
+corresponding native source and SHA256SUMS. Download manifest now targets the
+verified release. macOS arm64 only; no Windows release or prior-version automatic
+update installation is claimed tested.

@@ -348,3 +348,9 @@ trash bottom-right; remove plus and In edit badges, preserving used-source safet
 Fill the selected EditAI sparkle cyan/blue. Remove the raw-takes heading, move Mac
 download to the top bar, and use Your edits / View →. Shared desktop advances to
 0.2.11, pending final signed installer/installed acceptance and publication evidence.
+
+Completed: final shared runtime 24d08a8 is packaged in signed/notarized installed
+and published desktop 0.2.11. Real installed controls/media/export acceptance passes
+(0.824s), with all synthetic projects removed. Download metadata is updated; final
+web publication incorporates the provider/photo preservation refinements and release
+link. See both verification records for exact evidence and fixture boundaries.

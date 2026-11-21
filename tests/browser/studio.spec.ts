@@ -3078,7 +3078,7 @@ test("compact shaped media, integer volume, row-local drops and permanent unused
   await page.getByRole("button", { name: "Open EditAI chat" }).click();
   await expect(page.locator(".editai-tool.selected svg").first()).toHaveCSS(
     "fill",
-    "rgb(168, 240, 240)",
+    "rgb(196, 224, 255)",
   );
   await page.getByRole("button", { name: "Media workspace" }).click();
   await expect(page.locator(".editai-tool.selected")).toHaveCount(0);
@@ -3213,6 +3213,10 @@ test("automatic settings retain latest name and photo, retry failures, and scope
     profile = { ...profile, ...body };
     return r.fulfill({ json: { ok: true } });
   });
+  await page.route("**/api/choice", (r) => {
+    profile = { ...profile, choice: r.request().postDataJSON().choice };
+    return r.fulfill({ json: { ok: true } });
+  });
   await openStudio(page);
   await expect(
     page.getByText("Upload your raw takes here", { exact: true }),
@@ -3234,6 +3238,15 @@ test("automatic settings retain latest name and photo, retry failures, and scope
   await name.fill("Latest name");
   await expect(page.getByRole("status")).toContainText("All changes saved");
   expect(profile.displayName).toBe("Latest name");
+  await name.fill("Latest provider name");
+  await page.getByLabel("AI provider", { exact: true }).selectOption("publik");
+  await expect(page.getByLabel("AI provider", { exact: true })).toHaveValue(
+    "publik",
+  );
+  await expect(name).toHaveValue("Latest provider name");
+  await expect(page.getByRole("status")).toContainText("All changes saved");
+  expect(profile.displayName).toBe("Latest provider name");
+
   await page
     .locator('input[type=file][accept="image/png,image/jpeg,image/webp"]')
     .setInputFiles("outputs/overlay.png");
@@ -3241,7 +3254,7 @@ test("automatic settings retain latest name and photo, retry failures, and scope
   await expect.poll(() => typeof profile.avatar).toBe("string");
   await page.reload();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(name).toHaveValue("Latest name");
+  await expect(name).toHaveValue("Latest provider name");
   await expect(page.locator(".avatar-editor img")).toHaveAttribute(
     "src",
     /^data:image\/jpeg/,

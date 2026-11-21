@@ -865,7 +865,7 @@ variables exclusively to the logo (preserving original scissors artwork), iOS
 badge, EditAI tool and four Home tiles. System/light/dark remains independent.
 Dark page/surface/ink/muted/border tokens match AppTheme.swift. Main controls,
 export gradients and media/content colors are unaffected. The selected sparkle
-fills #a8f0f0 with the existing blue outline.
+fills #c4e0ff with the existing blue outline.
 
 Remove shared, login and marketing Privacy & data footer buttons. Settings retains
 privacy details/choices and onboarding retains its explicit disclosure. Source
@@ -885,3 +885,19 @@ Home, General and 390px Settings captures are inspected without horizontal overf
 A broad run passed 39 cases but its final reload hit stale assets during a rebuild;
 a fresh production server passes the affected cases. Final suite/publication evidence
 follows. Desktop 0.2.11 signed/notarized acceptance is pending.
+
+Final fresh-server Chromium suite passes 40/40 (1.4m); affected final Chromium and
+WebKit cases pass 2/2 per engine. Eight targeted WebKit checks passed before the
+final error-message refinement. On public editai.it.com, six Chromium checks pass
+(21.8s) and two WebKit checks pass (15.6s), covering theme/profile persistence,
+media controls and device-gated downloads. Sites version 102 publishes runtime
+48e5ffbb25491cace61046f0a62f612f6a28d06e. Browser authentication/AI remain
+explicit fixtures. New hook/theme/library lint has no errors; full application
+lint still includes pre-existing app-wide warnings/errors and is not claimed clean.
+
+Final refinement prevents an AI-provider switch from refreshing over pending profile
+inputs: finish pending settings writes and update only provider state. A delayed-save
+regression covers changing the name immediately before selecting another provider.
+The selected sparkle now uses Export's blue stop #c4e0ff. These changes are rebuilt
+for web and desktop; affected own-key, media and autosave/theme checks pass in both
+Chromium and WebKit (3/3 each). Required typecheck/unit/native checks are repeated.

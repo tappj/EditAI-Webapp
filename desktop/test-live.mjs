@@ -239,7 +239,7 @@ try {
     await page.getByRole("button", { name: "Open EditAI chat" }).click();
     await expect(page.locator(".editai-tool.selected svg").first()).toHaveCSS(
       "fill",
-      "rgb(168, 240, 240)",
+      "rgb(196, 224, 255)",
     );
     for (const name of [
       "Add captions",

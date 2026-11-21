@@ -486,6 +486,18 @@ export default function App({
     setAvatar(value);
     settingsSave.schedule({ displayName: profileName, avatar: value });
   }
+  async function selectProvider(choice: string) {
+    if (!(await settingsSave.flush())) return;
+    try {
+      await api("choice", { choice });
+      setSession((current: any) => ({
+        ...current,
+        profile: { ...current.profile, choice },
+      }));
+    } catch (error) {
+      fail(error);
+    }
+  }
   const refresh = useCallback(async () => {
     try {
       const s = await api("session");
@@ -3487,11 +3499,7 @@ export default function App({
                       AI provider
                       <select
                         value={session.profile.choice || "publik"}
-                        onChange={(e) =>
-                          void api("choice", { choice: e.target.value }).then(
-                            refresh,
-                          )
-                        }
+                        onChange={(e) => void selectProvider(e.target.value)}
                       >
                         <option value="publik">publik</option>
                         <option value="own_key">My OpenAI key</option>

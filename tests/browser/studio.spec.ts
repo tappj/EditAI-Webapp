@@ -3594,3 +3594,135 @@ test("automatic settings retain latest name and photo, retry failures, and scope
     path: `outputs/settings-themes/${browserName}-general-light.png`,
   });
 });
+
+test("free music previews, filters, imports, persists and exports real audio", async ({
+  page,
+  browserName,
+}) => {
+  await authenticated(page);
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await page
+    .getByRole("button", { name: "Audio workspace", exact: true })
+    .click();
+  await expect(page.locator(".audio-track")).toHaveCount(19);
+  await page.screenshot({
+    path: `outputs/audio-library-${browserName}.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Funk", exact: true }).click();
+  await expect(page.locator(".audio-track")).toHaveCount(6);
+  await page.getByLabel("Search free music").fill("make funk");
+  await expect(page.locator(".audio-track")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Preview Make Funk", exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator(".audio-catalog audio")
+        .evaluate((a: HTMLAudioElement) => a.currentTime),
+    )
+    .toBeGreaterThan(0.1);
+  await page
+    .getByRole("button", { name: "Stop Make Funk", exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator(".audio-catalog audio")
+        .evaluate((a: HTMLAudioElement) => a.paused),
+    )
+    .toBe(true);
+  await page.route(
+    "**/audio-library/make-funk.m4a",
+    (route) => route.fulfill({ status: 503 }),
+    { times: 1 },
+  );
+  await page
+    .getByRole("button", { name: "Add Make Funk to timeline", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Couldn't load this track",
+  );
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Add Make Funk to timeline", exact: true })
+    .click();
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+  await expect(page.locator(".audio-row")).toContainText("Make Funk");
+  await page.getByRole("button", { name: "Your audio", exact: true }).click();
+  await expect(page.locator(".source-card")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Import audio", exact: true })
+    .click({ noWaitAfter: true });
+  await page
+    .locator("input[type=file]")
+    .nth(1)
+    .setInputFiles(join(process.cwd(), "outputs/music.wav"));
+  await expect(page.locator(".source-card")).toHaveCount(2);
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(2);
+  // Silence the fixture's sine wave and imported track; the export must contain
+  // real bundled music, not just any audio stream from the original video.
+  await page.getByRole("checkbox", { name: "Mute audio", exact: true }).check();
+  await page.locator(".timeline-clip").first().click();
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  await page
+    .getByRole("spinbutton", { name: "Volume value", exact: true })
+    .fill("0");
+  await page
+    .getByRole("spinbutton", { name: "Volume value", exact: true })
+    .press("Enter");
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
+  await page.reload();
+  await page
+    .getByRole("button", { name: /^Edits/ })
+    .first()
+    .click();
+  await page.locator(".project-card-title").click();
+  await expect(page.locator(".audio-row .sequence-item")).toHaveCount(2);
+  await page
+    .getByRole("button", { name: "Audio workspace", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Preview Dreams", exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page
+        .locator(".audio-catalog audio")
+        .evaluate((a: HTMLAudioElement) => a.currentTime),
+    )
+    .toBeGreaterThan(0.1);
+  await page.getByRole("button", { name: "Your audio", exact: true }).click();
+  await expect(page.locator(".audio-catalog audio")).toHaveCount(0);
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: /Export resolution/ })
+    .selectOption("854");
+  const downloaded = page.waitForEvent("download", { timeout: 120000 });
+  await page.getByRole("button", { name: "Export video", exact: true }).click();
+  const destination = `outputs/free-music-${browserName}.mp4`;
+  await (await downloaded).saveAs(destination);
+  const levels = spawnSync(
+    "desktop/bin/ffmpeg",
+    [
+      "-hide_banner",
+      "-i",
+      destination,
+      "-af",
+      "volumedetect",
+      "-f",
+      "null",
+      "-",
+    ],
+    { encoding: "utf8" },
+  );
+  expect(levels.status).toBe(0);
+  const mean = Number(levels.stderr.match(/mean_volume: ([-\d.]+) dB/)?.[1]);
+  expect(mean).toBeGreaterThan(-50);
+  expect(mean).toBeLessThan(-1);
+});

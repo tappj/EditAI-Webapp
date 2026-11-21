@@ -378,3 +378,13 @@ Keep requested durations in rendered seconds across speed/trim, preserve effects
 when moving/extracting/duplicating and clear only internal edges when splitting.
 Validate new settings atomically without changing stable source word IDs or auth.
 Prepare matching signed/notarized installed desktop 0.2.12 and the live Site.
+
+## Free audio library — November 21, 2026
+
+Integrate 19 artist-released CC0 tracks by Holizna from OpenGameArt as the viable
+permanently free option. Bundle full recordings for reliable web and offline Mac
+playback; preserve original imports. Audio offers Free music / Your audio tabs,
+search, Chill/Funk/Electronic filters, single-player previews, source/license links
+and add-to-timeline through the existing persistent media pipeline. Record exact
+provenance and distribute CC0 terms. No trending-song or platform-library claim.
+Publish the live web update and matching verified installed Mac release 0.2.13.

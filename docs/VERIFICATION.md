@@ -989,3 +989,31 @@ response was used in this installed check; automated telemetry was disabled and
 privacy choices preserved. See the desktop verification record for hashes and CI.
 The final download-metadata build is isolated from concurrent audio-library work;
 that separate uncommitted feature is preserved and excluded from this release.
+
+## Free bundled music — November 21, 2026
+
+Audio now offers Free music and Your audio with the original import control.
+The catalog contains 19 full recordings by Holizna from three artist-uploaded
+OpenGameArt collections whose source pages explicitly specify CC0. Search, genre
+filters, source/license links, one preview player and add-to-timeline use bundled
+AAC assets and the existing persistent media/import pipeline. Switching panels
+stops previews and cancels pending downloads. Failed downloads preserve the edit
+and offer retry. No external music API, credentials, subscription, platform
+catalog scraping, artificial trending rank or AI music is introduced.
+
+Per-recording source URLs, original archive paths/digests and bundled digests,
+sizes and durations are tracked in lib/audio-library.json. CC0 legal text and
+source/processing notices accompany both web and desktop assets. The Mac protocol
+serves M4A as audio/mp4. Desktop 0.2.13 adds installed library acceptance before
+its guarded publisher may release artifacts.
+
+Typecheck, all 38 web tests (including distributed-asset/provenance integrity),
+19 native contracts and web/desktop builds pass. The new real-media workflow
+passes in Chromium (8.1s) and WebKit (10.6s): filter/search, preview/stop, add music,
+retain imported audio, reopen persisted project, and export with original/imported
+audio muted. FFmpeg measures non-silent exported bundled music. Earlier failures
+were test selectors for main-clip volume and a stale built Worker after rebuilding;
+the final checks use the numeric main-clip Volume control and a fresh server.
+Browser authentication and provider boundaries remain explicit isolated fixtures;
+these tests do not establish new real Publik connectivity. Final full-suite,
+hosted and signed/installed desktop publication evidence follows.

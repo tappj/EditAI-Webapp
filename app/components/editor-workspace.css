@@ -2603,3 +2603,91 @@
 .animation-outgoing .animation-sample {
   animation-direction: reverse;
 }
+
+.audio-catalog-note,
+.audio-catalog-credit,
+.audio-result-count {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.audio-categories {
+  flex-wrap: wrap;
+}
+.audio-track-list {
+  display: grid;
+  gap: 8px;
+}
+.audio-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--canvas);
+}
+.audio-track-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.is-editor .audio-track-info strong {
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.audio-track-info span,
+.audio-track-info a {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.audio-track-info a {
+  width: fit-content;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.audio-preview-button,
+.audio-add-button {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--control);
+  background: var(--ice);
+}
+.audio-preview-button[aria-pressed="true"] {
+  background: var(--lavender);
+}
+.audio-add-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.audio-catalog-credit {
+  margin: 18px 0 0;
+}
+.audio-catalog-credit a {
+  text-decoration: underline;
+}
+.audio-catalog-error {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.audio-loading {
+  animation: audio-loading 1s linear infinite;
+}
+@keyframes audio-loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .audio-loading {
+    animation: none;
+  }
+}

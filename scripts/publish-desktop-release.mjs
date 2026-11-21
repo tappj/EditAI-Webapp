@@ -15,7 +15,7 @@ try {
     );
   const dir = resolve("desktop/release"),
     arch = process.arch,
-    tag = "v0.2.12",
+    tag = "v0.2.13",
     app = resolve(
       dir,
       "mac" + (arch === "arm64" ? "-arm64" : "") + "/EditAI.app",
@@ -43,7 +43,7 @@ try {
     !accepted.runtime.sandbox ||
     !accepted.runtime.contextIsolation ||
     accepted.runtime.nodeIntegration ||
-    accepted.runtime.version !== "0.2.12"
+    accepted.runtime.version !== "0.2.13"
   )
     throw Error("Installed application acceptance has not passed.");
   if (
@@ -54,6 +54,13 @@ try {
     !accepted.motionUI?.compositorExportRequired
   )
     throw Error("Installed animation and fade acceptance has not passed.");
+  if (
+    !accepted.audioLibrary?.preview ||
+    !accepted.audioLibrary?.added ||
+    !accepted.audioLibrary?.importsPreserved ||
+    !accepted.audioLibrary?.musicExport
+  )
+    throw Error("Installed free music library acceptance has not passed.");
   const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
   const archive = resolve(app, "Contents/Resources/app.asar");
   if (
@@ -70,7 +77,7 @@ try {
   const names = (await readdir(dir)).filter(
     (n) =>
       n === "latest-mac.yml" ||
-      (n.startsWith(`EditAI-0.2.12-mac-${arch}.`) &&
+      (n.startsWith(`EditAI-0.2.13-mac-${arch}.`) &&
         /\.(dmg|zip|blockmap)$/.test(n) &&
         !n.endsWith(".dmg.blockmap")),
   );
@@ -106,7 +113,7 @@ try {
       signed.artifactSha256?.[name] !== sha(await readFile(resolve(dir, name)))
     )
       throw Error("Release artifacts changed after verification.");
-  const sourceName = "EditAI-0.2.12-native-corresponding-source.tar.xz";
+  const sourceName = "EditAI-0.2.13-native-corresponding-source.tar.xz";
   await copyFile(source, resolve(dir, sourceName));
   names.push(sourceName);
   const checksums = [];
@@ -117,9 +124,9 @@ try {
   const notes = resolve("outputs/desktop-release-notes.md");
   await writeFile(
     notes,
-    "EditAI Desktop 0.2.12 for macOS " +
+    "EditAI Desktop 0.2.13 for macOS " +
       arch +
-      ". Refines selection outlines and resize handles, restores Split / Overlay / Crop / Duplicate / Delete ordering, and puts Canvas in a compact preview menu. Adds native-style audio fades and independent entrance/exit animations with visual previews under the existing Clip, Text and Filter tabs. Keeps font choices in place and preserves matching preview/export behavior. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
+      ". Adds 19 full CC0 music tracks with search, Chill/Funk/Electronic filters, previews and add-to-timeline in Audio. Keeps audio file imports and persistent editing/export. Bundled music works offline with no API key or subscription. Includes artist/source links and CC0 terms. Signed, notarized and installed-app music/import/export acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
   );
   // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
   // Keep it private until every release artifact and the installed app pass.
@@ -136,7 +143,7 @@ try {
   );
   if (!draft.isDraft)
     throw Error("Expected a private draft release before publication.");
-  const zipName = `EditAI-0.2.12-mac-${arch}.zip`;
+  const zipName = `EditAI-0.2.13-mac-${arch}.zip`;
   const remoteZip = draft.assets.find((asset) => asset.name === zipName);
   if (
     !remoteZip ||
@@ -175,7 +182,7 @@ try {
     "--repo",
     "tappj/EditAI-Webapp",
     "--title",
-    "EditAI Desktop 0.2.12",
+    "EditAI Desktop 0.2.13",
     "--notes-file",
     notes,
     "--draft=false",
@@ -188,7 +195,7 @@ try {
         {
           platform: "macos",
           arch,
-          version: "0.2.12",
+          version: "0.2.13",
           url: `https://github.com/tappj/EditAI-Webapp/releases/download/${tag}/${dmg}`,
           signed: true,
           notarized: true,

@@ -85,3 +85,12 @@ licenses and notices continue to apply.
 
 FFmpeg is a trademark of Fabrice Bellard. This notice does not imply an
 endorsement of EditAI by FFmpeg, ffmpeg.wasm, Electron or their contributors.
+
+## Built-in music
+
+The 19 built-in recordings by Holizna are dedicated to the public domain under
+CC0 1.0 Universal. Artist-uploaded source pages and per-file provenance are in
+`lib/audio-library.json`; the distributed license and source notices are in
+`public/audio-library/`. EditAI converts full original recordings to AAC for
+playback compatibility. These recordings are separate from the MIT source-code
+license and require no attribution or music subscription.

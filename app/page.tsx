@@ -2680,6 +2680,15 @@ export default function App({
                             extraInput.current?.click();
                           }}
                           onRemove={(index) => void removeLibraryMedia(index)}
+                          onAddAudio={async (file) => {
+                            mediaKind.current = "audio";
+                            replacingAudio.current = null;
+                            await addMedia([file]);
+                          }}
+                          onPreviewAudio={() => {
+                            player.current?.pause();
+                            setPlaying(false);
+                          }}
                           removing={removingMedia || !!busy}
                         />
                       </>

@@ -383,6 +383,8 @@ async function startDesktop() {
         ".png": "image/png",
         ".jpg": "image/jpeg",
         ".mp4": "video/mp4",
+        ".m4a": "audio/mp4",
+        ".txt": "text/plain; charset=utf-8",
         ".ttf": "font/ttf",
         ".bin": "application/octet-stream",
       };

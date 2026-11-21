@@ -13,6 +13,7 @@ import type { Document } from "@/lib/editor/model";
 import { sourceIsUsed } from "@/lib/editor/library";
 import { Button } from "./ui";
 import { ClipFrames } from "./ClipFrames";
+import { AudioLibrary } from "./AudioLibrary";
 function fileSize(bytes?: number) {
   if (bytes == null) return "Size unavailable";
   if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -26,6 +27,8 @@ export function EditorSourceLibrary({
   onImport,
   onRemove,
   removing,
+  onAddAudio,
+  onPreviewAudio,
 }: {
   doc: Document;
   urls: Record<string, string>;
@@ -33,9 +36,12 @@ export function EditorSourceLibrary({
   onImport: () => void;
   onRemove: (index: number) => void;
   removing?: boolean;
+  onAddAudio: (file: File) => Promise<void>;
+  onPreviewAudio: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [audioTab, setAudioTab] = useState("music");
   const sources = doc.sources
     .map((source, index) => ({ source, index }))
     .filter(({ source, index }) => {
@@ -55,16 +61,24 @@ export function EditorSourceLibrary({
         <div>
           <h3>
             {mode === "audio"
-              ? "Your audio"
+              ? "Audio"
               : mode === "overlay"
                 ? "Overlay media"
                 : "Source library"}
           </h3>
           <small>
-            {sources.length} {sources.length === 1 ? "item" : "items"}
+            {mode === "audio" && audioTab === "music"
+              ? "Ready to use"
+              : `${sources.length} ${sources.length === 1 ? "item" : "items"}`}
           </small>
         </div>
-        <Button secondary onClick={onImport}>
+        <Button
+          secondary
+          onClick={() => {
+            if (mode === "audio") setAudioTab("uploads");
+            onImport();
+          }}
+        >
           <Upload size={15} />
           {mode === "audio"
             ? "Import audio"
@@ -73,117 +87,151 @@ export function EditorSourceLibrary({
               : "Import"}
         </Button>
       </div>
-      <label className="library-search">
-        <Search size={15} />
-        <input
-          aria-label="Search source media"
-          placeholder="Search your media"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </label>
-      {mode === "all" && (
-        <div className="library-filters" aria-label="Media filters">
-          {[
-            ["all", "All"],
-            ["video", "Videos"],
-            ["image", "Images"],
-            ["audio", "Audio"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              aria-pressed={filter === id}
-              onClick={() => setFilter(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="source-grid">
-        {sources.map(({ source: s, index }) => {
-          const used = sourceIsUsed(doc, index);
-          const ratio =
-            s.kind === "audio"
-              ? 1
-              : Math.max(0.65, Math.min(1.6, (s.width || 1) / (s.height || 1)));
-          return (
-            <div
-              className="source-item source-card"
-              key={s.id}
-              draggable
-              onDragStart={(e) => {
-                if ((e.target as HTMLElement).closest("button")) {
-                  e.preventDefault();
-                  return;
-                }
-                e.dataTransfer.effectAllowed = "copy";
-                e.dataTransfer.setData("application/x-editai-source", s.id);
-                e.dataTransfer.setData(
-                  "application/x-editai-kind-" + s.kind,
-                  "1",
-                );
-              }}
-            >
-              <div
-                className={`source-preview ${s.kind}`}
-                style={{ aspectRatio: ratio }}
-              >
-                <button
-                  className="source-remove"
-                  aria-label={"Delete media " + s.name}
-                  title={used ? "Remove timeline clips first" : "Delete media"}
-                  disabled={used || removing}
-                  onClick={() => onRemove(index)}
-                >
-                  <Trash2 size={13} />
-                </button>
-                {s.kind !== "audio" ? (
-                  <ClipFrames
-                    library
-                    url={urls[s.id]}
-                    start={0}
-                    end={s.duration}
-                    image={s.kind === "image"}
-                  />
-                ) : (
-                  <AudioLines size={34} />
-                )}
-                <span className="source-kind">
-                  {s.kind === "audio" ? (
-                    <AudioLines size={12} />
-                  ) : s.kind === "image" ? (
-                    <ImageIcon size={12} />
-                  ) : (
-                    <Film size={12} />
-                  )}
-                </span>
-                <span className="source-duration">
-                  {Math.floor(s.duration / 60)}:
-                  {Math.floor(s.duration % 60)
-                    .toString()
-                    .padStart(2, "0")}
-                </span>
-              </div>
-              <strong title={s.name}>{s.name}</strong>
-              <small>{fileSize(s.bytes)}</small>
-            </div>
-          );
-        })}
-      </div>
-      {!sources.length && (
-        <div className="library-empty">
-          <Film size={26} />
-          <p>
-            {query
-              ? "No matching media."
-              : "Import media to add it to your edit."}
-          </p>
-          <button className="text-button" onClick={onImport}>
-            <Plus size={14} />
-            Import media
+      {mode === "audio" && (
+        <div
+          className="library-filters audio-library-tabs"
+          aria-label="Audio library"
+        >
+          <button
+            aria-pressed={audioTab === "music"}
+            onClick={() => setAudioTab("music")}
+          >
+            Free music
+          </button>
+          <button
+            aria-pressed={audioTab === "uploads"}
+            onClick={() => setAudioTab("uploads")}
+          >
+            Your audio
           </button>
         </div>
+      )}
+      {mode === "audio" && audioTab === "music" ? (
+        <AudioLibrary
+          onAdd={onAddAudio}
+          onPreview={onPreviewAudio}
+          disabled={removing}
+        />
+      ) : (
+        <>
+          <label className="library-search">
+            <Search size={15} />
+            <input
+              aria-label="Search source media"
+              placeholder="Search your media"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          {mode === "all" && (
+            <div className="library-filters" aria-label="Media filters">
+              {[
+                ["all", "All"],
+                ["video", "Videos"],
+                ["image", "Images"],
+                ["audio", "Audio"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  aria-pressed={filter === id}
+                  onClick={() => setFilter(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="source-grid">
+            {sources.map(({ source: s, index }) => {
+              const used = sourceIsUsed(doc, index);
+              const ratio =
+                s.kind === "audio"
+                  ? 1
+                  : Math.max(
+                      0.65,
+                      Math.min(1.6, (s.width || 1) / (s.height || 1)),
+                    );
+              return (
+                <div
+                  className="source-item source-card"
+                  key={s.id}
+                  draggable
+                  onDragStart={(e) => {
+                    if ((e.target as HTMLElement).closest("button")) {
+                      e.preventDefault();
+                      return;
+                    }
+                    e.dataTransfer.effectAllowed = "copy";
+                    e.dataTransfer.setData("application/x-editai-source", s.id);
+                    e.dataTransfer.setData(
+                      "application/x-editai-kind-" + s.kind,
+                      "1",
+                    );
+                  }}
+                >
+                  <div
+                    className={`source-preview ${s.kind}`}
+                    style={{ aspectRatio: ratio }}
+                  >
+                    <button
+                      className="source-remove"
+                      aria-label={"Delete media " + s.name}
+                      title={
+                        used ? "Remove timeline clips first" : "Delete media"
+                      }
+                      disabled={used || removing}
+                      onClick={() => onRemove(index)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                    {s.kind !== "audio" ? (
+                      <ClipFrames
+                        library
+                        url={urls[s.id]}
+                        start={0}
+                        end={s.duration}
+                        image={s.kind === "image"}
+                      />
+                    ) : (
+                      <AudioLines size={34} />
+                    )}
+                    <span className="source-kind">
+                      {s.kind === "audio" ? (
+                        <AudioLines size={12} />
+                      ) : s.kind === "image" ? (
+                        <ImageIcon size={12} />
+                      ) : (
+                        <Film size={12} />
+                      )}
+                    </span>
+                    <span className="source-duration">
+                      {Math.floor(s.duration / 60)}:
+                      {Math.floor(s.duration % 60)
+                        .toString()
+                        .padStart(2, "0")}
+                    </span>
+                  </div>
+                  <strong title={s.name}>{s.name}</strong>
+                  <small>{fileSize(s.bytes)}</small>
+                </div>
+              );
+            })}
+          </div>
+          {!sources.length && (
+            <div className="library-empty">
+              <Film size={26} />
+              <p>
+                {query
+                  ? "No matching media."
+                  : "Import media to add it to your edit."}
+              </p>
+              <button className="text-button" onClick={onImport}>
+                <Plus size={14} />
+                Import media
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

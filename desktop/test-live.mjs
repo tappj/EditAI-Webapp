@@ -379,6 +379,54 @@ try {
       compositorExportRequired: true,
     };
   }
+  if (process.env.EDITAI_VERIFY_AUDIO_LIBRARY) {
+    await page.locator(".timeline-clip").first().click();
+    await page.getByRole("button", { name: "Clip", exact: true }).click();
+    await page
+      .getByRole("spinbutton", { name: "Volume value", exact: true })
+      .fill("0");
+    await page
+      .getByRole("spinbutton", { name: "Volume value", exact: true })
+      .press("Enter");
+    await page
+      .getByRole("button", { name: "Audio workspace", exact: true })
+      .click();
+    await expect(page.locator(".audio-track")).toHaveCount(19);
+    await page.getByLabel("Search free music").fill("Make Funk");
+    await page
+      .getByRole("button", { name: "Preview Make Funk", exact: true })
+      .click();
+    await expect
+      .poll(() =>
+        page
+          .locator(".audio-catalog audio")
+          .evaluate((audio) => audio.currentTime),
+      )
+      .toBeGreaterThan(0.1);
+    await page
+      .getByRole("button", { name: "Add Make Funk to timeline", exact: true })
+      .click();
+    await expect(page.locator(".audio-row .sequence-item")).toHaveCount(1);
+    await page.getByRole("button", { name: "Your audio", exact: true }).click();
+    await expect(page.locator(".source-card")).toHaveCount(1);
+    await page
+      .getByRole("button", { name: "Import audio", exact: true })
+      .click({ noWaitAfter: true });
+    await page
+      .locator("input[type=file]")
+      .nth(1)
+      .setInputFiles(resolve("outputs/music.wav"));
+    await expect(page.locator(".audio-row .sequence-item")).toHaveCount(2);
+    await page
+      .getByRole("checkbox", { name: "Mute audio", exact: true })
+      .check();
+    await expect(page.locator(".source-card")).toHaveCount(2);
+    report.audioLibrary = {
+      preview: true,
+      added: true,
+      importsPreserved: true,
+    };
+  }
   const destination = resolve("outputs/desktop-real-export.mp4");
   await app.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
@@ -404,6 +452,30 @@ try {
   ]);
   report.exportSeconds = (Date.now() - start) / 1000;
   report.export = true;
+  if (report.audioLibrary) {
+    const { spawnSync } = await import("node:child_process");
+    const levels = spawnSync(
+      resolve("desktop/bin/ffmpeg"),
+      [
+        "-hide_banner",
+        "-i",
+        destination,
+        "-af",
+        "volumedetect",
+        "-f",
+        "null",
+        "-",
+      ],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+    expect(levels.status).toBe(0);
+    const mean = Number(levels.stderr.match(/mean_volume: ([-\d.]+) dB/)?.[1]);
+    expect(mean).toBeGreaterThan(-50);
+    expect(mean).toBeLessThan(-1);
+    report.audioLibrary.exportMeanDb = mean;
+    report.audioLibrary.musicExport = true;
+  }
+
   await page.screenshot({
     path: "outputs/desktop-real-editor.png",
     fullPage: true,

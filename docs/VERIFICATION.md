@@ -842,3 +842,8 @@ both themes: 16px right/bottom inset, no overlap and no horizontal overflow.
 Captures were inspected. These browser checks use session/provider fixtures and
 do not establish real Publik connectivity. Shared native packaging advances to
 0.2.10; editor and product color palettes remain intact.
+
+Notification layout is live at https://editai.it.com (Sites version 98). Desktop
+0.2.10 is signed/notarized, installed and published after matching mounted-DMG
+verification and real installed-app export in 0.821s. Detailed provenance and
+fixture limits are recorded in docs/desktop/VERIFICATION.md.

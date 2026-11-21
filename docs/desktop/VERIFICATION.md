@@ -261,3 +261,31 @@ Guarded publisher released v0.2.9 with verified DMG, ZIP/blockmap, latest-mac.ym
 corresponding native source and SHA256SUMS. Homepage metadata now targets this
 release. macOS arm64 only; no Windows release or prior-version auto-update
 installation is claimed tested.
+
+
+## Compact bottom-right notifications — November 20, 2026
+
+Runtime source 975d224e6437c3dd0c115b5d8a4d655b9d874ac3 gives Home, Settings
+and the editor a shared bottom-right notification stack. Short messages fit their
+content; longer messages wrap within a bounded width. Leading icons, text and
+fixed 24px close buttons align in a grid. Legacy editor/mobile position overrides
+are removed. Existing colors, status/alert roles, cancellation and error links stay
+intact. All required checks/builds pass; Chromium regression scenarios pass 3/3.
+Manual Chromium/WebKit visual fixtures cover both themes, 1280px/390px viewports,
+actual profile saving/dismissal and progress/error stacking without overflow.
+Browser fixture checks do not prove real provider connectivity.
+
+0.2.10 Developer ID app is Apple-notarized, stapled, Gatekeeper accepted and installed
+at /Applications/EditAI.app. Prior app is preserved at outputs/release0210-backup/EditAI.app.
+Mac installer CI run 44848097419 assembles the matching guided DMG from the signed ZIP.
+
+Final DMG SHA-256: 18f72891994d781bd9fd31b736e000f2226d3f60e71cc1f31f0563f26db8a28d.
+Apple accepted the signed installer; staple/Gatekeeper checks pass. Final verifier
+confirms mounted-app/ZIP identity, corresponding native source, packaged Publik
+self-test and updater hashes. Installed 0.2.10 acceptance passed existing genuine
+Publik session restoration, shared UI/media-removal checks and real native H.264/AAC
+export in 0.821 seconds. All 2 synthetic projects were removed. No provider/auth
+fixture or external AI request was used; automated telemetry remained disabled.
+Guarded publisher released v0.2.10 with DMG, ZIP/blockmap, latest-mac.yml, corresponding
+native source and SHA256SUMS. Homepage metadata targets this verified macOS arm64
+release. No Windows release or prior-version update installation is claimed tested.

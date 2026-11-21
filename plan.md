@@ -328,3 +328,6 @@ errors wrap within a bounded width. Align leading icon, text and a fixed square
 close button; remove legacy editor placement overrides. Preserve existing themes,
 notification timing, cancel actions and error recovery links. Publish shared web
 and matching verified desktop 0.2.10.
+
+Completed: bottom-right notification layout is live on web and installed desktop
+0.2.10; checks, Apple acceptance, final installer verification and real export pass.

@@ -167,7 +167,7 @@ await writeFile(
   JSON.stringify(
     {
       name: "editai-desktop",
-      version: "0.2.7",
+      version: "0.2.8",
       type: "module",
       main: "main.mjs",
       description: "EditAI local video editing studio",

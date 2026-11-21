@@ -782,3 +782,17 @@ verify the matching signed/notarized installer. Installed real acceptance restor
 the genuine session, exercises unused-media removal and exports H.264/AAC in 0.821s;
 no auth/AI fixture or inference request is used. Detailed provenance and limits are
 in docs/desktop/VERIFICATION.md. Homepage metadata now links the verified 0.2.7 DMG.
+
+
+## Light Home illustration restored — November 20, 2026
+
+Remove only the unthemed product film-strip overrides. Light Home now inherits
+the original pastel gradient, lavender back card, pale borders and white play icon.
+Dark Home retains the explicit blue surfaces and white play icon. Shared renderer
+applies the correction to both web and desktop; version-pinned native packaging
+contracts advance to 0.2.8. Typecheck, all 33 web tests, all 18 desktop contracts,
+web production build and desktop production build pass. Manual browser inspection
+with explicit session fixtures checks the light and dark front/back computed colors,
+borders and gradients in Chromium and WebKit. The restored light capture was
+visually inspected. This is presentation verification, not real provider-connectivity
+evidence; no external AI requests are needed for the correction.

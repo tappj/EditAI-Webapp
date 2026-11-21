@@ -3037,15 +3037,6 @@ body:has(.is-editor) .notification-stack .toast.error + .toast {
 :root[data-theme="dark"] .app-shell .quick-tools {
   --tile-batch: #8cbcf0;
 }
-.app-shell .film-strip {
-  border-color: #aac8e9;
-  color: #174d83;
-  background: linear-gradient(145deg, #96d9e8, #6ba4e4);
-}
-.app-shell .film-strip.back {
-  background: #6498d5;
-  border-color: #9ebfe8;
-}
 :root[data-theme="dark"] .app-shell .film-strip {
   color: #fff;
   border-color: #315a87;

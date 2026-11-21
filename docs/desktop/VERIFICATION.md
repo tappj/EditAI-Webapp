@@ -357,3 +357,14 @@ Guarded publication released v0.2.12 with signed DMG/ZIP, blockmap, updater meta
 corresponding native source and SHA256SUMS. The publisher requires this installed
 motion/fade acceptance. The download manifest targets the verified macOS arm64
 release. No Windows release or previous-version updater installation is claimed.
+
+## Free music library — November 21, 2026
+
+Shared renderer includes the 19 CC0 Holizna recordings, source/license notices,
+search, categories, previews, add-to-timeline and the preserved import control.
+Every signed-app asset matches lib/audio-library.json's reviewed SHA-256 digest.
+Web/native checks and both builds pass; Apple has accepted the 0.2.13 app.
+Installer assembly uses macOS CI run 44889827704 from the exact signed ZIP
+SHA-256 d35c215332367d96475f0a6b19ef374275a64a732734d3736142d0d3b157e2f7.
+Final notarized installer and installed-session music/import/export acceptance
+must pass before the guarded publisher enables the public release.

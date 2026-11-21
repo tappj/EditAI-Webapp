@@ -1027,3 +1027,12 @@ animated export is H.264/AAC, 854×480, 19.1 seconds. Concurrent audio-library w
 was excluded from the build and preserved; it is a separate subsequent change.
 Existing Site access, D1/R2 and secrets are unchanged. Main and the working branch
 contain the completed motion/fade implementation and verification records.
+
+Final fresh-server Chromium suite passes 42/42 (1.8m). Final WebKit music and
+existing imported-audio workflows pass; the error/retry assertion is scoped to
+the audio catalog so the independent AI-unavailable fixture notice cannot collide.
+Live Sites version 106, source ebd5754, is published at https://editai.it.com.
+Public Chromium music/import-export checks pass 2/2 (19.5s); public WebKit music
+workflow passes (14.7s), including retry, persistence, previews and measured music
+in the exported MP4. Signed-app inspection verifies all 19 packaged recordings
+against the exact catalog hashes. Installed desktop 0.2.13 acceptance follows.

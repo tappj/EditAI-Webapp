@@ -1,5 +1,5 @@
 "use client";
-import { RotateCcw, Layers, AudioLines } from "lucide-react";
+import { RotateCcw, AudioLines } from "lucide-react";
 import {
   appearance,
   type Document,
@@ -9,6 +9,9 @@ import {
 } from "@/lib/editor/model";
 import type { Track } from "@/lib/editor/timeline";
 import { AppearanceEditor } from "./AppearanceEditor";
+import { MotionControls } from "./MotionControls";
+import { ClipFrames } from "./ClipFrames";
+import { AudioFadeControls } from "./AudioFadeControls";
 import { Button, IconButton, Range } from "./ui";
 export function SelectedMediaInspector({
   doc,
@@ -18,11 +21,8 @@ export function SelectedMediaInspector({
   onChange,
   onCrop,
   onExtract,
-  onOverlay,
   onReplace,
-  canvasSettings,
 }: {
-  canvasSettings?: React.ReactNode;
   doc: Document;
   selection: { track: Track; id: string };
   urls: Record<string, string>;
@@ -30,7 +30,6 @@ export function SelectedMediaInspector({
   onChange: (d: Document) => void;
   onCrop: () => void;
   onExtract: () => void;
-  onOverlay: () => void;
   onReplace: (id: string) => void;
 }) {
   const item =
@@ -67,54 +66,76 @@ export function SelectedMediaInspector({
     return audio ? (
       <p className="panel-note">Select video or an image to apply a filter.</p>
     ) : (
-      <AppearanceEditor
-        mode="filters"
-        onResetAdjustments={() =>
-          update((x) => {
-            x.appearance = {
-              ...a,
-              brightness: 0,
-              contrast: 1,
-              saturation: 1,
-              warmth: 0,
-              adjustments: {},
-              opacity: 1,
-            };
-            if (overlay) x.opacity = 1;
-          })
-        }
-        opacityControl={
-          <Range
-            label="Opacity"
-            min={0}
-            max={1}
-            resetValue={1}
-            value={
-              overlay
-                ? (item as Document["overlays"][number]).opacity
-                : a.opacity
-            }
-            onChange={(n) =>
-              update((x) => {
-                if (overlay) x.opacity = n;
-                else {
-                  x.appearance ??= appearance();
-                  x.appearance.opacity = n;
-                }
-              })
-            }
-          />
-        }
-        value={a}
-        onChange={(value) =>
-          update((x) => {
-            x.appearance = value;
-          })
-        }
-        url={urls[source.id]}
-        image={source.kind === "image"}
-        sourceDuration={source.duration}
-      />
+      <>
+        <MotionControls
+          media
+          value={a}
+          preview={
+            <ClipFrames
+              library
+              url={urls[source.id]}
+              start={
+                audio || overlay ? (item as Overlay).sourceStart : item.start
+              }
+              end={source.duration}
+              image={source.kind === "image"}
+            />
+          }
+          onChange={(patch) =>
+            update((x) => {
+              x.appearance = { ...a, ...patch };
+            })
+          }
+        />
+        <AppearanceEditor
+          mode="filters"
+          onResetAdjustments={() =>
+            update((x) => {
+              x.appearance = {
+                ...a,
+                brightness: 0,
+                contrast: 1,
+                saturation: 1,
+                warmth: 0,
+                adjustments: {},
+                opacity: 1,
+              };
+              if (overlay) x.opacity = 1;
+            })
+          }
+          opacityControl={
+            <Range
+              label="Opacity"
+              min={0}
+              max={1}
+              resetValue={1}
+              value={
+                overlay
+                  ? (item as Document["overlays"][number]).opacity
+                  : a.opacity
+              }
+              onChange={(n) =>
+                update((x) => {
+                  if (overlay) x.opacity = n;
+                  else {
+                    x.appearance ??= appearance();
+                    x.appearance.opacity = n;
+                  }
+                })
+              }
+            />
+          }
+          value={a}
+          onChange={(value) =>
+            update((x) => {
+              x.appearance = value;
+            })
+          }
+          url={urls[source.id]}
+          image={source.kind === "image"}
+          sourceDuration={source.duration}
+        />
+      </>
     );
   return (
     <>
@@ -130,11 +151,9 @@ export function SelectedMediaInspector({
               update((x) => {
                 x.speed = 1;
                 x.volume = overlay ? 0 : 1;
-                if (audio) {
-                  x.muted = false;
-                  x.fadeIn = 0;
-                  x.fadeOut = 0;
-                }
+                x.fadeIn = 0;
+                x.fadeOut = 0;
+                if (audio) x.muted = false;
               })
             }
           >
@@ -142,16 +161,6 @@ export function SelectedMediaInspector({
           </IconButton>
         </div>
         <p className="clip-name">{source.name}</p>
-        {!audio && !overlay && (
-          <Button
-            secondary
-            disabled={doc.segments.length < 2}
-            onClick={onOverlay}
-          >
-            <Layers size={15} />
-            Move to overlay
-          </Button>
-        )}
         {source.kind !== "image" && (
           <>
             <Range
@@ -165,6 +174,15 @@ export function SelectedMediaInspector({
                   x.volume = n;
                 })
               }
+            />
+            <AudioFadeControls
+              value={item}
+              duration={
+                audio || overlay
+                  ? item.end - item.start
+                  : (item.end - item.start) / (item.speed ?? 1)
+              }
+              onChange={(patch) => update((x) => Object.assign(x, patch))}
             />
             <Range
               label={audio ? "Audio speed" : "Speed"}
@@ -212,25 +230,9 @@ export function SelectedMediaInspector({
               />
               Mute audio
             </label>
-            {(["fadeIn", "fadeOut"] as const).map((key) => (
-              <Range
-                key={key}
-                label={key === "fadeIn" ? "Fade in" : "Fade out"}
-                min={0}
-                max={10}
-                resetValue={0}
-                value={(item as Document["audio"][number])[key]}
-                onChange={(n) =>
-                  update((x) => {
-                    x[key] = n;
-                  })
-                }
-              />
-            ))}
           </>
         )}
       </section>
-      {canvasSettings}
       {!audio && (
         <AppearanceEditor
           value={a}

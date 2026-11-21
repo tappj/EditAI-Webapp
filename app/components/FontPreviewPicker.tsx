@@ -53,7 +53,7 @@ export function FontPreviewPicker({
 }) {
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(12);
-  const fonts = [font, ...FONTS.filter((f) => f !== font)].filter((f) =>
+  const fonts = FONTS.filter((f) =>
     f.toLowerCase().includes(query.toLowerCase()),
   );
   const preview = sample.slice(0, 40) || "Your story";

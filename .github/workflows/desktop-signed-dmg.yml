@@ -38,21 +38,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh api "repos/tappj/EditAI-Webapp/releases/$RELEASE_ID" --jq .tag_name | grep -Fx 'v0.2.11'
-          gh api "repos/tappj/EditAI-Webapp/releases/assets/$ASSET_ID" -H 'Accept: application/octet-stream' > "$RUNNER_TEMP/EditAI-0.2.11-mac-arm64.zip"
-          printf '%s  %s\n' "$EXPECTED_SHA256" "$RUNNER_TEMP/EditAI-0.2.11-mac-arm64.zip" | shasum -a 256 -c -
+          gh api "repos/tappj/EditAI-Webapp/releases/$RELEASE_ID" --jq .tag_name | grep -Fx 'v0.2.12'
+          gh api "repos/tappj/EditAI-Webapp/releases/assets/$ASSET_ID" -H 'Accept: application/octet-stream' > "$RUNNER_TEMP/EditAI-0.2.12-mac-arm64.zip"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$RUNNER_TEMP/EditAI-0.2.12-mac-arm64.zip" | shasum -a 256 -c -
       - name: Assemble and inspect disk image
         shell: bash
         run: |
           set -euo pipefail
           stage="$RUNNER_TEMP/editai-dmg-stage"
           mkdir -p "$stage"
-          ditto -x -k "$RUNNER_TEMP/EditAI-0.2.11-mac-arm64.zip" "$stage"
+          ditto -x -k "$RUNNER_TEMP/EditAI-0.2.12-mac-arm64.zip" "$stage"
           codesign --verify --deep --strict "$stage/EditAI.app"
           xcrun stapler validate "$stage/EditAI.app"
           spctl --assess --type execute --verbose=2 "$stage/EditAI.app"
           node node_modules/electron-builder/cli.js --prepackaged "$stage/EditAI.app" --config desktop/electron-builder.yml --mac dmg --arm64 --publish never -c.mac.notarize=false -c.forceCodeSigning=false -c.directories.output="$RUNNER_TEMP/dmg-output"
-          image="$RUNNER_TEMP/dmg-output/EditAI-0.2.11-mac-arm64.dmg"
+          image="$RUNNER_TEMP/dmg-output/EditAI-0.2.12-mac-arm64.dmg"
           hdiutil verify "$image"
           mount="$RUNNER_TEMP/editai-dmg-mount"
           mkdir -p "$mount"
@@ -67,7 +67,7 @@ jobs:
           test -f "$mount/.DS_Store"
       - uses: actions/upload-artifact@v4
         with:
-          name: editai-0.2.11-macos-arm64-branded-dmg-for-local-notarization
-          path: ${{ runner.temp }}/dmg-output/EditAI-0.2.11-mac-arm64.dmg
+          name: editai-0.2.12-macos-arm64-branded-dmg-for-local-notarization
+          path: ${{ runner.temp }}/dmg-output/EditAI-0.2.12-mac-arm64.dmg
           if-no-files-found: error
           retention-days: 2

@@ -164,6 +164,55 @@ await test("native media and real FFmpeg pipeline", async (t) => {
         assert.equal(native.jobs.size, 0);
       },
     );
+    await t.test(
+      "primary fades fit short retimed clips and animated clips use the compositor",
+      async () => {
+        const faded = structuredClone(doc);
+        faded.segments[0].fadeIn = 3;
+        faded.segments[0].fadeOut = 3;
+        assert.equal(native.canRenderNative(faded), true);
+        for (const key of ["animationIn", "animationOut"]) {
+          const animated = structuredClone(faded);
+          animated.segments[0].appearance[key] = "pop";
+          assert.equal(native.canRenderNative(animated), false);
+        }
+        const job = await native.begin(faded, 320, 180, 30);
+        assert.equal(job.mode, "native");
+        await native.finish(job.id);
+        const rms = async (start, end) => {
+          const result = await runBinary(ffmpeg, [
+            "-v",
+            "info",
+            "-i",
+            destination,
+            "-vn",
+            "-af",
+            `atrim=start=${start}:end=${end},volumedetect`,
+            "-f",
+            "null",
+            "-",
+          ]);
+          const match = /mean_volume: (-?[\d.]+) dB/.exec(result.error);
+          assert.ok(match);
+          return Number(match[1]);
+        };
+        const first = await rms(0.02, 0.1),
+          center = await rms(0.45, 0.55),
+          last = await rms(0.9, 0.98);
+        assert.ok(
+          center - first > 12,
+          `entrance must rise in rendered seconds: ${first} -> ${center}`,
+        );
+        assert.ok(
+          center - last > 12,
+          `exit must fall in rendered seconds: ${center} -> ${last}`,
+        );
+        assert.ok(
+          center > -25,
+          "normalizing two long fades must reach full gain",
+        );
+      },
+    );
     await t.test("compositor PNG frames encode with audio", async () => {
       const png = join(directory, "frame.png");
       await runBinary(ffmpeg, [

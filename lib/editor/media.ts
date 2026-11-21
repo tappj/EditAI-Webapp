@@ -1,3 +1,4 @@
+import { audioEnvelope, motionAt } from "./motion";
 import { desktop, isNative, type MediaResource } from "./desktop";
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { Document, Source, TextLayer } from "./model";
@@ -5,6 +6,9 @@ import { atTime, duration, cssFilter, textTiming, appearance } from "./model";
 import { ColorRenderer } from "./color";
 let instance: FFmpeg | undefined;
 let loading: Promise<FFmpeg> | undefined;
+const textSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
 export async function ffmpeg() {
   if (instance?.loaded) return instance;
   if (!loading)
@@ -227,36 +231,29 @@ function drawText(
   end: number,
 ) {
   ctx.save();
-  const transition = Math.min(
-    t.animationDuration ?? 0.35,
-    (end - start) * 0.45,
+  const text = t.text || "Text";
+  const glyphs = (value: string) =>
+    Array.from(textSegmenter.segment(value), (part) => part.segment);
+  const motion = motionAt(
+    {
+      animationIn: t.animation,
+      animationOut: t.animationOut,
+      animationDuration: t.animationDuration,
+    },
+    time - start,
+    end - start,
+    glyphs(text).length,
   );
-  const inPhase = Math.min(1, Math.max(0, (time - start) / transition)),
-    outPhase = Math.min(1, Math.max(0, (end - time) / transition));
-  const animation =
-      time - start < end - time ? t.animation : t.animationOut || t.animation,
-    phase = Math.min(inPhase, outPhase);
-  ctx.globalAlpha = (t.opacity ?? 1) * (animation === "fade" ? phase : 1);
-  ctx.translate(t.x * w, t.y * h);
-  if (animation === "pop" || animation === "zoom") {
-    const scale = 0.8 + 0.2 * (1 - (1 - phase) ** 3);
-    ctx.scale(scale, scale);
-  }
-  if (animation === "slide") ctx.translate(0, (1 - phase) * h * 0.03);
+  ctx.globalAlpha = (t.opacity ?? 1) * motion.opacity;
+  ctx.translate(t.x * w, (t.y + motion.offsetY) * h);
+  ctx.scale(motion.scale, motion.scale);
+  if (motion.blur) ctx.filter = `blur(${(motion.blur * w) / 1080}px)`;
   const size = t.size * w;
   ctx.font = `600 ${size}px "${t.font}"`;
   ctx.textAlign = t.alignment || "center";
   ctx.textBaseline = "middle";
   if ("letterSpacing" in ctx)
     ctx.letterSpacing = (t.letterSpacing ?? 0) * size + "px";
-  let text = t.text || "Text";
-  if (animation === "typewriter")
-    text = text.slice(
-      0,
-      Math.ceil(
-        text.length * Math.min(1, (time - start) / Math.max(0.1, transition)),
-      ),
-    );
   const boxWidth = (t.boxWidth ?? 0.86) * w,
     lines: string[] = [];
   for (const p of text.split("\n")) {
@@ -276,10 +273,12 @@ function drawText(
     );
     ctx.scale(fit, fit);
   }
+  let remaining = motion.visibleCharacters;
   lines.forEach((line, i) => {
     const y =
       (i - (lines.length - 1) / 2) * size * (1.2 + (t.lineSpacing ?? 0));
-    const mw = ctx.measureText(line).width,
+    const measuredWidth = ctx.measureText(line).width,
+      mw = Math.min(measuredWidth, boxWidth),
       x =
         t.alignment === "left"
           ? -boxWidth / 2
@@ -308,6 +307,13 @@ function drawText(
       ctx.fill();
       ctx.restore();
     }
+    const characters = glyphs(line);
+    const displayed = characters.slice(0, Math.max(0, remaining)).join("");
+    remaining -= characters.length + 1;
+    ctx.save();
+    ctx.translate(left, y);
+    ctx.scale(measuredWidth > 0 ? mw / measuredWidth : 1, 1);
+    ctx.textAlign = "left";
     if (t.shadowOpacity) {
       const c = t.shadowColor || "#000000";
       ctx.shadowColor =
@@ -323,10 +329,11 @@ function drawText(
       ctx.strokeStyle = t.outlineColor || "#000000";
       ctx.lineWidth = Math.max(0.5, w * (t.outlineWidth ?? 0.00495));
       ctx.lineJoin = "round";
-      ctx.strokeText(line, x, y, boxWidth);
+      ctx.strokeText(displayed, 0, 0);
     }
     ctx.fillStyle = t.color;
-    ctx.fillText(line, x, y, boxWidth);
+    ctx.fillText(displayed, 0, 0);
+    ctx.restore();
   });
   ctx.restore();
 }
@@ -439,15 +446,17 @@ export class Player {
       active.set(at.segment.sourceIndex, {
         t: at.sourceTime,
         speed: at.segment.speed,
-        volume: at.segment.volume,
+        volume:
+          at.segment.volume *
+          audioEnvelope(
+            at.segment,
+            this.time - at.offset,
+            (at.segment.end - at.segment.start) / at.segment.speed,
+          ),
       });
     for (const a of this.doc.audio) {
       if (this.time >= a.start && this.time < a.end) {
-        const fade = Math.min(
-          1,
-          a.fadeIn ? (this.time - a.start) / a.fadeIn : 1,
-          a.fadeOut ? (a.end - this.time) / a.fadeOut : 1,
-        );
+        const fade = audioEnvelope(a, this.time - a.start, a.end - a.start);
         active.set(a.id, {
           t: a.sourceStart + (this.time - a.start) * (a.speed ?? 1),
           speed: a.speed ?? 1,
@@ -460,7 +469,9 @@ export class Player {
         active.set(o.id, {
           t: o.sourceStart + (this.time - o.start) * (o.speed ?? 1),
           speed: o.speed ?? 1,
-          volume: o.volume ?? 0,
+          volume:
+            (o.volume ?? 0) *
+            audioEnvelope(o, this.time - o.start, o.end - o.start),
         });
     }
     for (const [i, v] of this.videos) {
@@ -499,11 +510,19 @@ export class Player {
         (v instanceof HTMLVideoElement && v.readyState >= 2)
       ) {
         const a = s.appearance,
-          c = a.crop;
+          c = a.crop,
+          motion = motionAt(
+            a,
+            this.time - at.offset,
+            (s.end - s.start) / s.speed,
+          );
         ctx.save();
-        ctx.filter = cssFilter(a);
-        ctx.globalAlpha = a.opacity;
-        ctx.translate(w / 2, h / 2);
+        ctx.filter =
+          cssFilter(a) +
+          (motion.blur ? ` blur(${(motion.blur * w) / 1080}px)` : "");
+        ctx.globalAlpha = a.opacity * motion.opacity;
+        ctx.translate(w / 2, h / 2 + motion.offsetY * h);
+        ctx.scale(motion.scale, motion.scale);
         ctx.rotate((a.rotation * Math.PI) / 2);
         ctx.scale(a.flipX ? -1 : 1, a.flipY ? -1 : 1);
         const vw = src.width * c.width,
@@ -554,9 +573,13 @@ export class Player {
               : o.height * h
             : ch * scale;
         ctx.save();
-        ctx.globalAlpha = o.opacity * a.opacity;
-        ctx.filter = cssFilter(a);
-        ctx.translate(o.x * w, o.y * h);
+        const motion = motionAt(a, this.time - o.start, o.end - o.start);
+        ctx.globalAlpha = o.opacity * a.opacity * motion.opacity;
+        ctx.filter =
+          cssFilter(a) +
+          (motion.blur ? ` blur(${(motion.blur * w) / 1080}px)` : "");
+        ctx.translate(o.x * w, (o.y + motion.offsetY) * h);
+        ctx.scale(motion.scale, motion.scale);
         ctx.rotate((a.rotation * Math.PI) / 2);
         ctx.scale(a.flipX ? -1 : 1, a.flipY ? -1 : 1);
         const renderable = (this.color ??= new ColorRenderer()).render(

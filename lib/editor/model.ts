@@ -1,5 +1,12 @@
 import { assignLanes, LANE_LIMITS } from "./lanes.ts";
 import { FONTS } from "./fonts.ts";
+import {
+  validMotion,
+  validFades,
+  splitEffects,
+  type MotionSettings,
+  type AudioFades,
+} from "./motion.ts";
 export type Word = {
   id: string;
   clip: number;
@@ -19,7 +26,7 @@ export type Source = {
   transcribed?: boolean;
   speechJob?: string;
 };
-export type Appearance = {
+export type Appearance = MotionSettings & {
   filter: string;
   brightness: number;
   contrast: number;
@@ -32,7 +39,7 @@ export type Appearance = {
   opacity: number;
   adjustments?: Record<string, number>;
 };
-export type Segment = {
+export type Segment = AudioFades & {
   id: string;
   sourceIndex: number;
   start: number;
@@ -74,7 +81,7 @@ export type TextLayer = {
   backgroundRadius?: number;
   anchor?: { segmentId: string; start: number; end: number };
 };
-export type Overlay = {
+export type Overlay = AudioFades & {
   height?: number;
   lane?: number;
   speed?: number;
@@ -219,7 +226,9 @@ export function validate(d: Document) {
       !finite(a.brightness, -0.9, 1) ||
       !finite(a.contrast, 0, 3) ||
       !finite(a.saturation, 0, 3) ||
-      !filters.includes(a.filter)
+      !filters.includes(a.filter) ||
+      !validFades(s) ||
+      !validMotion(a)
     )
       throw Error("This edit would create an invalid clip.");
     if (Object.values(a.adjustments || {}).some((v) => !finite(v, -1, 1)))
@@ -241,7 +250,15 @@ export function validate(d: Document) {
       t.end <= t.start ||
       (t.boxHeight != null && !finite(t.boxHeight, 0.03, 1)) ||
       (t.boxWidth != null && !finite(t.boxWidth, 0.05, 1)) ||
-      !/^#[a-f0-9]{6}$/i.test(t.color)
+      !/^#[a-f0-9]{6}$/i.test(t.color) ||
+      !validMotion(
+        {
+          animationIn: t.animation,
+          animationOut: t.animationOut,
+          animationDuration: t.animationDuration,
+        },
+        true,
+      )
     )
       throw Error("Invalid text layer.");
   }
@@ -261,7 +278,9 @@ export function validate(d: Document) {
       (o.height != null && !finite(o.height, 0.03, 1)) ||
       !finite(o.speed ?? 1, 0.25, 4) ||
       !finite(o.volume ?? 0, 0, 1) ||
-      !finite(o.opacity, 0, 1)
+      !finite(o.opacity, 0, 1) ||
+      !validFades(o) ||
+      !validMotion(o.appearance || {})
     )
       throw Error("Invalid overlay.");
   }
@@ -313,6 +332,7 @@ export function split(d: Document, id: string, sourceTime: number) {
     start: sourceTime,
   };
   s.end = sourceTime;
+  splitEffects(s, right);
   out.segments.splice(i + 1, 0, right);
   out.texts = out.texts.flatMap((t) => {
     if (t.anchor?.segmentId !== id) return [t];
@@ -520,6 +540,8 @@ export function makeOverlay(d: Document, id: string, time: number) {
     end: Math.min(len, start + segmentDuration(clip)),
     speed: clip.speed,
     volume: clip.volume,
+    fadeIn: clip.fadeIn,
+    fadeOut: clip.fadeOut,
     appearance: structuredClone(clip.appearance),
     x: 0.5,
     y: 0.5,
@@ -716,6 +738,7 @@ export function applyOperations(d: Document, ops: any[]) {
             copy.sourceStart = op.value;
             copy.start = at;
             mediaLayer.end = at;
+            splitEffects(mediaLayer, copy);
           } else {
             copy.start =
               op.media?.time ?? (overlay ? mediaLayer.start : mediaLayer.end);
@@ -1000,6 +1023,9 @@ export function applyOperations(d: Document, ops: any[]) {
             rotation: old.rotation,
             flipX: old.flipX,
             flipY: old.flipY,
+            animationIn: old.animationIn,
+            animationOut: old.animationOut,
+            animationDuration: old.animationDuration,
           };
         }
         break;

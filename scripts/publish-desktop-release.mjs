@@ -15,7 +15,7 @@ try {
     );
   const dir = resolve("desktop/release"),
     arch = process.arch,
-    tag = "v0.2.11",
+    tag = "v0.2.12",
     app = resolve(
       dir,
       "mac" + (arch === "arm64" ? "-arm64" : "") + "/EditAI.app",
@@ -43,9 +43,17 @@ try {
     !accepted.runtime.sandbox ||
     !accepted.runtime.contextIsolation ||
     accepted.runtime.nodeIntegration ||
-    accepted.runtime.version !== "0.2.11"
+    accepted.runtime.version !== "0.2.12"
   )
     throw Error("Installed application acceptance has not passed.");
+  if (
+    !accepted.motionUI?.audioFades ||
+    !accepted.motionUI?.clipAnimation ||
+    !accepted.motionUI?.textAnimation ||
+    !accepted.motionUI?.stableFontOrder ||
+    !accepted.motionUI?.compositorExportRequired
+  )
+    throw Error("Installed animation and fade acceptance has not passed.");
   const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
   const archive = resolve(app, "Contents/Resources/app.asar");
   if (
@@ -62,7 +70,7 @@ try {
   const names = (await readdir(dir)).filter(
     (n) =>
       n === "latest-mac.yml" ||
-      (n.startsWith(`EditAI-0.2.11-mac-${arch}.`) &&
+      (n.startsWith(`EditAI-0.2.12-mac-${arch}.`) &&
         /\.(dmg|zip|blockmap)$/.test(n) &&
         !n.endsWith(".dmg.blockmap")),
   );
@@ -98,7 +106,7 @@ try {
       signed.artifactSha256?.[name] !== sha(await readFile(resolve(dir, name)))
     )
       throw Error("Release artifacts changed after verification.");
-  const sourceName = "EditAI-0.2.11-native-corresponding-source.tar.xz";
+  const sourceName = "EditAI-0.2.12-native-corresponding-source.tar.xz";
   await copyFile(source, resolve(dir, sourceName));
   names.push(sourceName);
   const checksums = [];
@@ -109,33 +117,68 @@ try {
   const notes = resolve("outputs/desktop-release-notes.md");
   await writeFile(
     notes,
-    "EditAI Desktop 0.2.11 for macOS " +
+    "EditAI Desktop 0.2.12 for macOS " +
       arch +
-      ". Adds automatic profile and preference saving, photo uploads in General, separate appearance and eight brand color themes, clearer media controls and a filled blue selected EditAI indicator. Streamlines Home and moves the Mac download into the top bar. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
+      ". Refines selection outlines and resize handles, restores Split / Overlay / Crop / Duplicate / Delete ordering, and puts Canvas in a compact preview menu. Adds native-style audio fades and independent entrance/exit animations with visual previews under the existing Clip, Text and Filter tabs. Keeps font choices in place and preserves matching preview/export behavior. Signed, notarized and installed-app acceptance verified. Web remains available at https://editai.it.com. Windows is not included.\n",
   );
   // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
   // Keep it private until every release artifact and the installed app pass.
-  const draft = JSON.parse(github([
-    "release", "view", tag, "--repo", "tappj/EditAI-Webapp", "--json", "isDraft,assets",
-  ]));
-  if (!draft.isDraft) throw Error("Expected a private draft release before publication.");
-  const zipName = `EditAI-0.2.11-mac-${arch}.zip`;
+  const draft = JSON.parse(
+    github([
+      "release",
+      "view",
+      tag,
+      "--repo",
+      "tappj/EditAI-Webapp",
+      "--json",
+      "isDraft,assets",
+    ]),
+  );
+  if (!draft.isDraft)
+    throw Error("Expected a private draft release before publication.");
+  const zipName = `EditAI-0.2.12-mac-${arch}.zip`;
   const remoteZip = draft.assets.find((asset) => asset.name === zipName);
-  if (!remoteZip || remoteZip.size !== (await readFile(resolve(dir, zipName))).length)
+  if (
+    !remoteZip ||
+    remoteZip.size !== (await readFile(resolve(dir, zipName))).length
+  )
     throw Error("Draft signed ZIP is missing or differs in size.");
   github([
-    "release", "upload", tag, ...names.map((n) => resolve(dir, n)),
-    "--repo", "tappj/EditAI-Webapp", "--clobber",
+    "release",
+    "upload",
+    tag,
+    ...names.map((n) => resolve(dir, n)),
+    "--repo",
+    "tappj/EditAI-Webapp",
+    "--clobber",
   ]);
-  const staged = JSON.parse(github([
-    "release", "view", tag, "--repo", "tappj/EditAI-Webapp", "--json", "isDraft,assets",
-  ]));
-  if (!staged.isDraft || names.some((name) => !staged.assets.some(
-    (asset) => asset.name === name,
-  ))) throw Error("Draft release is missing an uploaded artifact.");
+  const staged = JSON.parse(
+    github([
+      "release",
+      "view",
+      tag,
+      "--repo",
+      "tappj/EditAI-Webapp",
+      "--json",
+      "isDraft,assets",
+    ]),
+  );
+  if (
+    !staged.isDraft ||
+    names.some((name) => !staged.assets.some((asset) => asset.name === name))
+  )
+    throw Error("Draft release is missing an uploaded artifact.");
   github([
-    "release", "edit", tag, "--repo", "tappj/EditAI-Webapp",
-    "--title", "EditAI Desktop 0.2.11", "--notes-file", notes, "--draft=false",
+    "release",
+    "edit",
+    tag,
+    "--repo",
+    "tappj/EditAI-Webapp",
+    "--title",
+    "EditAI Desktop 0.2.12",
+    "--notes-file",
+    notes,
+    "--draft=false",
   ]);
   const dmg = names.find((n) => n.endsWith(".dmg"));
   await writeFile(
@@ -145,7 +188,7 @@ try {
         {
           platform: "macos",
           arch,
-          version: "0.2.11",
+          version: "0.2.12",
           url: `https://github.com/tappj/EditAI-Webapp/releases/download/${tag}/${dmg}`,
           signed: true,
           notarized: true,

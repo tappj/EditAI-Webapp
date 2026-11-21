@@ -1,3 +1,4 @@
+import { splitEffects } from "./motion.ts";
 import { assignLanes, LANE_LIMITS } from "./lanes.ts";
 import {
   duration,
@@ -199,6 +200,8 @@ export function layerAction(
       copy.sourceStart +=
         (playhead - layer.start) * ("speed" in layer ? layer.speed || 1 : 1);
     layer.end = playhead;
+    if ("sourceStart" in layer && "sourceStart" in copy)
+      splitEffects(layer, copy);
   } else {
     const length = layer.end - layer.start;
     copy.start = layer.end;

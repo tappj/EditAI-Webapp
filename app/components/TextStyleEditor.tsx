@@ -1,6 +1,5 @@
 "use client";
 import type { TextLayer } from "@/lib/editor/model";
-import { AnimationPicker } from "./AnimationPicker";
 import { ColorPicker } from "./ColorPicker";
 import { Range } from "./ui";
 export function TextStyleEditor({
@@ -208,20 +207,6 @@ export function TextStyleEditor({
           />
         </>
       )}
-      <AnimationPicker
-        label="Exit animation"
-        value={text.animationOut || text.animation}
-        onChange={(animationOut) => onChange({ animationOut })}
-      />
-      <Range
-        label="Animation duration"
-        resetValue={0.35}
-        min={0.1}
-        max={2}
-        step={0.05}
-        value={text.animationDuration ?? 0.35}
-        onChange={(animationDuration) => onChange({ animationDuration })}
-      />
     </details>
   );
 }

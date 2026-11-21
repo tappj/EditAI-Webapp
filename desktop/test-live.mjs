@@ -184,7 +184,14 @@ try {
       page.getByRole("button", { name: "Filter", exact: true }),
     ).toHaveClass("selected");
     await expect(page.locator(".advanced-adjustments > summary")).toBeVisible();
-    await expect(page.locator(".preview-controls-top select")).toHaveCount(0);
+    await expect(
+      page.getByRole("combobox", { name: "Canvas aspect ratio" }),
+    ).not.toBeVisible();
+    await page.locator(".preview-canvas-options > summary").click();
+    await expect(
+      page.getByRole("combobox", { name: "Canvas aspect ratio" }),
+    ).toBeVisible();
+    await page.locator(".preview-canvas-options > summary").click();
     await page.getByRole("button", { name: "Filter", exact: true }).click();
     await expect(
       page.getByRole("spinbutton", { name: "Opacity value", exact: true }),
@@ -306,6 +313,72 @@ try {
     report.chat = process.env.EDITAI_EXPORT_ONLY
       ? "Not exercised; export-only acceptance"
       : "Previously verified; no repeated inference";
+  if (process.env.EDITAI_VERIFY_MOTION) {
+    expect(
+      await page
+        .locator(".timeline-edit-actions button")
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute("aria-label")),
+        ),
+    ).toEqual(["Split", "Overlay", "Crop", "Duplicate", "Delete"]);
+    await page.getByRole("button", { name: "Clip", exact: true }).click();
+    for (const name of ["Fade in", "Fade out"]) {
+      const input = page.getByRole("spinbutton", {
+        name: name + " value",
+        exact: true,
+      });
+      await input.fill("0.6");
+      await input.press("Enter");
+    }
+    await expect(page.locator(".audio-fade-envelope")).toBeVisible();
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
+    await page.locator(".motion-controls > summary").click();
+    await page
+      .getByRole("button", {
+        name: "Clip entrance animation: fade",
+        exact: true,
+      })
+      .click();
+    await page.locator(".motion-directions button").nth(1).click();
+    await page
+      .getByRole("button", { name: "Clip exit animation: pop", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Text", exact: true }).click();
+    await page.getByRole("button", { name: "Add text", exact: true }).click();
+    await page
+      .getByLabel("Caption text", { exact: true })
+      .fill("EditAI motion check");
+    const fonts = page.locator(".font-preview-grid").first().locator("button");
+    const order = await fonts.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("aria-label")),
+    );
+    await fonts.nth(2).click();
+    expect(
+      await fonts.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute("aria-label")),
+      ),
+    ).toEqual(order);
+    await page.locator(".motion-controls > summary").click();
+    await page
+      .getByRole("button", { name: "Animation: pop", exact: true })
+      .click();
+    await page.locator(".motion-directions button").nth(1).click();
+    await page
+      .getByRole("button", { name: "Exit animation: slide", exact: true })
+      .click();
+    await expect(page.locator(".preview-selection")).toHaveCSS(
+      "border-top-width",
+      "1px",
+    );
+    await page.getByLabel("Timeline playhead", { exact: true }).fill("1");
+    report.motionUI = {
+      audioFades: true,
+      clipAnimation: true,
+      textAnimation: true,
+      stableFontOrder: true,
+      compositorExportRequired: true,
+    };
+  }
   const destination = resolve("outputs/desktop-real-export.mp4");
   await app.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });

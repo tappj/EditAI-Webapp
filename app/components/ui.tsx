@@ -214,6 +214,7 @@ export function Range({
             }}
           />
           {percent && <span aria-hidden="true">%</span>}
+          {/fade|duration/i.test(label) && <span aria-hidden="true">s</span>}
         </span>
       </span>
       <span

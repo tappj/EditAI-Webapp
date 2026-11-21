@@ -1618,7 +1618,7 @@
 .crop-surface {
   position: absolute;
   z-index: 10;
-  clip-path: inset(-4px);
+  clip-path: inset(-10px);
   touch-action: none;
 }
 .crop-selection {
@@ -2346,4 +2346,260 @@
 .is-editor .studio-tool-rail .editai-tool.selected svg {
   fill: #c4e0ff;
   color: #326ab4;
+}
+
+/* Fine selection outlines; the larger transparent targets retain edge gestures. */
+.is-editor :is(.preview-selection, .crop-selection) {
+  border: 1px solid #91bfff;
+  outline: 0;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.is-editor :is(.preview-selection, .crop-selection) .preview-handle {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  border-radius: 50%;
+}
+.is-editor :is(.preview-selection, .crop-selection) .preview-handle::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1px #326ab4;
+  opacity: 0;
+}
+.is-editor
+  :is(.preview-selection, .crop-selection)
+  .preview-handle:hover::after,
+.is-editor
+  :is(.preview-selection, .crop-selection)
+  .preview-handle:focus-visible::after,
+.is-editor :is(.preview-selection, .crop-selection) .handle-se::after {
+  opacity: 1;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-nw {
+  left: -8px;
+  top: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-ne {
+  right: -8px;
+  top: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-se {
+  right: -8px;
+  bottom: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-sw {
+  left: -8px;
+  bottom: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-n {
+  left: calc(50% - 8px);
+  top: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-s {
+  left: calc(50% - 8px);
+  bottom: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-e {
+  top: calc(50% - 8px);
+  right: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .handle-w {
+  top: calc(50% - 8px);
+  left: -8px;
+}
+.is-editor :is(.preview-selection, .crop-selection) .preview-text-input {
+  border: 0;
+  border-radius: 1px;
+  outline: 0;
+  padding: 2px;
+  box-shadow: none;
+}
+.is-editor .sequence-item {
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+.is-editor .sequence-item.selected {
+  border: 1px solid var(--control);
+  box-shadow: none;
+}
+.is-editor .sequence-item.selected .trim-grip {
+  background: transparent;
+}
+.is-editor .sequence-item .trim-grip {
+  width: 10px;
+  border: 0;
+  background: transparent;
+}
+.is-editor .sequence-item .trim-grip span {
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #15233260;
+}
+.is-editor .text-row .sequence-item.selected,
+.is-editor .audio-row .sequence-item.selected {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.is-editor .inspector textarea {
+  border-radius: 8px;
+}
+.is-editor .inspector textarea:focus-visible,
+.is-editor .inspector input:not([type="range"]):focus-visible {
+  outline: 1px solid var(--control);
+  outline-offset: 1px;
+}
+
+.is-editor .preview-controls-top {
+  justify-content: space-between;
+  overflow: visible;
+}
+.preview-canvas-options {
+  position: relative;
+  z-index: 12;
+  margin-left: auto;
+}
+.preview-canvas-options > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.preview-canvas-options > summary::-webkit-details-marker {
+  display: none;
+}
+.preview-canvas-options > summary::after {
+  content: "⌄";
+  margin-left: 3px;
+}
+.preview-canvas-options[open] > summary {
+  background: var(--surface);
+  color: var(--ink);
+}
+.is-editor .preview-canvas-options .canvas-settings {
+  margin: 0;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 210px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+.preview-canvas-options .canvas-settings h3 {
+  font-size: 12px;
+}
+.is-editor .preview-canvas-options .canvas-settings select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.audio-fade-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+.audio-fade-controls h4 {
+  margin: 0;
+  font-size: 12px;
+}
+.audio-fade-envelope {
+  width: 100%;
+  height: 38px;
+  overflow: visible;
+}
+.audio-fade-envelope polygon {
+  fill: color-mix(in srgb, var(--control) 12%, transparent);
+}
+.audio-fade-envelope polyline {
+  fill: none;
+  stroke: var(--control);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.audio-fade-envelope .fade-baseline {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.audio-fade-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.motion-controls > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.motion-directions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.motion-directions button {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  text-align: left;
+  font-size: 12px;
+}
+.motion-directions small {
+  font-size: 9px;
+  color: var(--muted);
+}
+.motion-directions span {
+  font-size: 11px;
+  text-transform: capitalize;
+  color: var(--muted);
+}
+.motion-directions button[aria-pressed="true"] {
+  border-color: var(--control);
+  background: var(--surface);
+}
+.motion-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+.media-animation-picker .animation-sample {
+  position: relative;
+  width: calc(100% - 12px);
+  height: 46px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--surface);
+}
+.media-animation-picker .animation-sample .clip-frames {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.media-animation-picker .clip-frames span {
+  background-size: cover;
+}
+.animation-outgoing .animation-sample {
+  animation-direction: reverse;
 }

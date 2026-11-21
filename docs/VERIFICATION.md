@@ -925,3 +925,51 @@ download. Final public checks pass 7/7 Chromium (22.0s) and 3/3 WebKit (17.7s).
 Direct installer HEAD resolves to HTTP 200. Existing public audience, D1/R2 and
 runtime secrets are preserved. Both main and codex/desktop-migration are pushed;
 only documentation changes follow this deployed runtime.
+
+## Slim selections and native-style fades/motion — November 21, 2026
+
+Read-only comparison with iOS EditorTimeline.swift, CaptionEditorView.swift and
+EditorSuiteView.swift. Native has audio-layer fades and caption animations; visual
+clip/overlay animation extends that same motion evaluator to media. No iOS source
+was modified. Primary/overlay fade fields and visual motion fields are optional,
+so existing documents retain identity rendering. New names/durations/fades validate
+before edits persist; unsafe operations fail atomically. Native split semantics
+clear internal fade/animation edges, duplicates retain settings, and move-to-overlay
+and audio extraction preserve fades. Source word IDs are untouched.
+
+Audio envelopes scale both requested fades proportionally to fit rendered duration.
+Browser preview/capture and native FFmpeg mixing share that contract, including
+retimed primary audio and overlay/imported tracks. Independent entrance and exit
+use native cubic easing, pop overshoot, fade/zoom/slide opacity and stable full-text
+layout for typewriter. Browser and desktop frame exports use Player.draw; visual
+animations explicitly exclude the direct native fast path so no effect is lost.
+
+Clip shows audio fades directly below Volume with an envelope and numeric seconds.
+Text has its own expandable animation controls; Filter has clip animation controls.
+IN/OUT, duration and replay previews use the same evaluator on real thumbnails or
+text, with visibility cleanup and reduced-motion handling. Font choice no longer
+reorders the list. Selection outlines are one pixel, heavy handles become clear
+hit targets with a small cue, and input focus loses the thick double border. Crop's
+expanded clipping allowance retains the complete larger target in WebKit. Canvas
+is a closed top-right preview menu. Toolbar order: Split, Overlay, Crop, Duplicate,
+Delete. The existing keep-one-primary-clip safety applies to Overlay and Delete.
+
+Typecheck, all 37 web model/security tests, all 19 desktop contracts and both builds
+pass. New model tests cover proportional envelopes, independent/overshooting motion,
+optional legacy defaults, split/copy/move/AI atomics and invalid settings. Native
+FFmpeg tests measure rising/falling PCM levels on a short retimed clip with long
+fades and prove animated clips use the compositor. Browser checks use explicit
+auth/provider fixtures; no production auth bypass or fake AI response is added.
+The new workflow checks Canvas, toolbar, hairline selection and functioning edge
+resizes, stable font order, visual previews, real exported video pixels/audio levels,
+reload and extracted-audio fade preservation in Chromium and WebKit. An earlier
+40/41 run exposed an obsolete slider count, and WebKit identified clipped crop hit
+areas; both are corrected. Final full-suite and publication evidence follows.
+
+Final fresh-server Chromium passes all 41 scenarios (1.6m). Final affected WebKit
+workflow/crop/drop cases pass 3/3 (22.5s), following five exercised WebKit scenarios.
+Inspected the light and dark Clip/Filter/Text layouts and 390px Canvas menu. Both
+engines report no horizontal overflow and zero running sample animations with
+reduced motion enabled. Component quality review has no reported issues. These
+browser checks remain fixture-authenticated; they do not prove fresh provider
+connectivity. Native installed animation/compositor acceptance is pending.

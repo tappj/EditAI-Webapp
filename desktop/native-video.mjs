@@ -1,3 +1,4 @@
+import { effectiveFades } from "../lib/editor/motion.ts";
 import { spawn } from "node:child_process";
 import {
   mkdtemp,
@@ -160,6 +161,8 @@ export class NativeVideo {
       document.segments.every(
         ({ appearance: a, sourceIndex }) =>
           document.sources[sourceIndex].kind !== "image" &&
+          (!a.animationIn || a.animationIn === "none") &&
+          (!a.animationOut || a.animationOut === "none") &&
           a.filter === "Clear" &&
           a.brightness === 0 &&
           a.contrast === 1 &&
@@ -431,6 +434,7 @@ export class NativeVideo {
       }
       atempo.push("atempo=" + tempo);
       const rendered = length / speed;
+      ({ fadeIn, fadeOut } = effectiveFades({ fadeIn, fadeOut }, rendered));
       filters.push(
         `[${indexes.get(source) + 1}:a]atrim=start=${start}:duration=${length},asetpts=PTS-STARTPTS,${atempo.join(",")},volume=${volume}${fadeIn ? ",afade=t=in:d=" + Math.min(fadeIn, rendered) : ""}${fadeOut ? ",afade=t=out:st=" + Math.max(0, rendered - fadeOut) + ":d=" + Math.min(fadeOut, rendered) : ""},adelay=${Math.round(time * 1000)}:all=1[${label}]`,
       );
@@ -444,6 +448,8 @@ export class NativeVideo {
         segment.speed,
         segment.volume,
         cursor,
+        segment.fadeIn,
+        segment.fadeOut,
       );
       cursor += (segment.end - segment.start) / segment.speed;
     }

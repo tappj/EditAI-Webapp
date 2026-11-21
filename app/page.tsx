@@ -133,7 +133,7 @@ import { appThemeStyle, type AppColorTheme } from "@/lib/editor/app-theme";
 import { useSettingsAutosave } from "./components/useSettingsAutosave";
 import { Recorder } from "./components/Recorder";
 import { Batch } from "./components/Batch";
-import { AnimationPicker } from "./components/AnimationPicker";
+import { MotionControls } from "./components/MotionControls";
 import { ColorPicker } from "./components/ColorPicker";
 import { TextStyleEditor } from "./components/TextStyleEditor";
 import { EditableProjectTitle } from "./components/EditableProjectTitle";
@@ -1397,6 +1397,20 @@ export default function App({
     });
     replacingAudio.current = null;
   }
+  function moveSelectedToOverlay() {
+    if (!doc || !segment) return;
+    try {
+      change(makeOverlay(doc, segment.id, playhead));
+      setSelectedLayer({
+        track: "overlays",
+        id: segment.id,
+      });
+      setSelected(doc.segments.find((x) => x.id !== segment.id)?.id || "");
+      setTool("clip");
+    } catch (e) {
+      fail(e);
+    }
+  }
   function detachClipAudio() {
     if (!doc || !segment || doc.sources[segment.sourceIndex].kind !== "video")
       return;
@@ -1424,8 +1438,8 @@ export default function App({
         speed: clip.speed,
         lane,
         volume: clip.volume,
-        fadeIn: 0,
-        fadeOut: 0,
+        fadeIn: clip.fadeIn ?? 0,
+        fadeOut: clip.fadeOut ?? 0,
       };
       d.audio.push(audio);
       clip.volume = 0;
@@ -2688,6 +2702,41 @@ export default function App({
                       >
                         <Maximize size={16} />
                       </IconButton>
+                      <details className="preview-canvas-options">
+                        <summary>
+                          <Square size={13} />
+                          Canvas
+                        </summary>
+                        <div className="canvas-settings">
+                          <h3>Canvas</h3>{" "}
+                          <select
+                            aria-label="Canvas aspect ratio"
+                            value={doc.canvas}
+                            onChange={(e) =>
+                              patch((d) => {
+                                d.canvas = e.target.value as Document["canvas"];
+                              })
+                            }
+                          >
+                            <option value="original">Original ratio</option>
+                            <option value="9:16">9:16 Portrait</option>
+                            <option value="16:9">16:9 Landscape</option>
+                            <option value="1:1">1:1 Square</option>
+                          </select>
+                          <select
+                            aria-label="Framing"
+                            value={doc.framing}
+                            onChange={(e) =>
+                              patch((d) => {
+                                d.framing = e.target.value as "fit" | "fill";
+                              })
+                            }
+                          >
+                            <option value="fit">Fit</option>
+                            <option value="fill">Fill</option>
+                          </select>
+                        </div>
+                      </details>
                     </div>
                     <div className="canvas-stage">
                       <canvas ref={canvas} aria-label="Video preview" />
@@ -2818,6 +2867,31 @@ export default function App({
                             }
                           />
                         )}
+                        {textLayer && (
+                          <MotionControls
+                            value={{
+                              animationIn: textLayer.animation,
+                              animationOut: textLayer.animationOut,
+                              animationDuration: textLayer.animationDuration,
+                            }}
+                            onChange={(values) =>
+                              updateTextStyle({
+                                ...(values.animationIn !== undefined
+                                  ? { animation: values.animationIn }
+                                  : {}),
+                                ...(values.animationOut !== undefined
+                                  ? { animationOut: values.animationOut }
+                                  : {}),
+                                ...(values.animationDuration !== undefined
+                                  ? {
+                                      animationDuration:
+                                        values.animationDuration,
+                                    }
+                                  : {}),
+                              })
+                            }
+                          />
+                        )}
                         <details
                           className="caption-style-panel"
                           open={captionStyleOpen}
@@ -2894,13 +2968,6 @@ export default function App({
                                 />
                                 Text outline
                               </label>
-                              <AnimationPicker
-                                label="Animation"
-                                value={textLayer.animation}
-                                onChange={(animation) =>
-                                  updateTextStyle({ animation })
-                                }
-                              />
                               <TextStyleEditor
                                 text={textLayer}
                                 timing={textTiming(doc, textLayer)}
@@ -2934,61 +3001,12 @@ export default function App({
                           closeCrop();
                           change(next);
                         }}
-                        canvasSettings={
-                          <div className="canvas-settings">
-                            <h3>Canvas</h3>{" "}
-                            <select
-                              aria-label="Canvas aspect ratio"
-                              value={doc.canvas}
-                              onChange={(e) =>
-                                patch((d) => {
-                                  d.canvas = e.target
-                                    .value as Document["canvas"];
-                                })
-                              }
-                            >
-                              <option value="original">Original ratio</option>
-                              <option value="9:16">9:16 Portrait</option>
-                              <option value="16:9">16:9 Landscape</option>
-                              <option value="1:1">1:1 Square</option>
-                            </select>
-                            <select
-                              aria-label="Framing"
-                              value={doc.framing}
-                              onChange={(e) =>
-                                patch((d) => {
-                                  d.framing = e.target.value as "fit" | "fill";
-                                })
-                              }
-                            >
-                              <option value="fit">Fit</option>
-                              <option value="fill">Fill</option>
-                            </select>
-                          </div>
-                        }
                         onCrop={() => {
                           player.current?.pause();
                           setPlaying(false);
                           setCropping(true);
                         }}
                         onExtract={detachClipAudio}
-                        onOverlay={() => {
-                          if (!segment) return;
-                          try {
-                            change(makeOverlay(doc, segment.id, playhead));
-                            setSelectedLayer({
-                              track: "overlays",
-                              id: segment.id,
-                            });
-                            setSelected(
-                              doc.segments.find((x) => x.id !== segment.id)
-                                ?.id || "",
-                            );
-                            setTool("clip");
-                          } catch (e) {
-                            fail(e);
-                          }
-                        }}
                         onReplace={(id) => {
                           mediaKind.current = "audio";
                           replacingAudio.current = id;
@@ -3038,19 +3056,6 @@ export default function App({
                     </div>
                     <div className="timeline-edit-actions">
                       <IconButton
-                        label="Crop"
-                        disabled={mediaSelection.track === "audio"}
-                        onClick={() => {
-                          setTool("clip");
-                          scrollInspector("crop");
-                          player.current?.pause();
-                          setPlaying(false);
-                          setCropping(true);
-                        }}
-                      >
-                        <Crop size={20} />
-                      </IconButton>
-                      <IconButton
                         label="Split"
                         onClick={() => {
                           try {
@@ -3078,6 +3083,30 @@ export default function App({
                         }}
                       >
                         <Scissors size={17} />
+                      </IconButton>
+                      <IconButton
+                        label="Overlay"
+                        disabled={
+                          mediaSelection.track !== "segments" ||
+                          tool === "captions" ||
+                          doc.segments.length < 2
+                        }
+                        onClick={moveSelectedToOverlay}
+                      >
+                        <Layers size={17} />
+                      </IconButton>
+                      <IconButton
+                        label="Crop"
+                        disabled={mediaSelection.track === "audio"}
+                        onClick={() => {
+                          setTool("clip");
+                          scrollInspector("crop");
+                          player.current?.pause();
+                          setPlaying(false);
+                          setCropping(true);
+                        }}
+                      >
+                        <Crop size={20} />
                       </IconButton>
                       <IconButton
                         label="Duplicate"

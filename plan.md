@@ -358,3 +358,23 @@ link. See both verification records for exact evidence and fixture boundaries.
 Final web: Sites version 103 is live at editai.it.com with source 7eaf950 and the
 verified 0.2.11 installer link. Public Chromium 7/7 and WebKit 3/3 pass; installer
 HTTP 200 confirmed. Shared web and installed/published Mac updates are complete.
+
+## Slim selections, audio fades and motion — November 21, 2026
+
+Refine shared web/desktop selection styling to one-pixel outlines, transparent
+resize/trim targets and a small corner cue; preserve all eight edge gestures,
+keyboard trimming, direct text editing and crop interactions. Canvas moves into a
+closed preview-top-right menu. Timeline action order is Split, Overlay, Crop,
+Duplicate, Delete, with the existing safe move-to-overlay operation.
+
+Place audio fades below Volume inside Clip for primary video, overlays and audio.
+Show the envelope and native proportional fitting when paired fades exceed a clip.
+Text animations live under Text; visual clip/overlay animations under Filter.
+Use native independent entrance/exit/duration/easing and thumbnail/text previews
+that share the motion evaluator, stop when hidden, and honor reduced motion.
+Fonts remain in their original list positions. Preview, browser export and desktop
+compositor use matching effects; native audio mixing uses the same fade envelope.
+Keep requested durations in rendered seconds across speed/trim, preserve effects
+when moving/extracting/duplicating and clear only internal edges when splitting.
+Validate new settings atomically without changing stable source word IDs or auth.
+Prepare matching signed/notarized installed desktop 0.2.12 and the live Site.

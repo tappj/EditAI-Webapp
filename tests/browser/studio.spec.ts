@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 const session = {
   screen: { id: "ready" },
   profile: {
@@ -56,6 +57,234 @@ async function openStudio(page: import("@playwright/test").Page) {
     page.getByRole("heading", { name: "Good footage. Great possibilities." }),
   ).toBeVisible();
 }
+
+test("fine selection, collapsed Canvas, stable fonts and native-style fades/motion survive real export and reload", async ({
+  page,
+  browserName,
+}) => {
+  await authenticated(page);
+  let saved: any;
+  await page.route("**/api/projects", (r) => {
+    if (r.request().method() === "POST") saved = r.request().postDataJSON();
+    return r.fulfill({
+      json: r.request().method() === "GET" ? { projects: [] } : { ok: true },
+    });
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openStudio(page);
+  await page
+    .locator("input[type=file]")
+    .first()
+    .setInputFiles(join(process.cwd(), "outputs/fixture.mp4"));
+  await expect(page.locator(".timeline-clip")).toHaveCount(1);
+  expect(
+    await page
+      .locator(".timeline-edit-actions button")
+      .evaluateAll((buttons) =>
+        buttons.map((b) => b.getAttribute("aria-label")),
+      ),
+  ).toEqual(["Split", "Overlay", "Crop", "Duplicate", "Delete"]);
+  await expect(page.locator(".timeline-clip.selected")).toHaveCSS(
+    "border-top-width",
+    "1px",
+  );
+  const canvasOptions = page.locator(".preview-canvas-options");
+  await expect(canvasOptions).not.toHaveAttribute("open", "");
+  await expect(page.getByLabel("Canvas aspect ratio")).not.toBeVisible();
+  await canvasOptions.locator("summary").click();
+  await page.getByLabel("Canvas aspect ratio").selectOption("1:1");
+  await page.getByLabel("Framing", { exact: true }).selectOption("fill");
+  await canvasOptions.locator("summary").click();
+  for (const name of ["Fade in", "Fade out"]) {
+    const input = page.getByRole("spinbutton", {
+      name: name + " value",
+      exact: true,
+    });
+    await input.fill("3");
+    await input.press("Enter");
+  }
+  await expect(page.locator(".audio-fade-envelope")).toBeVisible();
+  await expect.poll(() => saved?.document?.segments[0].fadeOut).toBe(3);
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  await page.locator(".motion-controls > summary").click();
+  await page
+    .getByRole("button", { name: "Clip entrance animation: fade", exact: true })
+    .click();
+  await expect(
+    page.locator(".media-animation-picker .frame-samples").first(),
+  ).toBeVisible();
+  await page.locator(".motion-directions button").nth(1).click();
+  await page
+    .getByRole("button", { name: "Clip exit animation: fade", exact: true })
+    .click();
+  await expect
+    .poll(() => saved?.document?.segments[0].appearance.animationOut)
+    .toBe("fade");
+  const playhead = page.getByLabel("Timeline playhead", { exact: true });
+  const brightness = () =>
+    page
+      .locator('canvas[aria-label="Video preview"]')
+      .evaluate((canvas: HTMLCanvasElement) => {
+        const c = canvas.getContext("2d")!;
+        const p = c.getImageData(
+          Math.floor(canvas.width / 3),
+          Math.floor(canvas.height / 3),
+          1,
+          1,
+        ).data;
+        return p[0] + p[1] + p[2];
+      });
+  await playhead.fill("0");
+  await expect.poll(brightness).toBeLessThan(80);
+  await playhead.fill("1");
+  await expect.poll(brightness).toBeGreaterThan(200);
+  await page.screenshot({
+    path: `outputs/motion/${browserName}-filter.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: /Resolution|Export resolution/ })
+    .selectOption("854");
+  const download = page.waitForEvent("download", { timeout: 120000 });
+  await page.getByRole("button", { name: "Export video", exact: true }).click();
+  const exported = await download;
+  const path = join(tmpdir(), `editai-motion-${browserName}.mp4`);
+  await exported.saveAs(path);
+  const level = (start: number, end: number) => {
+    const result = spawnSync(
+      "ffmpeg",
+      [
+        "-v",
+        "info",
+        "-i",
+        path,
+        "-vn",
+        "-af",
+        `atrim=start=${start}:end=${end},volumedetect`,
+        "-f",
+        "null",
+        "-",
+      ],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(0);
+    const match = /mean_volume: (-?[\d.]+) dB/.exec(result.stderr);
+    expect(match).not.toBeNull();
+    return Number(match![1]);
+  };
+  expect(level(1.9, 2.1) - level(0.03, 0.2)).toBeGreaterThan(12);
+  expect(level(1.9, 2.1) - level(3.95, 4.1)).toBeGreaterThan(10);
+  // Decode exported pixels; source and opacity animation must match the monitor.
+  const pixel = (time: string) =>
+    execFileSync("ffmpeg", [
+      "-v",
+      "error",
+      "-ss",
+      time,
+      "-i",
+      path,
+      "-frames:v",
+      "1",
+      "-vf",
+      "scale=1:1",
+      "-pix_fmt",
+      "rgb24",
+      "-f",
+      "rawvideo",
+      "-",
+    ]);
+  const early = pixel("0.03"),
+    middle = pixel("1");
+  expect([...middle].reduce((a, b) => a + b, 0)).toBeGreaterThan(
+    [...early].reduce((a, b) => a + b, 0) + 70,
+  );
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Add text", exact: true }).click();
+  await page
+    .getByLabel("Caption text", { exact: true })
+    .fill("Clean selection");
+  const fonts = page.locator(".font-preview-grid").first().locator("button");
+  const order = await fonts.evaluateAll((buttons) =>
+    buttons.map((b) => b.getAttribute("aria-label")),
+  );
+  await fonts.nth(5).click();
+  expect(
+    await fonts.evaluateAll((buttons) =>
+      buttons.map((b) => b.getAttribute("aria-label")),
+    ),
+  ).toEqual(order);
+  await expect(fonts.nth(5)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".preview-selection")).toHaveCSS(
+    "border-top-width",
+    "1px",
+  );
+  await expect(page.locator(".preview-selection")).toHaveCSS(
+    "outline-style",
+    "none",
+  );
+  const handle = page.getByRole("button", {
+    name: "Resize e edge of selected layer",
+    exact: true,
+  });
+  await expect(handle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 25, box.y + box.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await page.locator(".motion-controls > summary").click();
+  await page
+    .getByRole("button", { name: "Animation: pop", exact: true })
+    .click();
+  await page.locator(".motion-directions button").nth(1).click();
+  await page
+    .getByRole("button", { name: "Exit animation: slide", exact: true })
+    .click();
+  await expect
+    .poll(() => saved?.document?.texts[0]?.animationOut)
+    .toBe("slide");
+  await page.screenshot({
+    path: `outputs/motion/${browserName}-text.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "My Edits", exact: true }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "Edits", exact: true }).click();
+  await page.locator(".project-card-title").first().click();
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  await expect(
+    page.getByRole("spinbutton", { name: "Fade in value", exact: true }),
+  ).toHaveValue("3");
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  await page.locator(".motion-controls > summary").click();
+  await expect(
+    page.getByRole("button", {
+      name: "Clip entrance animation: fade",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Clip", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Extract audio", exact: true })
+    .click();
+  await expect(page.locator(".audio-row .layer-clip")).toHaveCount(1);
+  await expect(
+    page.getByRole("spinbutton", { name: "Fade in value", exact: true }),
+  ).toHaveValue("3");
+  await expect.poll(() => saved?.document?.audio[0]?.fadeOut).toBe(3);
+  const fadeOut = page.getByRole("spinbutton", {
+    name: "Fade out value",
+    exact: true,
+  });
+  await fadeOut.fill("0.6");
+  await fadeOut.press("Enter");
+  await expect.poll(() => saved?.document?.audio[0]?.fadeOut).toBe(0.6);
+  await page.screenshot({
+    path: `outputs/motion/${browserName}-audio.png`,
+    fullPage: true,
+  });
+});
 test("public first page requires Publik sign-in; responsive and no secret exposure", async ({
   page,
 }) => {
@@ -107,7 +336,9 @@ test("real browser upload, split, undo, speed, text, canvas, MP4 export and save
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await page.getByRole("slider", { name: /^Exposure/ }).fill("0.25");
   await page.getByRole("button", { name: "Clip", exact: true }).click();
+  await page.locator(".preview-canvas-options > summary").click();
   await page.getByLabel("Canvas aspect ratio").selectOption("1:1");
+  await page.locator(".preview-canvas-options > summary").click();
   await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByRole("button", { name: "Add text", exact: true }).click();
   await page.getByLabel("Caption text").fill("Browser export test");
@@ -1239,9 +1470,7 @@ test("upload creates an automatic first cut before editor entry, preserves origi
   await expect(page.locator(".timeline-clip")).toHaveCount(1);
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect(page.locator(".timeline-clip")).toHaveCount(2);
-  await page
-    .getByRole("button", { name: "Move to overlay", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Overlay", exact: true }).click();
   await expect(page.locator(".overlay-row .sequence-item")).toHaveCount(1);
   await page.route("**/api/ai/chat", async (r) => {
     const body = r.request().postDataJSON();
@@ -1326,9 +1555,7 @@ test("visible playhead, grouped edge trim, selection without seeking, layer drag
   await page.getByLabel("Timeline playhead").fill("1.5");
   await page.getByRole("button", { name: "Split" }).click();
   await page.locator(".timeline-clip").first().click();
-  await page
-    .getByRole("button", { name: "Move to overlay", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Overlay", exact: true }).click();
   const overlay = page.locator(".overlay-row .sequence-item");
   await overlay.click();
   await page.getByLabel("Timeline playhead").fill("1.3");
@@ -2297,13 +2524,11 @@ test("selected inspector tabs, filter previews, safe section scrolling, slider r
     .poll(() => saved?.document?.segments[0].appearance.rotation)
     .toBe(1);
   await page.getByRole("button", { name: "Reset crop", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Move to overlay", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Overlay", exact: true }).click();
   await expect(page.locator(".selected-media-settings")).toHaveCount(1);
   await expect(
     page.locator(".selected-media-settings .range-label"),
-  ).toHaveCount(2);
+  ).toHaveCount(4);
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(page.getByRole("slider", { name: /^Opacity/ })).toBeVisible();
   await page.getByRole("slider", { name: /^Opacity/ }).fill("0.6");
@@ -2488,7 +2713,9 @@ test("compact stepped sliders, display-only text, visual animations, custom colo
   await exposure.fill("0.001");
   await exposure.dispatchEvent("pointerup", { altKey: true });
   await expect(exposure).toHaveValue("0.001");
-  await expect(page.locator(".range-ticks .major").first()).toBeVisible();
+  await expect(
+    page.locator(".advanced-adjustments .range-ticks .major").first(),
+  ).toBeVisible();
   await page.screenshot({
     path: "outputs/editor-slider-increments.png",
     fullPage: true,
@@ -2500,6 +2727,7 @@ test("compact stepped sliders, display-only text, visual animations, custom colo
   await expect(text).toHaveAttribute("placeholder", "Text");
   await text.pressSequentially("Hello");
   await expect(text).toHaveValue("Hello");
+  await page.locator(".motion-controls > summary").click();
   await page
     .getByRole("button", { name: "Animation: pop", exact: true })
     .click();
@@ -2538,6 +2766,8 @@ test("compact stepped sliders, display-only text, visual animations, custom colo
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".text-row .layer-clip")).toHaveCount(1);
   await page.getByRole("button", { name: "Text", exact: true }).click();
+  if ((await page.locator(".motion-controls").getAttribute("open")) === null)
+    await page.locator(".motion-controls > summary").click();
   await page
     .getByRole("button", { name: "Animation: pop", exact: true })
     .scrollIntoViewIfNeeded();
@@ -2725,8 +2955,13 @@ test("caption-only grouping, source reference previews, relaxed-cut restoration 
   await page.getByRole("button", { name: "Clip", exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "Canvas aspect ratio" }),
+  ).not.toBeVisible();
+  await page.locator(".preview-canvas-options > summary").click();
+  await expect(
+    page.getByRole("combobox", { name: "Canvas aspect ratio" }),
   ).toBeVisible();
-  await expect(page.locator(".preview-controls-top select")).toHaveCount(0);
+  await expect(page.locator(".preview-controls-top select")).toHaveCount(2);
+  await page.locator(".preview-canvas-options > summary").click();
   const startGrip = page.getByRole("button", { name: /^Trim start of/ });
   for (let i = 0; i < 5; i++) await startGrip.press("ArrowRight");
   await expect.poll(() => saved?.document?.segments[0].start).toBeCloseTo(0.5);

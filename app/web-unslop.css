@@ -1,0 +1,254 @@
+/* Browser-only Unslop trial. Loaded exclusively by app/layout.tsx, never by the
+   Electron renderer. Direction informed by Unslop by Damir Sokolovsky:
+   https://github.com/heydamir/unslop (CC BY 4.0). Original brand assets retained. */
+html[data-web-ui] {
+  --bg: #ffffff;
+  --canvas: #f7f7f8;
+  --surface: #eeeeef;
+  --border: #dedee1;
+  --ink: #202024;
+  --muted: #62626b;
+  --control: #45405e;
+  --blue: #655b83;
+  --ice: #eeeeF2;
+  --lavender: #f0eef5;
+  --shadow: 0 8px 24px #17171b0d;
+  --action-gradient: #242329;
+  --premium-gradient: #eeedf2;
+}
+html[data-web-ui][data-theme="dark"] {
+  --bg: #1b1b1e;
+  --canvas: #141416;
+  --surface: #252528;
+  --border: #35353b;
+  --ink: #eeeef1;
+  --muted: #b0b0ba;
+  --control: #c2b8dc;
+  --blue: #b5a8d2;
+  --ice: #2a2830;
+  --lavender: #302c39;
+  --action-gradient: #eeeef1;
+  --premium-gradient: #2c2933;
+}
+html[data-web-ui] body { font-size: 14px; }
+html[data-web-ui] :is(button, a) {
+  transition-timing-function: cubic-bezier(.22, 1, .36, 1);
+}
+html[data-web-ui] :is(h1, h2, h3) { font-weight: 500; }
+html[data-web-ui] .button {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: none;
+}
+html[data-web-ui] .button.secondary {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+html[data-web-ui] .button:hover:not(:disabled) { filter: brightness(.94); transform: none; }
+html[data-web-ui] :is(.sidebar-note, .web-badge, .caption-generate-icon) {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: 0;
+  border-radius: 8px;
+}
+html[data-web-ui] .sidebar { padding: 32px 20px 20px; }
+html[data-web-ui] .sidebar nav { gap: 4px; }
+html[data-web-ui] .sidebar nav button {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+  gap: 12px;
+}
+html[data-web-ui] .sidebar nav button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: inset 2px 0 var(--blue);
+  font-weight: 500;
+}
+html[data-web-ui] .sidebar nav svg { width: 18px; height: 18px; stroke-width: 1.5; }
+html[data-web-ui] :is(.profile-row strong, .profile-row small) { font-size: 12px; letter-spacing: 0; }
+html[data-web-ui] .dashboard { padding: 40px 32px; }
+html[data-web-ui] .dashboard-grid { gap: 24px; }
+html[data-web-ui] .page-heading h1 { font-weight: 500; letter-spacing: -.6px; }
+html[data-web-ui] .upload-card { border-radius: 16px; padding: 24px; }
+html[data-web-ui] .upload-card h2 { font-weight: 500; letter-spacing: -.6px; }
+html[data-web-ui] :is(.upload-card p, .page-heading p:not(.eyebrow)) { font-size: 14px; }
+html[data-web-ui] .upload-card-badge { font-size: 12px; letter-spacing: 0; border-radius: 6px; }
+html[data-web-ui] .floating-spark { display: none; }
+html[data-web-ui] .tool-card {
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  transition: background-color 160ms;
+}
+html[data-web-ui] .tool-card:hover { transform: none; background: var(--surface); }
+html[data-web-ui] .tool-card-icon { background: var(--surface); border-color: var(--border); }
+html[data-web-ui] .tool-card h3 { font-weight: 500; letter-spacing: 0; }
+html[data-web-ui] .tool-card p { color: var(--muted); font-size: 14px; }
+html[data-web-ui] .is-editor .studio-tool-rail .editai-tool {
+  background: var(--surface);
+  color: var(--ink);
+}
+html[data-web-ui] .is-editor .studio-tool-rail .editai-tool svg { color: inherit; }
+html[data-web-ui] .is-editor .studio-tool-rail .editai-tool.selected {
+  background: var(--lavender);
+  border-bottom-color: var(--blue);
+}
+/* Content, captions, thumbnails and timeline lane colors retain their meaning. */
+html[data-web-ui] .marketing {
+  --m-paper: #fafafa;
+  --m-ink: #202024;
+  --m-muted: #62626b;
+  --m-surface: #f0f0f2;
+  --m-border: #dedee1;
+  --m-control: #45405e;
+  --m-accent: #242329;
+  --m-accent-soft: #efedf4;
+  --m-accent-bright: #ded9e8;
+  --m-premium-gradient: #242329;
+  --m-action-gradient: #39373f;
+  font-size: 16px;
+}
+html[data-web-ui] .marketing :is(h1, h2, h3) { font-weight: 500; }
+html[data-web-ui] .marketing h2 { text-transform: none; letter-spacing: -.8px; }
+html[data-web-ui] .marketing h3 { letter-spacing: 0; font-size: 16px; }
+html[data-web-ui] :is(.ambient-hero, .hero-echo, .closing-sweep) { display: none; }
+html[data-web-ui] .m-header,
+html[data-web-ui] .m-header[data-scrolled="true"],
+html[data-web-ui] .m-header[data-menu-open="true"] {
+  background: #fafafaf5;
+  border-bottom: 1px solid #dedee1;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+html[data-web-ui] .marketing-hero { background: var(--m-paper); padding-top: 64px; }
+html[data-web-ui] .hero-heading { text-align: left; padding: 80px 0 64px; }
+html[data-web-ui] .hero-availability { justify-content: flex-start; margin-bottom: 32px; }
+html[data-web-ui] .hero-proof-badge,
+html[data-web-ui] .platform-badge { border: 0; background: transparent; padding: 0; border-radius: 0; }
+html[data-web-ui] .hero-availability { gap: 24px; }
+html[data-web-ui] .marketing .hero-heading h1 {
+  margin: 0;
+  max-width: 1000px;
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.08;
+  letter-spacing: -.035em;
+  font-weight: 500;
+}
+html[data-web-ui] :is(.hero-heading h1 > span, .brand-highlight,
+.comparison-heading h2 > span, .comparison-brand, .closing-copy .circle-word,
+.workflow-switcher button[data-featured="true"], .calculator-results > div:first-child strong) {
+  background: none;
+  color: var(--m-ink);
+  -webkit-text-fill-color: currentColor;
+}
+html[data-web-ui] .hero-heading > p {
+  margin: 24px 0 32px;
+  max-width: 600px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+html[data-web-ui] .hero-actions { align-items: flex-start; gap: 20px; }
+html[data-web-ui] .hero-primary-actions { justify-content: flex-start; gap: 12px; }
+html[data-web-ui] .marketing .m-button {
+  background: var(--m-ink);
+  color: #fff;
+  border: 1px solid var(--m-ink);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+  transform: none;
+}
+html[data-web-ui] .marketing .m-button:hover { background: #39373f; transform: none; }
+html[data-web-ui] .m-button svg:not(.lucide-loader-circle) { display: none; }
+html[data-web-ui] .hero-actions .hero-mac-install {
+  background: transparent;
+  border: 1px solid var(--m-border);
+  color: var(--m-ink);
+  border-radius: 8px;
+  font-size: 14px;
+}
+html[data-web-ui] .hero-watch { font-size: 14px; }
+html[data-web-ui] .hero-marquees { padding-bottom: 32px; mask-image: none; }
+html[data-web-ui] .marquee-viewport { overflow-x: auto; scrollbar-width: thin; }
+html[data-web-ui] .marquee-track { animation: none; transform: none; }
+html[data-web-ui] .marquee-group[aria-hidden="true"] { display: none; }
+html[data-web-ui] :is(.review-card, .capability-card) {
+  border-radius: 12px;
+  background: #fff;
+  border-color: var(--m-border);
+  box-shadow: none;
+  padding: 24px;
+}
+html[data-web-ui] :is(.review-card, .capability-card) p { font-size: 14px; }
+html[data-web-ui] :is(.review-card, .capability-card) strong { font-weight: 500; }
+html[data-web-ui] .m-eyebrow { font-size: 12px; letter-spacing: 0; color: var(--m-muted); }
+html[data-web-ui] .feature-card {
+  background: #fff;
+  border: 1px solid var(--m-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: none;
+}
+html[data-web-ui] .feature-card:hover { transform: none; }
+html[data-web-ui] .feature-card p { font-size: 14px; }
+html[data-web-ui] .feature-card .feature-tile { background: var(--m-surface); color: var(--m-ink); }
+html[data-web-ui] .feature-ribbon-track { animation: none; }
+html[data-web-ui] .feature-ribbon { overflow-x: auto; }
+html[data-web-ui] .comparison-highlight {
+  background: #f0eef5;
+  border-color: #ded9e8;
+  border-radius: 12px;
+  box-shadow: none;
+}
+html[data-web-ui] .comparison-highlight::before { display: none; }
+html[data-web-ui] .workflow-table :is(th, td) { letter-spacing: 0; font-weight: 400; }
+html[data-web-ui] .workflow-table td:last-child { font-weight: 500; }
+html[data-web-ui] .closing-copy h2 em { font-style: normal; }
+html[data-web-ui] .marketing :is(.feature-card, .feature-tile) * { animation: none; }
+html[data-web-ui] .marketing-sign-in {
+  --action-gradient: #242329;
+  background: #fafafa;
+}
+html[data-web-ui] .onboarding-theme {
+  --premium-gradient: #eeedf2;
+  --action-gradient: #242329;
+}
+html[data-web-ui] .onboarding-theme[data-onboarding-theme="dark"] {
+  --premium-gradient: #2c2933;
+  --action-gradient: #eeeef1;
+}
+@media (max-width: 850px) {
+  html[data-web-ui] .hero-heading { padding: 56px 0 48px; }
+  html[data-web-ui] .hero-availability { flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  html[data-web-ui] .dashboard { padding: 24px 20px; }
+}
+@media (max-width: 600px) {
+  html[data-web-ui] .marketing .hero-heading h1 { font-size: 40px; }
+  html[data-web-ui] .hero-heading > p { font-size: 16px; }
+  html[data-web-ui] .hero-primary-actions { width: 100%; }
+  html[data-web-ui] .hero-primary-actions > * { flex: 1 1 100%; }
+  html[data-web-ui] .hero-availability .platform-badge { font-size: 12px; }
+  html[data-web-ui] .hero-proof-text { font-size: 12px; }
+  html[data-web-ui] .sidebar { padding: 24px 20px; }
+  html[data-web-ui] .upload-card { padding: 20px; }
+  html[data-web-ui] .tool-card { padding: 16px; }
+}
+/* The existing shared .m-button sets its ink with !important. Match that
+   declaration locally so solid browser actions keep readable white text. */
+html[data-web-ui] .marketing .m-button { color: #fff !important; }
+html[data-web-ui] .desktop-download {
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+html[data-web-ui] .quick-tools .tool-card { background: var(--bg); }
+html[data-web-ui] .quick-tools .tool-card:hover { background: var(--surface); }

@@ -226,55 +226,18 @@ test("categorized FAQ, keyboard answers and real privacy disclosure", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
-test("opposing strips, retained icon motion, focus pause and offscreen suspension", async ({
-  page,
-}) => {
+test("browser strips stay still and reviews remain horizontally reachable", async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 1000 });
   await page.goto("/");
-  const rows = page.locator(".marquee-track");
-  expect(
-    await rows.evaluateAll((nodes) =>
-      nodes.map((node) => getComputedStyle(node).animationDirection),
-    ),
-  ).toEqual(["normal", "reverse"]);
-  const transform = await rows
-    .first()
-    .evaluate((node) => getComputedStyle(node).transform);
-  await expect
-    .poll(() =>
-      rows.first().evaluate((node) => getComputedStyle(node).transform),
-    )
-    .not.toBe(transform);
-  await page.locator(".marquee-viewport").first().hover();
-  await expect
-    .poll(() =>
-      rows
-        .first()
-        .evaluate((node) => getComputedStyle(node).animationPlayState),
-    )
-    .toBe("paused");
-  await page.mouse.move(1, 1);
-  await page.locator(".feature-ribbon").scrollIntoViewIfNeeded();
-  const ribbon = page.locator(".feature-ribbon-track");
-  const position = await ribbon.evaluate(
-    (node) => getComputedStyle(node).transform,
-  );
-  await expect
-    .poll(() => ribbon.evaluate((node) => getComputedStyle(node).transform))
-    .not.toBe(position);
-  await page.locator(".feature-ribbon").focus();
-  await expect
-    .poll(() =>
-      ribbon.evaluate((node) => getComputedStyle(node).animationPlayState),
-    )
-    .toBe("paused");
-  await expect
-    .poll(() =>
-      rows
-        .first()
-        .evaluate((node) => getComputedStyle(node).animationPlayState),
-    )
-    .toBe("paused");
+  for (const track of await page.locator(".marquee-track,.feature-ribbon-track").all()) {
+    expect(await track.evaluate(node => getComputedStyle(node).animationName)).toBe("none");
+  }
+  const reviews = page.locator(".marquee-viewport").first();
+  expect(await reviews.evaluate(node => {
+    node.scrollLeft = node.scrollWidth;
+    return node.scrollLeft > 0;
+  })).toBe(true);
+  await expect(page.locator(".ambient-hero")).toBeHidden();
 });
 test("responsive references, reduced motion, mobile menu, real logo and sign-in screenshots", async ({
   page,
@@ -405,176 +368,13 @@ test("ruler drag, keyboard bounds and interruptible numbers stay in sync", async
   );
 });
 
-test("Codex glyph field reacts to pointer only in the hero and suspends when hidden", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1536, height: 1000 });
+test("browser hero stays calm during pointer movement", async ({ page }) => {
   await page.goto("/");
-  const ambient = page.locator(".ambient-hero");
-  await expect(page.locator(".ambient-hero")).toHaveCount(1);
-  await expect(page.locator(".marketing-hero .ambient-hero")).toHaveCount(1);
-  await expect(ambient).toHaveAttribute("data-running", "true");
-  const canvas = ambient.locator("canvas");
-  const pixels = () =>
-    canvas.evaluate((el: HTMLCanvasElement) => {
-      const data = el
-        .getContext("2d")!
-        .getImageData(0, 0, el.width, el.height).data;
-      let count = 0;
-      for (let i = 3; i < data.length; i += 4) if (data[i] > 5) count++;
-      return count;
-    });
-  const before = await pixels();
+  await expect(page.locator(".ambient-hero")).toBeHidden();
   await page.mouse.move(100, 450);
   await page.mouse.move(600, 490, { steps: 28 });
-  await page.mouse.move(280, 600, { steps: 20 });
-  await expect.poll(pixels).toBeGreaterThan(before * 2 + 100);
-  const bounds = await canvas.evaluate((el: HTMLCanvasElement) => ({
-    width: el.width,
-    css: el.clientWidth,
-    height: el.height,
-    cssHeight: el.clientHeight,
-  }));
-  expect(bounds.width).toBeLessThanOrEqual(bounds.css * 1.5 + 1);
-  expect(bounds.height).toBeLessThanOrEqual(bounds.cssHeight * 1.5 + 1);
-  await page.locator(".comparison-section").scrollIntoViewIfNeeded();
-  await expect(ambient).toHaveAttribute("data-running", "false");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.evaluate(() => scrollTo(0, 0));
-  await expect(ambient).toHaveAttribute("data-running", "false");
-  await expect.poll(pixels).toBe(0);
-});
-
-test("cursor streak stays narrow and clears completely while the pointer remains still", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const pending = new Set<number>();
-    const schedule = requestAnimationFrame.bind(window),
-      cancel = cancelAnimationFrame.bind(window);
-    window.requestAnimationFrame = (callback) => {
-      const id = schedule((time) => {
-        pending.delete(id);
-        callback(time);
-      });
-      pending.add(id);
-      return id;
-    };
-    window.cancelAnimationFrame = (id) => {
-      pending.delete(id);
-      cancel(id);
-    };
-    Object.defineProperty(window, "__cursorFrames", {
-      get: () => pending.size,
-    });
-  });
-  await page.setViewportSize({ width: 1536, height: 1000 });
-  await page.goto("/");
-  const canvas = page.locator(".ambient-hero canvas");
-  await expect(page.locator(".ambient-hero")).toHaveAttribute(
-    "data-running",
-    "true",
-  );
-  const initial = await canvas.evaluate((el: HTMLCanvasElement) =>
-    el
-      .getContext("2d")!
-      .getImageData(0, 0, el.width, el.height)
-      .data.some((n, i) => i % 4 === 3 && n > 0),
-  );
-  expect(initial).toBe(false);
-  await page.mouse.move(150, 450);
-  await page.mouse.move(680, 450, { steps: 32 });
-  const bounds = await canvas.evaluate((el: HTMLCanvasElement) => {
-    const data = el
-      .getContext("2d")!
-      .getImageData(0, 0, el.width, el.height).data;
-    let minY = el.height,
-      maxY = 0,
-      minX = el.width,
-      maxX = 0;
-    for (let y = 0; y < el.height; y++)
-      for (let x = 0; x < el.width; x++) {
-        if (data[(y * el.width + x) * 4 + 3] <= 5) continue;
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
-        minX = Math.min(minX, x);
-        maxX = Math.max(maxX, x);
-      }
-    const dpr = el.width / el.clientWidth;
-    return { width: (maxX - minX) / dpr, height: (maxY - minY) / dpr };
-  });
-  expect(bounds.width).toBeGreaterThan(100);
-  expect(bounds.height).toBeLessThan(40);
-  const samples = await canvas.evaluate(async (el: HTMLCanvasElement) => {
-    const hero = el.closest(".marketing-hero")!;
-    const mass = () => {
-      const data = el
-        .getContext("2d")!
-        .getImageData(0, 0, el.width, el.height).data;
-      let alpha = 0;
-      for (let i = 3; i < data.length; i += 4) alpha += data[i];
-      return alpha;
-    };
-    // Repeated move events at the SAME coordinates must not refresh emission.
-    const still = setInterval(
-      () =>
-        hero.dispatchEvent(
-          new PointerEvent("pointermove", {
-            clientX: 680,
-            clientY: 450,
-            pointerType: "mouse",
-            bubbles: true,
-          }),
-        ),
-      30,
-    );
-    try {
-      const values = [mass()];
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      values.push(mass());
-      await new Promise((resolve) => setTimeout(resolve, 650));
-      values.push(mass());
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      values.push(mass());
-      return values;
-    } finally {
-      clearInterval(still);
-    }
-  });
-  expect(samples[0]).toBeGreaterThan(0);
-  expect(samples[1]).toBeLessThan(samples[0]);
-  expect(samples[2]).toBe(0);
-  expect(samples[3]).toBe(0);
-  expect(
-    await page.evaluate(
-      () => (window as unknown as { __cursorFrames: number }).__cursorFrames,
-    ),
-  ).toBe(0);
-  await page.mouse.move(720, 470);
-  await page.mouse.move(920, 470, { steps: 12 });
-  await expect
-    .poll(() =>
-      canvas.evaluate((el: HTMLCanvasElement) =>
-        el
-          .getContext("2d")!
-          .getImageData(0, 0, el.width, el.height)
-          .data.some((n, i) => i % 4 === 3 && n > 5),
-      ),
-    )
-    .toBe(true);
-  await page.mouse.move(1, 1);
-  await expect
-    .poll(
-      () =>
-        canvas.evaluate((el: HTMLCanvasElement) =>
-          el
-            .getContext("2d")!
-            .getImageData(0, 0, el.width, el.height)
-            .data.some((n, i) => i % 4 === 3 && n > 0),
-        ),
-      { timeout: 1600 },
-    )
-    .toBe(false);
+  await expect(page.locator(".ambient-hero")).toHaveAttribute("data-running", "false");
+  await expect(page.locator(".hero-primary-actions .m-button")).toHaveCSS("color", "rgb(255, 255, 255)");
 });
 
 test("hero badges, matching install actions, ombre stars and the raised EditAI column", async ({
@@ -629,13 +429,13 @@ test("hero badges, matching install actions, ombre stars and the raised EditAI c
   const watch = (await page.locator(".hero-watch").boundingBox())!;
   expect(watch.y).toBeGreaterThan(wb.y + wb.height);
   await expect(
-    page.locator(".capability-card").first().locator(".ombre-stars path"),
+    page.locator(".review-card").first().locator(".ombre-stars path"),
   ).toHaveCount(5);
   await expect(
-    page.locator(".capability-card").first().locator(".ombre-stars"),
+    page.locator(".review-card").first().locator(".ombre-stars"),
   ).toHaveAttribute("aria-hidden", "true");
   const starColors = await page
-    .locator(".capability-card .ombre-stars")
+    .locator(".review-card .ombre-stars")
     .first()
     .evaluate(async (svg) => {
       const img = new Image();
@@ -672,7 +472,7 @@ test("hero badges, matching install actions, ombre stars and the raised EditAI c
   ).toHaveText("AI Edit");
   await expect(
     page.locator(".workflow-switcher button[data-featured=true]"),
-  ).toHaveCSS("background-image", /linear-gradient/);
+  ).toHaveCSS("background-image", "none");
   await page.locator(".workflow-table-wrap").scrollIntoViewIfNeeded();
   await expect(page.locator(".workflow-table thead th")).toHaveText([
     "Workflow",
@@ -691,25 +491,25 @@ test("hero badges, matching install actions, ombre stars and the raised EditAI c
     .boundingBox())!;
   expect(Math.abs(highlight.x - cell.x)).toBeLessThanOrEqual(2);
   expect(Math.abs(highlight.width - cell.width)).toBeLessThanOrEqual(2);
-  await expect(page.locator(".comparison-highlight")).not.toHaveCSS(
+  await expect(page.locator(".comparison-highlight")).toHaveCSS(
     "box-shadow",
     "none",
   );
 });
 
-test("header blends into the hero at the top and gains a surface while scrolling", async ({
+test("header retains a readable surface while scrolling", async ({
   page,
 }) => {
   await page.goto("/");
   const header = page.locator(".m-header");
   await expect(header).toHaveAttribute("data-scrolled", "false");
-  await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(header).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await page.evaluate(() => scrollTo(0, 300));
   await expect(header).toHaveAttribute("data-scrolled", "true");
   await expect(header).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await page.evaluate(() => scrollTo(0, 0));
   await expect(header).toHaveAttribute("data-scrolled", "false");
-  await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(header).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 });
 
 test("authentic Upload, Send, AI Edit and Export screenshots remain visible through repeated selection", async ({
@@ -759,7 +559,7 @@ test("authentic Upload, Send, AI Edit and Export screenshots remain visible thro
     ".workflow-switcher button[data-featured=true]",
   );
   await expect(featured).toHaveText("AI Edit");
-  await expect(featured).toHaveCSS("background-clip", "text");
+  await expect(featured).toHaveCSS("background-clip", "border-box");
   await expect(featured).toHaveCSS("box-shadow", "none");
   await expect(featured).toHaveCSS("border-top-width", "0px");
   for (const title of [

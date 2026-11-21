@@ -331,3 +331,12 @@ and matching verified desktop 0.2.10.
 
 Completed: bottom-right notification layout is live on web and installed desktop
 0.2.10; checks, Apple acceptance, final installer verification and real export pass.
+
+## Browser-only Unslop trial — November 20, 2026
+
+Owner explicitly limits this experiment to the browser. Installed heydamir/unslop
+and applied its audit/direction/passes as a web-layout-only stylesheet. Neutral
+chrome, readable typography and static decoration preserve real media/film color,
+brand assets, existing content and functionality. Desktop 0.2.10 is unchanged.
+See docs/WEB-UNSLOP-TRIAL.md for provenance, verification and history-preserving
+rollback from the isolated trial commit. Deployment follows passing checks.

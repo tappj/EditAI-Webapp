@@ -3249,14 +3249,25 @@ test("automatic settings retain latest name and photo, retry failures, and scope
   await expect(page.getByRole("status")).toContainText("All changes saved");
   expect(profile.displayName).toBe("Latest provider name");
 
+  await page.evaluate(() => {
+    const decode = window.createImageBitmap;
+    window.createImageBitmap = (async (
+      ...args: Parameters<typeof createImageBitmap>
+    ) => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return decode(...args);
+    }) as typeof createImageBitmap;
+  });
   await page
     .locator('input[type=file][accept="image/png,image/jpeg,image/webp"]')
     .setInputFiles("outputs/overlay.png");
+  await name.fill("Name during photo upload");
   await expect(page.locator(".avatar-editor img")).toBeVisible();
   await expect.poll(() => typeof profile.avatar).toBe("string");
+  expect(profile.displayName).toBe("Name during photo upload");
   await page.reload();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(name).toHaveValue("Latest provider name");
+  await expect(name).toHaveValue("Name during photo upload");
   await expect(page.locator(".avatar-editor img")).toHaveAttribute(
     "src",
     /^data:image\/jpeg/,

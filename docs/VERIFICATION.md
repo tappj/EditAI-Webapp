@@ -903,3 +903,10 @@ for web and desktop; affected own-key and media checks pass in both engines; the
 assertion initially used an incorrect exact label locator. With the accessible
 combobox locator corrected, the final full autosave/theme/provider scenario passes
 in Chromium and WebKit (11.4s each). Required typecheck/unit/native checks pass again.
+
+Also preserve the latest name when asynchronous image decoding finishes after a
+subsequent name edit. The browser regression deliberately delays photo decoding
+while typing another name, then verifies saved name/photo and reload. Final own-key,
+media-control and autosave/theme/provider/photo scenarios pass 3/3 in Chromium
+(14.2s) and WebKit (14.9s). Typecheck, all 33 web tests, 18 native contracts and both
+production builds pass on this final renderer. No provider inference is performed.

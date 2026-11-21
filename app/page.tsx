@@ -203,6 +203,7 @@ export default function App({
   signedOut?: boolean;
 }) {
   const voiceStart = useRef(0);
+  const latestProfileName = useRef("");
   const editorCopy = useRef<{ projectId: string; copy: EditorCopy } | null>(
     null,
   );
@@ -479,12 +480,16 @@ export default function App({
     return () => clearTimeout(timer);
   }, [ownKey, settingsSave.schedule]);
   function updateName(value: string) {
+    latestProfileName.current = value;
     setProfileName(value);
     settingsSave.schedule({ displayName: value, avatar });
   }
   function updatePhoto(value: string | null) {
     setAvatar(value);
-    settingsSave.schedule({ displayName: profileName, avatar: value });
+    settingsSave.schedule({
+      displayName: latestProfileName.current,
+      avatar: value,
+    });
   }
   async function selectProvider(choice: string) {
     if (!(await settingsSave.flush())) return;
@@ -505,7 +510,8 @@ export default function App({
       setGateError("");
       setConsent(s.profile.consent);
       setTelemetry(s.profile.telemetry);
-      setProfileName(s.profile.displayName || "");
+      latestProfileName.current = s.profile.displayName || "";
+      setProfileName(latestProfileName.current);
       setAvatar(s.profile.avatar || null);
       setAvatarPreset(
         validPreset(s.profile.avatarPreset) ? s.profile.avatarPreset : "editAI",

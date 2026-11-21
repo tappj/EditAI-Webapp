@@ -305,3 +305,13 @@ pass. Published v0.2.7 assets and updated homepage download metadata.
 Restore the original pastel film cards and white play icon in light mode. Keep
 the stronger blue/white illustration exclusively in dark mode. Apply to the shared
 web/desktop renderer and publish matching verified desktop 0.2.8 and web assets.
+
+
+## Restore original EditAI palette — November 20, 2026
+
+Owner rejects the blue-accent trial. Remove its global/product token, feature-card,
+editor and transient color overrides, preserving all functional media/slider/drop
+changes. Restore the original premium gradient and lavender editor colors. Only
+the Home film illustration gets dark-specific cyan/lavender from the original
+feature cards; light artwork stays exactly original. Replace the superseded 0.2.8
+installer with a matching verified 0.2.9.

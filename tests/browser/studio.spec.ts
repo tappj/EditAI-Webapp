@@ -3142,7 +3142,7 @@ test("compact shaped media, integer volume, row-local drops and permanent unused
   await page.evaluate(() =>
     document.documentElement.setAttribute("data-theme", "dark"),
   );
-  await expect(page.locator(".app-shell")).toHaveCSS("--lavender", "#223b58");
+  await expect(page.locator(".app-shell")).toHaveCSS("--lavender", "#2d2b40");
   await page.screenshot({
     path: "outputs/media-blue-library-drops.png",
     fullPage: true,
@@ -3151,11 +3151,11 @@ test("compact shaped media, integer volume, row-local drops and permanent unused
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(page.locator(".tool-card.lavender")).toHaveCSS(
     "background-color",
-    "rgb(140, 188, 240)",
+    "rgb(180, 164, 227)",
   );
   await expect(page.locator(".film-strip.front")).toHaveCSS(
     "color",
-    "rgb(255, 255, 255)",
+    "rgb(22, 52, 62)",
   );
   await page.screenshot({
     path: "outputs/media-blue-home-dark.png",

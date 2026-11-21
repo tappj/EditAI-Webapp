@@ -95,12 +95,12 @@ try {
     },
     timeout: 60000,
   });
-  if (!check.includes("publik self-test: ok editai-desktop 0.2.8"))
+  if (!check.includes("publik self-test: ok editai-desktop 0.2.9"))
     throw Error("Packaged Publik self-test failed.");
   const artifactNames = (await readdir("desktop/release")).filter(
     (n) =>
       n === "latest-mac.yml" ||
-      (n.startsWith(`EditAI-0.2.8-mac-${process.arch}.`) &&
+      (n.startsWith(`EditAI-0.2.9-mac-${process.arch}.`) &&
         /\.(dmg|zip|blockmap)$/.test(n) &&
         !n.endsWith(".dmg.blockmap")),
   );

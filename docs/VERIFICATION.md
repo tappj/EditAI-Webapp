@@ -796,3 +796,22 @@ with explicit session fixtures checks the light and dark front/back computed col
 borders and gradients in Chromium and WebKit. The restored light capture was
 visually inspected. This is presentation verification, not real provider-connectivity
 evidence; no external AI requests are needed for the correction.
+
+
+## Original palette restored; film-only dark adaptation — November 20, 2026
+
+Owner rejects the blue-accent trial. Remove the trial's product/body token overrides,
+Batch color override, text/overlay overrides and EditAI overrides. Restore the
+original editor premium gradient, lavender drag ghost and purple icon/label colors.
+Functional compact-media, permanent cleanup, volume and row-local drop behavior
+remain. Light film artwork is exactly the original pastel version. Only dark film
+artwork adapts: cyan #85c8d8 and lavender #b4a4e3 match the existing dark feature
+cards, with a dark play icon for contrast. No other theme or card colors change.
+
+Typecheck, all 33 web tests, all 18 desktop contracts and both production builds
+pass. The existing compact media/volume/drop/removal browser workflow passes in
+Chromium with its color expectations restored to the original theme. Manual
+Chromium/WebKit checks verify original light/dark Batch colors and theme-specific
+film front/back colors; both captures were reviewed. These checks use explicit
+session fixtures and do not establish new real provider connectivity. Runtime
+packaging advances to 0.2.9, superseding the prior 0.2.8 illustration correction.

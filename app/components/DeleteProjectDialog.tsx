@@ -46,7 +46,7 @@ export function DeleteProjectDialog({
         })}
       </p>
       {error && <p role="alert">{uiText(error)}</p>}
-      <div className="button-row">
+      <div className="delete-project-actions">
         <button
           className="button secondary"
           autoFocus

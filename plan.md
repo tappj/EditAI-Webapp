@@ -2663,3 +2663,22 @@ checks pass. No paid AI inference or transcription acceptance was run. Developme
 and QA servers were stopped after verification. Live web 206 and the verified
 installed/public Mac 0.2.63 remain unchanged; the standing notarization deferral
 remains in force. All work is saved as a local development commit only.
+
+
+## November 27 — Larger project deletion actions (local only)
+
+The project delete dialog now uses its own action layout instead of the compact
+editor toolbar button row. Cancel/Delete share equal width, a 52px minimum height,
+15px labels and a 12px gap. Dialog copy has more readable sizing and spacing;
+destructive text follows the theme background for contrast. Cancel remains the
+initial focus and deletion/error/retry behavior is unchanged.
+
+Typecheck, 123 unit tests, production web and shared desktop builds pass. The
+existing project reload/delete/storage-cleanup acceptance passes in Chromium and
+WebKit, including cancellation and failed-delete retry. Isolated Chromium visual
+checks confirm 185x52 desktop and 144x52 mobile actions, no dialog overflow, and
+retained Cancel focus. Desktop/light and mobile/light/dark screenshots were
+inspected under ignored outputs/dialog-cleanup. The final dark contrast refinement
+was rebuilt and visually rechecked. Authentication/AI are browser-test fixtures,
+not evidence of real Publik connectivity; no paid provider call was made.
+Local commit only: no push, deployment, installer release or installed-app change.

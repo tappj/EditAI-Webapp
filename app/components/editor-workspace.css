@@ -3007,7 +3007,31 @@ html.preview-rotating * {
 .notification-stack .cut-complete-notice > .editai-mascot { padding: 0; }
 .notice-copy { display: grid; gap: 6px; }
 .notice-copy > .button { justify-self: start; width: auto; min-height: 32px; padding: 5px 10px; font-size: 12px; border-radius: 8px; white-space: nowrap; }
-.delete-project-dialog p { overflow-wrap: anywhere; }
+.delete-project-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 28px;
+  gap: 18px;
+}
+.delete-project-dialog h2 { margin: 0; }
+.delete-project-dialog p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.delete-project-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.delete-project-actions .button {
+  min-height: 52px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.delete-project-actions .delete-account-confirm { color: var(--bg); }
 
 .preview-text-hit, .preview-selection .preview-move {
   touch-action: none;

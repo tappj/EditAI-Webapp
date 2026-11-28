@@ -616,3 +616,32 @@ profile deferral is resolved. A Windows QA test identified direct Node execution
 of a shebang hook as nonportable; the development guard now delegates interpreter
 selection to Git and still chains the existing privacy rejection. Local tests pass;
 Windows remains internal QA, without a public installer. Web deployment follows.
+
+
+Release complete: public web 207 is live at https://editai.it.com from Site source
+2c5c654cd65d61e677b083a6d3fcd00fb8434303, with runtime-secret revision 4 preserved.
+Its source tree exactly matches public GitHub efe99ad (tree
+5f6b5f79f03794326e21ca8bb6d52dcdcad03fd0). The deployed archive was saved and
+published through Sites without replacing history or changing access/storage.
+All six targeted hosted Chromium checks and all six WebKit checks pass for
+percentage increments, removed elapsed/task count, background progress, caption
+stages, preview playback and delete/error/retry/storage cleanup. These hosted
+interaction checks use explicit client-side account/AI fixtures, not production
+bypasses. A separate unmocked public /api/session returns 200 with the genuine
+Publik gate. This establishes gate availability, not a new paid AI quality pass.
+
+The hydrated live homepage advertises Mac 0.2.64; the DMG HEAD returns 200 and
+200,957,802 bytes. The public GitHub release is not a draft and contains verified
+DMG, ZIP, blockmap, updater manifest, matching native source and checksums. The
+updater manifest returns 200 and version 0.2.64. A raw-HTML download assertion
+was inapplicable because the platform-specific link appears on hydration; the
+actual live browser link was checked against the verified versioned URL.
+The installed Mac archive matches the signed/notarized app, ZIP and DMG and
+passed installed genuine authentication/export and separate UI fixture gates.
+No Windows installer was published. At final handoff the optional matrix QA
+run remained in progress; local 124 tests/37 native contracts and the dedicated
+macOS installer workflow passed. Main and development source pushes preserve
+history. The prior app backup and private QA reports remain under ignored
+outputs/release207. The separate built QA server was stopped; local HMR remains
+available. Routine future work is still development-only unless a release is
+explicitly requested.

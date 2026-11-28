@@ -2682,3 +2682,22 @@ inspected under ignored outputs/dialog-cleanup. The final dark contrast refineme
 was rebuilt and visually rechecked. Authentication/AI are browser-test fixtures,
 not evidence of real Publik connectivity; no paid provider call was made.
 Local commit only: no push, deployment, installer release or installed-app change.
+
+
+## November 27 — Skip post-install cleanup prompts (local only)
+
+Choose the owner's leave-installer-alone option. Once EditAI is in Applications,
+startup returns directly to the normal gate/app flow with no eject/delete prompt,
+installer discovery, disk detach, Trash operation or welcome-marker write. Remove
+the unused cleanup implementation. The initial Install and Open action, existing-
+copy replacement confirmation and manual guidance on move failure remain intact.
+
+All 37 desktop contracts pass, including six installation cases covering first
+and subsequent installed launches, move/relaunch, cancellation, failed/refused
+moves, replacement confirmation and development/other-platform startup. The
+shared desktop source build and public artifact boundary checks pass. Installation
+branch behavior is dependency-fixture verified; a new signed/notarized installer
+and installed-to-next-version upgrade were not exercised or published. This is
+local source work only; the verified installed/public Mac 0.2.63, live web 206 and
+remote branches remain unchanged. The owner's existing development server was
+left running; only the separate QA server was stopped.

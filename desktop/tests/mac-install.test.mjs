@@ -1,76 +1,46 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  installerCandidates,
-  prepareMacInstallation,
-} from "../mac-install.mjs";
+import { prepareMacInstallation } from "../mac-install.mjs";
 
-const image = {
-  path: "/Users/test/Downloads/EditAI-0.2.3-mac-arm64.dmg",
-  mount: "/Volumes/EditAI 0.2.3-arm64",
-};
-function fixture(overrides = {}) {
+function fixture() {
   const calls = [];
-  const app = {
-    isPackaged: true,
-    isInApplicationsFolder: () => true,
-    getVersion: () => "0.2.3",
-    getPath: () => "/tmp/editai-install-test",
-    moveToApplicationsFolder: () => {
-      calls.push("move");
-      return true;
-    },
-  };
   return {
     calls,
-    app,
     platform: "darwin",
+    app: {
+      isPackaged: true,
+      isInApplicationsFolder: () => true,
+      moveToApplicationsFolder: () => {
+        calls.push("move");
+        return true;
+      },
+    },
     dialog: {
-      showMessageBox: async () => ({ response: 0, checkboxChecked: false }),
+      showMessageBox: async (options) => {
+        calls.push(options.message);
+        return { response: 0 };
+      },
       showMessageBoxSync: () => 0,
     },
-    shell: { trashItem: async (path) => calls.push(["trash", path]) },
-    discover: async () => image,
-    run: async (...args) => calls.push(args),
-    read: async () => {
-      throw Error("No marker");
-    },
-    write: async () => calls.push("marker"),
-    ensureDirectory: async () => {},
-    ...overrides,
   };
 }
 
-test("installer cleanup candidates exclude other apps, URLs and invalid mounts", () => {
-  const source = (path, mount) => ({
-    "image-path": path,
-    "system-entities": [{ "mount-point": mount }],
-  });
-  assert.deepEqual(
-    installerCandidates({
-      images: [
-        source(image.path, image.mount),
-        source("/tmp/Other.dmg", "/Volumes/Other"),
-        source("https://example.com/EditAI.dmg", image.mount),
-        source(image.path, "/Applications"),
-        source(image.path, "/Volumes/../Applications"),
-      ],
-    }),
-    [image],
-  );
+test("first and subsequent installed launches proceed without any installer prompt", async () => {
+  const deps = fixture();
+  // No version marker, disk discovery, shell or filesystem access is needed.
+  for (let launch = 0; launch < 2; launch++)
+    assert.equal(await prepareMacInstallation(deps), true);
+  assert.deepEqual(deps.calls, []);
 });
 
-test("successful Applications move relaunches before provider/editor startup", async () => {
+test("successful Applications move relaunches without a cleanup dialog", async () => {
   const deps = fixture();
   deps.app.isInApplicationsFolder = () => false;
-  deps.discover = async () => {
-    throw Error("Must not clean up running disk image");
-  };
   assert.equal(await prepareMacInstallation(deps), false);
-  assert.deepEqual(deps.calls, ["move"]);
+  assert.deepEqual(deps.calls, ["Install and open EditAI?", "move"]);
 });
 
-test("cancelled installation leaves files alone and allows the current app", async () => {
+test("declining installation opens the current app without touching the installer", async () => {
   const deps = fixture();
   deps.app.isInApplicationsFolder = () => false;
   deps.dialog.showMessageBox = async () => ({ response: 1 });
@@ -78,60 +48,49 @@ test("cancelled installation leaves files alone and allows the current app", asy
   assert.deepEqual(deps.calls, []);
 });
 
-test("cleanup ejects the matched image and trashes only on explicit selection", async () => {
-  for (const trash of [false, true]) {
+test("failed or refused Applications moves retain manual installation guidance", async () => {
+  for (const throws of [false, true]) {
     const deps = fixture();
-    deps.dialog.showMessageBox = async () => ({
-      response: 0,
-      checkboxChecked: trash,
-    });
+    deps.app.isInApplicationsFolder = () => false;
+    deps.app.moveToApplicationsFolder = () => {
+      if (throws) throw Error("Copy failed");
+      return false;
+    };
     assert.equal(await prepareMacInstallation(deps), true);
     assert.deepEqual(deps.calls, [
-      ["/usr/bin/hdiutil", ["detach", image.mount]],
-      ...(trash ? [["trash", image.path]] : []),
-      "marker",
+      "Install and open EditAI?",
+      "EditAI wasn’t moved to Applications.",
     ]);
   }
 });
 
-test("busy or changed disk never causes the download to be trashed", async () => {
-  for (const changed of [false, true]) {
-    const deps = fixture();
-    let attempts = 0;
-    deps.discover = async () => (++attempts > 1 && changed ? null : image);
-    deps.run = async () => {
-      throw Error("Disk in use");
-    };
-    deps.dialog.showMessageBox = async () => ({
-      response: 0,
-      checkboxChecked: true,
-    });
-    assert.equal(await prepareMacInstallation(deps), true);
-    assert.deepEqual(deps.calls, ["marker"]);
+test("replacing an existing app still requires the selected confirmation", async () => {
+  for (const kind of ["existsAndRunning", "exists"]) {
+    for (const response of [0, 1]) {
+      const deps = fixture();
+      deps.app.isInApplicationsFolder = () => false;
+      deps.dialog.showMessageBoxSync = (options) => {
+        assert.match(options.message, /installed/);
+        return response;
+      };
+      deps.app.moveToApplicationsFolder = ({ conflictHandler }) => {
+        assert.equal(conflictHandler(kind), response === 1);
+        return response === 1;
+      };
+      assert.equal(await prepareMacInstallation(deps), response === 0);
+    }
   }
 });
 
-test("declining cleanup, completed installs and development builds leave disks alone", async () => {
-  const declined = fixture();
-  declined.dialog.showMessageBox = async () => ({
-    response: 1,
-    checkboxChecked: true,
-  });
-  await prepareMacInstallation(declined);
-  assert.deepEqual(declined.calls, ["marker"]);
-  const completed = fixture({ read: async () => '{"version":"0.2.3"}' });
-  completed.discover = async () => {
-    throw Error("Unexpected discovery");
-  };
-  await prepareMacInstallation(completed);
-  assert.deepEqual(completed.calls, []);
-  for (const platform of ["linux", "win32"]) {
-    const deps = fixture({ platform });
-    await prepareMacInstallation(deps);
+test("development and other platforms proceed without installation prompts", async () => {
+  for (const platform of ["linux", "win32", "darwin"]) {
+    const deps = fixture();
+    deps.platform = platform;
+    if (platform === "darwin") deps.app.isPackaged = false;
+    deps.app.isInApplicationsFolder = () => {
+      throw Error("No installation work expected");
+    };
+    assert.equal(await prepareMacInstallation(deps), true);
     assert.deepEqual(deps.calls, []);
   }
-  const dev = fixture();
-  dev.app.isPackaged = false;
-  await prepareMacInstallation(dev);
-  assert.deepEqual(dev.calls, []);
 });

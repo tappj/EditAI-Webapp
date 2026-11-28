@@ -608,7 +608,7 @@ app
   .then(async () => {
     if (
       !process.env.PUBLIK_SELF_TEST &&
-      !(await prepareMacInstallation({ app, dialog, shell }))
+      !(await prepareMacInstallation({ app, dialog }))
     )
       return;
     await startDesktop();

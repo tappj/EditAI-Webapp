@@ -105,8 +105,9 @@ Only begin this sequence when the owner explicitly asks to release:
 4. For desktop, bump version references together and use the existing signed,
    notarized release and installed-app acceptance process before publishing
    GitHub release assets/updater metadata. Do not publish internal QA artifacts.
-   The existing Mac notarization deferral remains in force until resolved;
-   never silently claim web/desktop release parity while a binary is deferred.
+   A working Apple notarization profile is required; never claim web/desktop
+   release parity while a binary is deferred. The November 27 release resolved
+   the prior profile deferral and verified the installed Mac app.
 5. Record actual evidence and limits in `docs/VERIFICATION.md` and
    `docs/desktop/VERIFICATION.md`. Keep backend APIs compatible with installed
    older desktop clients. Use backward-compatible database migrations so
@@ -136,7 +137,7 @@ Runtime secrets: `PUBLIK_APP_TOKEN` and a base64 32-byte `SESSION_ENCRYPTION_KEY
 
 Read [feature parity](WEB-PARITY.md), [actual verification and limits](VERIFICATION.md), [domain/cost research](DOMAINS-AND-COSTS.md), and [progress](../plan.md). In particular, accounts whose Publik wallet lacks a public identity use browser-scoped persistence; source backups are optional; browser exports are re-encoded SDR; catalog review and physical camera/Safari checks remain outstanding.
 
-Desktop: shared local Electron editor, native FFmpeg and OS-encrypted Publik credentials. The [signed and notarized macOS arm64 installer](https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.63/EditAI-0.2.63-mac-arm64.dmg) has a rounded macOS app icon and passed installed-app acceptance; macOS 15 or newer is required. See [desktop architecture, benchmarks, release process and remaining limits](desktop/README.md). Windows is still internal QA and has no public installer. [Migration verification and remaining boundaries](desktop/VERIFICATION.md) record the 24 deployed browser checks, real AI workflow, native tests and platform build results.
+Desktop: shared local Electron editor, native FFmpeg and OS-encrypted Publik credentials. The [signed and notarized macOS arm64 installer](https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.64/EditAI-0.2.64-mac-arm64.dmg) has a rounded macOS app icon and passed installed-app acceptance; macOS 15 or newer is required. See [desktop architecture, benchmarks, release process and remaining limits](desktop/README.md). Windows is still internal QA and has no public installer. [Migration verification and remaining boundaries](desktop/VERIFICATION.md) record the 24 deployed browser checks, real AI workflow, native tests and platform build results.
 
 ## License
 

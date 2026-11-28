@@ -2761,3 +2761,24 @@ fix, and removal of desktop installer-cleanup prompts. Development remains local
 by default after this explicitly authorized release. Apple Developer ID and the
 editai-notary Keychain profile passed preflight; signed installer acceptance and
 production deployment evidence will be recorded after completion.
+
+
+Combined release desktop acceptance: Mac 0.2.64 is signed, notarized, installed,
+and published at the verified versioned GitHub release. The source app ZIP and
+CI-assembled DMG match archive 9d1b638d4904ea0f1b89e04dcbf68ff8483c776cc3b613c4c6a5224f9b29b517.
+Installer CI 46117315585 passed; local disk-image assembly remains unavailable
+because mounted writable images are forced read-only. The actual installed app
+passes genuine gate restoration and normal LaunchServices startup, retained library,
+foreground/background close behavior, preview, native/composited export, source
+speech detection, editor/motion/text/workflow checks, Settings/languages and the
+separately identified mascot/savings/UI fixtures with preferences restored. Final
+real export took 14.064 seconds; no paid AI inference was performed. A UI-fixture
+cleanup race was resolved by reloading before deleting only its owned QA project;
+a fresh genuine cleanup also passed. No user project was removed.
+
+The current download metadata selects verified 0.2.64. The older installed app
+is retained under ignored outputs/release207/mac-before. Previous notarization
+profile deferral is resolved. A Windows QA test identified direct Node execution
+of a shebang hook as nonportable; the development guard now delegates interpreter
+selection to Git and still chains the existing privacy rejection. Local tests pass;
+Windows remains internal QA, without a public installer. Web deployment follows.

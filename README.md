@@ -4,7 +4,7 @@ Upload your clips, edit with Eva, and export your video in your browser or on Ma
 
 ![EditAI Studio Home — Upload clips, Record, Batch, Analyze and Transcribe](https://raw.githubusercontent.com/tappj/EditAI-Webapp/codex/desktop-migration/docs/images/editai-home.png)
 
-[Open the app](https://editai.it.com/sign-in) · [Download for Mac (macOS 15+, Apple Silicon)](https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.63/EditAI-0.2.63-mac-arm64.dmg)
+[Open the app](https://editai.it.com/sign-in) · [Download for Mac (macOS 15+, Apple Silicon)](https://github.com/tappj/EditAI-Webapp/releases/download/v0.2.64/EditAI-0.2.64-mac-arm64.dmg)
 
 - **Edit with Eva** — describe your edits or add a style reference.
 - **Auto captions** — turn speech into captions and adjust the style.
@@ -18,7 +18,7 @@ Upload your clips, edit with Eva, and export your video in your browser or on Ma
 
 Sign in with publik. For AI features, connect your publik account or use your own OpenAI API key in Settings.
 
-The Mac app is signed and notarized. Editing and export stay on your device. Web AI editing uses the hosted EditAI service; the matching Mac update is in progress. iOS coming soon.
+The Mac app is signed and notarized. Editing and export stay on your device. Web and Mac AI editing use the hosted EditAI service. iOS coming soon.
 
 [Development notes](docs/DEVELOPING.md) · [Report a bug](https://github.com/tappj/EditAI-Webapp/issues)
 

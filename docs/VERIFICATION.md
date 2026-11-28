@@ -4075,10 +4075,26 @@ was inapplicable because the platform-specific link appears on hydration; the
 actual live browser link was checked against the verified versioned URL.
 The installed Mac archive matches the signed/notarized app, ZIP and DMG and
 passed installed genuine authentication/export and separate UI fixture gates.
-No Windows installer was published. At final handoff the optional matrix QA
-run remained in progress; local 124 tests/37 native contracts and the dedicated
+No Windows installer was published. During deployment the separate matrix QA
+run was still in progress; local 124 tests/37 native contracts and the dedicated
 macOS installer workflow passed. Main and development source pushes preserve
 history. The prior app backup and private QA reports remain under ignored
 outputs/release207. The separate built QA server was stopped; local HMR remains
 available. Routine future work is still development-only unless a release is
 explicitly requested.
+
+
+Final CI limitation: matrix run 46117760198 subsequently finished with web success
+and two native job failures. macOS reported 35/37 passing desktop contracts; the
+compositor PNG/audio case failed after approximately 20 minutes (the aggregate
+suite also failed). Windows passed unit/native tests, packaging and the installed
+Publik self-test, then its gate harness timed out on the obsolete “Continue with
+Google via Publik” button expectation, which is absent from current application
+source. These results are not represented as passing CI. The signed release's
+local 37-contract suite, genuine installed native/composited export, normal gate,
+Settings and UI checks passed as recorded above; no speculative application
+change or test bypass was added for the CI failures. A separate fresh desktop
+bootstrap check returned 201, and its real wallet returned 200/anonymous, proving
+new-install provisioning remains available without signing in or using paid AI.
+Windows remains internal QA with no public release. CI details:
+https://github.com/tappj/EditAI-Webapp/actions/runs/46117760198

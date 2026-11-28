@@ -4005,3 +4005,30 @@ exclude a client-side media/network failure. No customer data or live settings w
 modified. Public boundary checks pass. Saved locally only, without push, deployment,
 installer publication or replacement of the installed Mac app. The user's dev
 server remains running; the separate QA server is stopped after verification.
+
+
+## November 27 — Percentage progress and authorized combined release
+
+The owner requested percentage progress instead of elapsed time, removal of the
+completed-task count, and production publication of this conversation's changes.
+Upload processing now displays a monotonic presentation estimate between actual
+stage/provider milestones, advancing through consecutive integer percentages.
+Only actual completion can reach 100; the estimate is explicitly labeled in all
+eight translations. The bar follows the number and retains activity feedback.
+Elapsed/task-count UI is removed; real stage labels and cancellation remain.
+No saved job, provider result, usage metric, or billable request is fabricated.
+
+Typecheck, 124 unit tests, 37 desktop contracts, web and desktop builds pass.
+Six focused Chromium and six WebKit cases pass, including successive one-point
+increments during a held response, background/resume, caption stages, preview
+readiness, source persistence and cancel/error/retry deletion. The percentage
+screen was visually inspected. React review confirms effect cleanup, a single
+processing timer, bounded updates, named imports, accessible progress values and
+reduced-motion activity handling. Provider boundaries in these browser checks
+are fixtures, not proof of fresh provider connectivity.
+
+This release includes the prior larger deletion actions, upload-preview readiness
+fix, and removal of desktop installer-cleanup prompts. Development remains local
+by default after this explicitly authorized release. Apple Developer ID and the
+editai-notary Keychain profile passed preflight; signed installer acceptance and
+production deployment evidence will be recorded after completion.

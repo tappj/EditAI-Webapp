@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import type { Source } from "@/lib/editor/model";
+import { advanceEstimatedProgress } from "@/lib/editor/job-progress";
 import { EditAIMascot } from "./EditAIMascot";
 import "./upload-flow.css";
 
@@ -29,8 +30,8 @@ export function UploadFlow({
   processing,
   preparing,
   stage,
+  progress,
   options,
-  startedAt,
   activeIndex,
   error,
   onRetake,
@@ -44,8 +45,8 @@ export function UploadFlow({
   processing: boolean;
   preparing: boolean;
   stage: "transcribe" | "cut" | "captions" | "save" | "complete";
+  progress: number;
   options: { autoCut: boolean; addCaptions: boolean };
-  startedAt?: number;
   activeIndex: number;
   error: string;
   onRetake: () => void;
@@ -53,15 +54,6 @@ export function UploadFlow({
   onClose: () => void;
   onBackground: () => void;
 }) {
-  const [now, setNow] = useState(Date.now);
-  const fallbackStart = useRef(Date.now());
-  useEffect(() => {
-    if (!processing) return;
-    const update = () => setNow(Date.now());
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, [processing]);
   const [autoCut, setAutoCut] = useState(true);
   const [addCaptions, setAddCaptions] = useState(false);
   const [selected, setSelected] = useState(0);
@@ -117,6 +109,51 @@ export function UploadFlow({
   ];
   const stageOrder = ["transcribe", "cut", "captions", "save", "complete"];
   const stageIndex = stageOrder.indexOf(stage);
+  const activeStep = actions.findIndex((action) => action.key === stage);
+  const reported =
+    stage === "complete"
+      ? 1
+      : (Math.max(0, activeStep) +
+          (stage === "transcribe" ? Math.min(1, Math.max(0, progress)) : 0)) /
+        actions.length;
+  const progressInput = useRef({ reported, expectedMs: 12000 });
+  progressInput.current = {
+    reported,
+    expectedMs: Math.max(
+      12000,
+      sources.reduce((sum, item) => sum + item.duration, 0) * 180,
+    ),
+  };
+  const estimate = useRef(0);
+  const [percentage, setPercentage] = useState(0);
+  useEffect(() => {
+    if (!processing) {
+      estimate.current = 0;
+      setPercentage(0);
+      return;
+    }
+    let previousTime = performance.now();
+    setPercentage((value) => Math.max(1, value));
+    const timer = setInterval(() => {
+      const now = performance.now();
+      const input = progressInput.current;
+      estimate.current = advanceEstimatedProgress(
+        estimate.current,
+        input.reported,
+        now - previousTime,
+        input.expectedMs,
+      );
+      previousTime = now;
+      // Animate milestone jumps through consecutive integers, rather than
+      // jumping from 0 to 33 or 67. Completion remains an actual job signal.
+      setPercentage((value) =>
+        input.reported >= 1
+          ? 100
+          : Math.max(value, Math.min(value + 1, Math.floor(estimate.current))),
+      );
+    }, 80);
+    return () => clearInterval(timer);
+  }, [processing]);
   if (processing)
     return (
       <section
@@ -184,35 +221,20 @@ export function UploadFlow({
           <div
             className="upload-activity"
             role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percentage}
+            aria-valuetext={`${percentage}% · ${uiText("Estimated progress")}`}
             aria-label={uiText(
               actions.find((action) => action.key === stage)?.label ||
                 "Saving your edit",
             )}
           >
-            <span aria-hidden="true" />
+            <span aria-hidden="true" style={{ width: `${percentage}%` }} />
           </div>
-          <p className="upload-elapsed">
-            {uiText("Elapsed {0}", {
-              0: clock(
-                Math.max(
-                  0,
-                  (now - (startedAt || fallbackStart.current)) / 1000,
-                ),
-              ),
-            })}
+          <p className="upload-percentage">
+            {percentage}% <span>{uiText("Estimated progress")}</span>
           </p>
-          {actions.some(
-            (action) => stageOrder.indexOf(action.key) < stageIndex,
-          ) && (
-            <p className="upload-completed-tasks">
-              {uiText("{0} of {1} tasks complete", {
-                0: actions.filter(
-                  (action) => stageOrder.indexOf(action.key) < stageIndex,
-                ).length,
-                1: actions.length,
-              })}
-            </p>
-          )}
           <ul
             className="upload-task-list"
             aria-label={uiText("Creating your first cut")}

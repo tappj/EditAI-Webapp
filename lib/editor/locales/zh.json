@@ -820,5 +820,6 @@
   "Editing and export stay on your device. AI editing and summaries process transcripts and reference frames on EditAI servers before calling your selected provider. Transcription sends extracted audio to that provider. Publik": "剪辑和导出仍在你的设备上进行。AI 剪辑和摘要会先在 EditAI 服务器上处理转录文本和参考画面，再调用你选择的服务提供商。转录功能会将提取的音频发送给该提供商。Publik",
   "is not used for these AI requests. EditAI securely forwards your own key to OpenAI for editing and summaries without storing it on the AI service.": "不会用于这些 AI 请求。EditAI 会将你自己的密钥安全地转发给 OpenAI，用于剪辑和摘要，不会将其保存在 AI 服务中。",
   "With your permission, EditAI servers process transcripts and reference frames for AI editing and summaries using Publik or your own OpenAI account. Transcription sends extracted audio to your selected provider. AI results may be saved to recover interrupted edits. Your own key is used transiently by the AI service. Provider terms and retention apply. Review edits and captions before sharing.": "经你允许，EditAI 服务器会通过 Publik 或你自己的 OpenAI 账户处理转录文本和参考画面，用于 AI 剪辑和摘要。转录功能会将提取的音频发送给你选择的服务提供商。AI 结果可能会被保存，以恢复中断的剪辑。AI 服务仅临时使用你自己的密钥。适用服务提供商的条款和保留政策。分享前请检查剪辑和字幕。",
-  "is not used for these AI requests. EditAI securely forwards your own key to OpenAI for editing and summaries without storing it on the AI service": "不会用于这些 AI 请求。EditAI 会将你自己的密钥安全地转发给 OpenAI，用于剪辑和摘要，不会将其保存在 AI 服务中"
+  "is not used for these AI requests. EditAI securely forwards your own key to OpenAI for editing and summaries without storing it on the AI service": "不会用于这些 AI 请求。EditAI 会将你自己的密钥安全地转发给 OpenAI，用于剪辑和摘要，不会将其保存在 AI 服务中",
+  "Estimated progress": "预计进度"
 }

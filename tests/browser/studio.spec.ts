@@ -5619,14 +5619,23 @@ test("first cut keeps clean monotonic progress and finishes after leaving proces
   await expect.poll(() => requests).toBe(1);
   const activity = page.locator(".upload-activity");
   await expect(activity).toHaveAttribute("role", "progressbar");
-  await expect(activity).not.toHaveAttribute("aria-valuenow");
-  await expect(page.locator(".upload-completed-tasks")).toHaveText(
-    "1 of 3 tasks complete",
-  );
-  const elapsed = await page.locator(".upload-elapsed").innerText();
+  await expect(activity).toHaveAttribute("aria-valuenow", /^\d+$/);
+  await expect(page.locator(".upload-completed-tasks,.upload-elapsed")).toHaveCount(0);
+  await expect(page.locator(".upload-percentage")).toContainText("Estimated progress");
+  await page.evaluate(() => {
+    const values: number[] = [];
+    (window as any).uploadPercentages = values;
+    new MutationObserver(() => {
+      const value = Number(document.querySelector(".upload-activity")?.getAttribute("aria-valuenow"));
+      if (Number.isFinite(value) && values.at(-1) !== value) values.push(value);
+    }).observe(document.querySelector(".upload-activity")!, { attributes: true, attributeFilter: ["aria-valuenow"] });
+  });
   await expect
-    .poll(() => page.locator(".upload-elapsed").innerText())
-    .not.toBe(elapsed);
+    .poll(() => page.evaluate(() => (window as any).uploadPercentages.length))
+    .toBeGreaterThan(6);
+  const percentages: number[] = await page.evaluate(() => (window as any).uploadPercentages);
+  expect(percentages.every((value, index) => value > 0 && value < 100 && (!index || value === percentages[index - 1] + 1))).toBe(true);
+  await page.screenshot({ path: "outputs/progress-percentage.png" });
   await page
     .getByRole("button", { name: "Continue editing in background" })
     .click();
@@ -6936,9 +6945,8 @@ test("first-cut notifications open live progress and the completed editor while 
       .setInputFiles("outputs/fixture.mp4");
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await expect.poll(() => edits).toBe(1);
-    await expect(page.locator(".upload-completed-tasks")).toHaveText(
-      "1 of 3 tasks complete",
-    );
+    await expect(page.locator(".upload-completed-tasks")).toHaveCount(0);
+    await expect(page.locator(".upload-percentage")).toContainText("%");
     await page
       .getByRole("button", {
         name: "Continue editing in background",
@@ -7034,9 +7042,7 @@ test("caption work paints its actual stage and the finished Eva notice stays com
     });
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await expect.poll(() => edits).toBe(1);
-    await expect(page.locator(".upload-activity")).not.toHaveAttribute(
-      "aria-valuenow",
-    );
+    await expect(page.locator(".upload-activity")).toHaveAttribute("aria-valuenow", /^\d+$/);
     release();
     await expect(page.locator(".timeline-clip")).toHaveCount(1);
     await expect

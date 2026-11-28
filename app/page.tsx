@@ -3321,12 +3321,12 @@ export default function App({
                 preparing={busy === "Importing your footage"}
                 processing={firstCut}
                 stage={firstCutStage}
+                progress={progress}
                 options={{
                   autoCut: upload.project.firstCutTask?.autoCut ?? true,
                   addCaptions:
                     upload.project.firstCutTask?.addCaptions ?? false,
                 }}
-                startedAt={upload.project.firstCutTask?.startedAt}
                 activeIndex={activeUploadIndex}
                 error={uiText(error)}
                 onRetake={() => pick()}

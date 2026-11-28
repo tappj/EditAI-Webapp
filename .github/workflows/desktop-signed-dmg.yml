@@ -1,0 +1,73 @@
+name: Assemble signed macOS DMG
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Numeric ID of the private draft release
+        required: true
+        type: string
+      asset_id:
+        description: Numeric ID of its signed ZIP asset
+        required: true
+        type: string
+      zip_sha256:
+        description: SHA-256 of the Developer ID signed and notarized ZIP in the draft release
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  dmg:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      # electron-builder loads desktop/dist package metadata even with --prepackaged.
+      - run: npm run desktop:build
+      - name: Download exact signed app from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA256: ${{ inputs.zip_sha256 }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          ASSET_ID: ${{ inputs.asset_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/tappj/EditAI-Webapp/releases/$RELEASE_ID" --jq .tag_name | grep -Fx 'v0.2.64'
+          gh api "repos/tappj/EditAI-Webapp/releases/assets/$ASSET_ID" -H 'Accept: application/octet-stream' > "$RUNNER_TEMP/EditAI-0.2.64-mac-arm64.zip"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$RUNNER_TEMP/EditAI-0.2.64-mac-arm64.zip" | shasum -a 256 -c -
+      - name: Assemble and inspect disk image
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/editai-dmg-stage"
+          mkdir -p "$stage"
+          ditto -x -k "$RUNNER_TEMP/EditAI-0.2.64-mac-arm64.zip" "$stage"
+          codesign --verify --deep --strict "$stage/EditAI.app"
+          xcrun stapler validate "$stage/EditAI.app"
+          spctl --assess --type execute --verbose=2 "$stage/EditAI.app"
+          node node_modules/electron-builder/cli.js --prepackaged "$stage/EditAI.app" --config desktop/electron-builder.yml --mac dmg --arm64 --publish never -c.mac.notarize=false -c.forceCodeSigning=false -c.directories.output="$RUNNER_TEMP/dmg-output"
+          image="$RUNNER_TEMP/dmg-output/EditAI-0.2.64-mac-arm64.dmg"
+          hdiutil verify "$image"
+          mount="$RUNNER_TEMP/editai-dmg-mount"
+          mkdir -p "$mount"
+          trap 'hdiutil detach "$mount" -quiet || true' EXIT
+          hdiutil attach "$image" -readonly -nobrowse -mountpoint "$mount"
+          codesign --verify --deep --strict "$mount/EditAI.app"
+          xcrun stapler validate "$mount/EditAI.app"
+          spctl --assess --type execute --verbose=2 "$mount/EditAI.app"
+          test "$(shasum -a 256 "$mount/EditAI.app/Contents/Resources/app.asar" | cut -d ' ' -f1)" = "$(shasum -a 256 "$stage/EditAI.app/Contents/Resources/app.asar" | cut -d ' ' -f1)"
+          test "$(readlink "$mount/Applications")" = /Applications
+          test -f "$mount/.background.tiff"
+          test -f "$mount/.DS_Store"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editai-0.2.64-macos-arm64-branded-dmg-for-local-notarization
+          path: ${{ runner.temp }}/dmg-output/EditAI-0.2.64-mac-arm64.dmg
+          if-no-files-found: error
+          retention-days: 2

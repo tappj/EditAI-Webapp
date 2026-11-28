@@ -1,0 +1,6 @@
+# Internal CI artifacts only. Never publish these unsigned/ad-hoc builds.
+extends: desktop/electron-builder.yml
+forceCodeSigning: false
+mac:
+  identity: "-"
+  notarize: false

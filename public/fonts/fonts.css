@@ -1,0 +1,59 @@
+@font-face{font-family:"Abril Fatface";src:url("/fonts/Caption-abrilfatface.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Alfa Slab One";src:url("/fonts/Caption-alfaslabone.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Anton";src:url("/fonts/Anton-Regular.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Archivo Black";src:url("/fonts/ArchivoBlack-Regular.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Bangers";src:url("/fonts/Caption-bangers.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"BarlowCondensed";src:url("/fonts/BarlowCondensed-ExtraBold.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Bebasneue";src:url("/fonts/Caption-bebasneue.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Black Ops One";src:url("/fonts/Caption-blackopsone.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Bungee";src:url("/fonts/Caption-bungee.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Caveat";src:url("/fonts/Caveat.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Chewy";src:url("/fonts/Caption-chewy.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Cinzel";src:url("/fonts/Caption-cinzel.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"CourierPrime";src:url("/fonts/CourierPrime-Regular.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Creepster";src:url("/fonts/Caption-creepster.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"DM Sans";src:url("/fonts/Caption-dmsans.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"DM Serif Display";src:url("/fonts/Caption-dmserifdisplay.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Dancing Script";src:url("/fonts/Caption-dancingscript.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Dela Gothic One";src:url("/fonts/Caption-delagothicone.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Figtree";src:url("/fonts/Caption-figtree.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Fjalla One";src:url("/fonts/Caption-fjallaone.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Fredoka";src:url("/fonts/Caption-fredoka.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Gloria Hallelujah";src:url("/fonts/Caption-gloriahallelujah.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Great Vibes";src:url("/fonts/Caption-greatvibes.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url("/fonts/Caption-instrumentserif.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Inter";src:url("/fonts/Inter.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Jost";src:url("/fonts/Caption-jost.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Kanit";src:url("/fonts/Caption-kanit.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"League Spartan";src:url("/fonts/Caption-leaguespartan.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Lilitaone";src:url("/fonts/Caption-lilitaone.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Lobster";src:url("/fonts/Lobster-Regular.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Luckiest Guy";src:url("/fonts/Caption-luckiestguy.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Monoton";src:url("/fonts/Caption-monoton.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Montserrat";src:url("/fonts/Montserrat.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Nunito";src:url("/fonts/Nunito.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Oswald";src:url("/fonts/Oswald.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Outfit";src:url("/fonts/Caption-outfit.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Pacifico";src:url("/fonts/Caption-pacifico.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Permanent Marker";src:url("/fonts/PermanentMarker-Regular.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"PlayfairDisplay";src:url("/fonts/PlayfairDisplay.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Plus Jakarta Sans";src:url("/fonts/Caption-plusjakartasans.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Poppins";src:url("/fonts/Poppins-Bold.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Press Start 2P";src:url("/fonts/Caption-pressstart2p.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Quicksand";src:url("/fonts/Caption-quicksand.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Righteous";src:url("/fonts/Caption-righteous.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Rock Salt";src:url("/fonts/Caption-rocksalt.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Rye";src:url("/fonts/Caption-rye.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Satisfy";src:url("/fonts/Caption-satisfy.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Shadows Into Light";src:url("/fonts/Caption-shadowsintolight.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Shrikhand";src:url("/fonts/Caption-shrikhand.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Silkscreen";src:url("/fonts/Caption-silkscreen.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Sora";src:url("/fonts/Caption-sora.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Space Grotesk";src:url("/fonts/Caption-spacegrotesk.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Special Elite";src:url("/fonts/Caption-specialelite.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Staatliches";src:url("/fonts/Caption-staatliches.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"TikTok Sans";src:url("/fonts/TikTokSans-Variable.ttf") format("truetype");font-weight:300 900;font-stretch:75% 150%;font-display:swap}
+@font-face{font-family:"Titanone";src:url("/fonts/Caption-titanone.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Ultra";src:url("/fonts/Caption-ultra.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Vt323";src:url("/fonts/Caption-vt323.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Yesevaone";src:url("/fonts/Caption-yesevaone.ttf") format("truetype");font-weight:100 900;font-display:swap}

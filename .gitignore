@@ -1,0 +1,66 @@
+# Dependencies
+/node_modules/
+/.pnp
+.pnp.*
+# Keep authored Yarn tooling if the project adopts Yarn.
+/.yarn/*
+!/.yarn/patches/
+!/.yarn/plugins/
+!/.yarn/releases/
+!/.yarn/versions/
+
+# Generated builds and framework state
+/dist/
+/.next/
+/.vinext/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Test output
+/coverage/
+
+# Package-manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local environment and keys
+.env*
+.dev.vars*
+*.pem
+
+# Checkout-local tool state
+/.wrangler/
+/.sites-runtime/
+
+# Workspace scaffolding and publication archives
+/.agents/
+/.codex/
+/outputs/
+/work/
+
+# OS metadata
+.DS_Store
+
+# Desktop build outputs and signing material
+/desktop/dist/
+/desktop/release/
+/desktop/bin/
+*.p12
+*.pfx
+*.mobileprovision
+*.p8
+*.key
+*.cer
+*.keychain
+*.keychain-db
+*.keystore
+
+/public/speech/
+
+/public/ocr/
+
+# Proprietary AI service source belongs only in the private deployment repository.
+/.private-ai/

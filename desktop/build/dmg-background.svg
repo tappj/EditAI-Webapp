@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" viewBox="0 0 720 440">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#f7fbff"/>
+      <stop offset="1" stop-color="#f3f4fb"/>
+    </linearGradient>
+    <radialGradient id="ice" cx="0" cy="0" r="1">
+      <stop offset="0" stop-color="#c9f1f1" stop-opacity="0.68"/>
+      <stop offset="1" stop-color="#c9f1f1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lavender" cx="0" cy="0" r="1">
+      <stop offset="0" stop-color="#dedcf6" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#dedcf6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="720" height="440" fill="url(#paper)"/>
+  <ellipse cx="70" cy="365" rx="260" ry="215" fill="url(#ice)"/>
+  <ellipse cx="675" cy="105" rx="230" ry="220" fill="url(#lavender)"/>
+  <rect x="30" y="25" width="660" height="390" rx="23" fill="#ffffff" fill-opacity="0.46" stroke="#ffffff" stroke-opacity="0.95"/>
+  <text x="360" y="82" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="35" font-weight="700" letter-spacing="-1" fill="#192735">Open EditAI to get started</text>
+  <text x="360" y="119" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="18" fill="#526272">Double-click EditAI to install and open it.</text>
+  <path d="M315 265 H395" fill="none" stroke="#598fd9" stroke-width="7" stroke-linecap="round"/>
+  <path d="m380 250 17 15-17 15" fill="none" stroke="#598fd9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="360" y="365" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" fill="#526272">Once open, EditAI can help remove the installer.</text>
+  <text x="360" y="396" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="13" fill="#738492">Or drag to Applications, then open EditAI from there.</text>
+</svg>

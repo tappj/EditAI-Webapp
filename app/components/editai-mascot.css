@@ -1,0 +1,395 @@
+/* The body stays fixed while drawn hand and face poses switch instantly. */
+.editai-mascot {
+  position: relative;
+  display: inline-block;
+  width: var(--mascot-size, 48px);
+  height: var(--mascot-size, 48px);
+  flex: 0 0 var(--mascot-size, 48px);
+  vertical-align: middle;
+  isolation: isolate;
+}
+.mascot-float,
+.mascot-rig,
+.mascot-wave {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.mascot-float {
+  animation: mascot-float 4.6s ease-in-out infinite;
+}
+.mascot-rig {
+  position: relative;
+  opacity: 0;
+}
+.editai-mascot[data-ready] .mascot-rig {
+  opacity: 1;
+}
+.mascot-body,
+.mascot-arm {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.mascot-body {
+  z-index: 1;
+}
+.mascot-body-open {
+  opacity: calc(1 - var(--snip-frame, 0));
+}
+.mascot-body-closed {
+  opacity: var(--snip-frame, 0);
+}
+.editai-mascot[data-state="working"] .mascot-rig {
+  animation: mascot-snip 0.8s steps(1, end) infinite;
+}
+@keyframes mascot-snip {
+  0%,
+  49.9% {
+    --snip-frame: 0;
+  }
+  50%,
+  100% {
+    --snip-frame: 1;
+  }
+}
+
+.mascot-arm-rest {
+  z-index: 4;
+}
+.mascot-wave {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  opacity: 0;
+  --wave-frame: 0;
+}
+.mascot-wave-a {
+  opacity: calc(1 - var(--wave-frame));
+}
+.mascot-wave-b {
+  opacity: var(--wave-frame);
+}
+.editai-mascot[data-interacting] .mascot-arm-rest {
+  opacity: 0;
+}
+.editai-mascot[data-interacting] .mascot-wave {
+  opacity: 1;
+  animation: mascot-wave-step 0.65s steps(1, end) infinite;
+}
+@keyframes mascot-wave-step {
+  0%,
+  49.9% {
+    --wave-frame: 0;
+  }
+  50%,
+  100% {
+    --wave-frame: 1;
+  }
+}
+.mascot-face,
+.mascot-sparkles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+}
+.mascot-eyes {
+  --blink: 0;
+  animation: mascot-blink 4.8s steps(1, end) infinite;
+}
+.mascot-eyes-awake {
+  opacity: calc(1 - var(--blink));
+}
+.mascot-eyes-closed {
+  opacity: var(--blink);
+}
+.mascot-eyes-open {
+  fill: #e9fcff;
+  filter: drop-shadow(0 0 0.65px #a6efff);
+}
+.mascot-eyes-happy,
+.mascot-eyes-closed {
+  fill: none;
+  stroke: #e9fcff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 0.65px #a6efff);
+}
+.mascot-eyes-happy {
+  display: none;
+}
+.editai-mascot:is([data-interacting], [data-state="working"])
+  .mascot-eyes-open {
+  display: none;
+}
+.editai-mascot:is([data-interacting], [data-state="working"])
+  .mascot-eyes-happy {
+  display: inline;
+}
+.mascot-smile {
+  filter: drop-shadow(0 0 0.65px #b6efff);
+}
+.mascot-blush {
+  fill: none;
+  stroke: #ffbadb;
+  stroke-width: 0.95;
+  stroke-linecap: round;
+  opacity: 0;
+  filter: drop-shadow(0 0 0.5px #ffa5d2);
+}
+.editai-mascot:is([data-interacting], [data-state="working"]) .mascot-blush {
+  opacity: 1;
+}
+.mascot-play-buttons {
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 0.65;
+  stroke-linejoin: round;
+}
+.mascot-sparkles {
+  z-index: 5;
+  opacity: 0;
+}
+.mascot-sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  fill: #b9a9ff;
+  filter: drop-shadow(0 0 0.6px #d9d1ff);
+}
+.sparkle-two {
+  fill: #fff;
+  stroke: #ffd6ad;
+  stroke-width: 0.45;
+  filter: drop-shadow(0 0 1px #ffd6ad);
+}
+.editai-mascot:is([data-interacting], [data-state="working"]) .mascot-sparkles {
+  opacity: 1;
+}
+.editai-mascot:is([data-interacting], [data-state="working"]) .mascot-sparkle {
+  animation: mascot-twinkle 0.9s ease-in-out infinite;
+}
+.sparkle-two {
+  animation-delay: -0.25s !important;
+}
+.sparkle-three {
+  animation-delay: -0.55s !important;
+}
+.sparkle-four {
+  animation-delay: -0.1s !important;
+}
+@keyframes mascot-twinkle {
+  0%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+.mascot-ground-shadow {
+  position: absolute;
+  left: 24%;
+  top: 91%;
+  width: 52%;
+  height: 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    #9b91d952 0%,
+    #b8aeea2b 45%,
+    #b8aeea00 74%
+  );
+  filter: blur(2px);
+  pointer-events: none;
+}
+@keyframes mascot-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5%);
+  }
+}
+@keyframes mascot-blink {
+  0%,
+  91.9%,
+  95%,
+  100% {
+    --blink: 0;
+  }
+  92%,
+  94.9% {
+    --blink: 1;
+  }
+}
+.editai-mascot[data-paused]
+  :is(.mascot-float, .mascot-rig, .mascot-eyes, .mascot-wave, .mascot-sparkle) {
+  animation-play-state: paused !important;
+}
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 2px;
+}
+.typing-dots i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: chat-typing 1.2s ease-in-out infinite;
+}
+.typing-dots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.typing-dots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes chat-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+.home-mascot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex: 1;
+  min-height: 190px;
+  border: 0;
+  background: transparent;
+  border-radius: 24px;
+  cursor: default;
+}
+.home-mascot:focus-visible {
+  outline: 2px solid var(--control);
+  outline-offset: 2px;
+}
+.chat-message-row {
+  display: flex;
+  gap: 7px;
+  align-items: flex-end;
+  flex-shrink: 0;
+  width: 100%;
+}
+.chat-message-row.user {
+  flex-direction: row-reverse;
+}
+.chat-message-row > .message {
+  max-width: calc(100% - 48px);
+}
+.chat-message-row > .avatar {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+.chat-message-row > .editai-mascot {
+  margin: 0 -3px -2px;
+}
+.chat-message-row.typing-row {
+  align-items: center;
+}
+.typing-row > .message {
+  padding: 9px 12px;
+}
+.typing-row > .icon-button {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  color: var(--muted);
+}
+
+.progress-modal > .editai-mascot {
+  margin: 0 auto 6px;
+}
+.operation-status > .editai-mascot {
+  margin: 0;
+  align-self: center;
+}
+.upload-processing-mascot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+}
+.upload-processing-mascot .upload-percentage {
+  position: static;
+  transform: none;
+  color: white;
+  font-size: 28px;
+  text-shadow: 0 1px 8px #0008;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editai-mascot
+    :is(
+      .mascot-float,
+      .mascot-rig,
+      .mascot-eyes,
+      .mascot-wave,
+      .mascot-sparkle
+    ),
+  .typing-dots i {
+    animation: none !important;
+    transform: none !important;
+  }
+  .typing-dots i {
+    opacity: 0.65;
+  }
+}
+
+.eva-theme-definitions {
+  position: absolute;
+  pointer-events: none;
+}
+.editai-mascot:not([data-eva-theme="editAI"]) .mascot-eyes-open {
+  fill: var(--eva-eye);
+  filter: drop-shadow(0 0 0.65px var(--eva-glow));
+}
+.editai-mascot:not([data-eva-theme="editAI"])
+  :is(.mascot-eyes-happy, .mascot-eyes-closed) {
+  stroke: var(--eva-eye);
+  filter: drop-shadow(0 0 0.65px var(--eva-glow));
+}
+.editai-mascot:not([data-eva-theme="editAI"]) .mascot-sparkle {
+  fill: var(--eva-star);
+}
+.editai-mascot:not([data-eva-theme="editAI"]) .sparkle-two {
+  fill: white;
+  stroke: var(--eva-warm);
+}
+.editai-mascot:not([data-eva-theme="editAI"]) .mascot-smile {
+  filter: drop-shadow(0 0 0.65px var(--eva-glow));
+}
+.editai-mascot:not([data-eva-theme="editAI"]) .mascot-ground-shadow {
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--eva-star) 32%, transparent) 0%,
+    color-mix(in srgb, var(--eva-warm) 17%, transparent) 45%,
+    transparent 74%
+  );
+}

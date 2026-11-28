@@ -8,6 +8,12 @@ const worker = {
     env: Cloudflare.Env,
     ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>,
   ) {
+    // Local development never contributes owner/test engagement telemetry.
+    if (import.meta.env.DEV) {
+      const headers = new Headers(request.headers);
+      headers.set("dnt", "1");
+      request = new Request(request, { headers });
+    }
     const url = new URL(request.url);
     if (url.hostname === "editai-web.givingarmadillo8.chatgpt.site") {
       url.hostname = "editai.it.com";

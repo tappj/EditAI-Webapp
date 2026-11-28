@@ -2613,3 +2613,53 @@ also passes against the deployed site in both engines. Public boundary checks
 pass across 987 files. The owned local QA server is stopped; installed/public
 Mac 0.2.63 remains preserved under the existing owner deferral. Source is pushed
 to both main and codex/desktop-migration without rewriting history.
+
+
+## November 27 — Development-only workflow and isolated local environments
+
+The owner requested a safe development environment and deliberate releases.
+This supersedes the previous default to push completed work to main and publish
+interface changes. Ordinary changes now stay local on codex/desktop-migration;
+source backup and production release require the owner's corresponding request.
+Main, Site publishing, release tags, desktop distribution and replacement of the
+installed Mac app are release operations, not ordinary development steps.
+
+Added npm run dev:setup, loopback-only web development and npm run desktop:dev.
+Setup preserves existing secret files without reading them, creates a private
+local encryption configuration only if missing, and applies all four migrations
+only to .wrangler/development using a placeholder local D1 identity. Built-server
+QA continues to use .wrangler/state. Repeated setup preserves the existing secret
+file inode/mtime and reports no pending migrations. The local web landing page
+returns 200 and renders correctly. Genuine local web sign-in returns the expected
+503 configuration error because no developer web Publik app token was supplied;
+no production credential was copied and no authentication bypass was added.
+
+All unpackaged desktop launches now use EditAI Dev, separate userData/sessionData,
+and an OS-encrypted Publik vault within that development profile. An actual
+Electron smoke launch verified the application name, unpackaged status, separate
+EditAI Desktop Development paths, one window, DO_NOT_TRACK=1 and telemetry=false.
+The installed application and its data were not replaced or migrated. This smoke
+check does not certify authenticated editing, genuine provider connectivity, a
+packaged release, or installed-to-next-version updating. Source AI requests still
+use the genuine hosted gateway and can consume real credits. Web HMR requests
+force DNT; desktop development opts out before the genuine gate runs.
+
+A worktree-specific Git pre-push hook rejects main/master, tags, deletions and
+mixed-ref pushes unless a deliberate release push opts in. The existing shared
+privacy/history hook still runs, including with release opt-in. Older worktrees
+continue to resolve the original shared hook. Tests exercise protected refs,
+normal development refs, explicit opt-in and rejection by a prior hook; direct
+execution of the installed hook also passes. No Git push was performed. This is
+a local safeguard, not server-side branch protection. PR QA was added without
+any deployment/publication step. Developer documentation explains checkpoints,
+source backups, local services, manual releases, API/migration compatibility and
+current manual desktop update behavior.
+
+Validation: typecheck, all 123 unit tests, all 37 desktop contracts, production web
+build and desktop source build pass. The targeted Chromium landing/sign-in-entry
+regression passes against a freshly started built Worker. Its authentication is
+fixture-scoped and does not prove Publik connectivity. Public artifact boundary
+checks pass. No paid AI inference or transcription acceptance was run. Development
+and QA servers were stopped after verification. Live web 206 and the verified
+installed/public Mac 0.2.63 remain unchanged; the standing notarization deferral
+remains in force. All work is saved as a local development commit only.

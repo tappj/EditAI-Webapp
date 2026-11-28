@@ -192,8 +192,16 @@ async function unlockEditor() {
     window.webContents.send("gate:screen", screen);
   }
 }
-app.setName("EditAI");
-app.setPath("userData", join(app.getPath("appData"), "EditAI Desktop"));
+// Source runs must never open the installed release's projects or credentials.
+const development = !app.isPackaged;
+app.setName(development ? "EditAI Dev" : "EditAI");
+app.setPath("userData", join(app.getPath("appData"),
+  development ? "EditAI Desktop Development" : "EditAI Desktop"));
+if (development) {
+  app.setPath("sessionData", app.getPath("userData"));
+  process.env.DO_NOT_TRACK = "1";
+  process.env.PUBLIK_TELEMETRY = "false";
+}
 async function startDesktop() {
   try {
     process.env.PUBLIK_APP_TOKEN =
@@ -202,7 +210,9 @@ async function startDesktop() {
   } catch {
     delete process.env.PUBLIK_APP_TOKEN;
   }
-  const credentialFile = sdk.credentialPath();
+  const credentialFile = development
+    ? join(app.getPath("userData"), "publik.vault.json")
+    : sdk.credentialPath();
   await sdk.configureCredentialStore(
     () => readVault(credentialFile),
     (value) => writeVault(credentialFile, value),
@@ -234,7 +244,7 @@ async function startDesktop() {
       minWidth: 900,
       minHeight: 650,
       show: false,
-      title: "EditAI",
+      title: development ? "EditAI Dev" : "EditAI",
       backgroundColor: "#ffffff",
       ...(process.platform === "darwin"
         ? {

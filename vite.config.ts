@@ -62,6 +62,9 @@ export default defineConfig(async ({ command }) => {
       sites({ mockAuth: !managedLinux }),
       connectorPreview(),
       cloudflare({
+        ...(command === "serve"
+          ? { persistState: { path: ".wrangler/development" } }
+          : {}),
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
         config: {

@@ -1,8 +1,10 @@
 # EditAI Studio
 
-This is the independent web editor. Do not modify the sibling iOS project or the older private marketing website. Work on `codex/desktop-migration`. The owner’s November 20 instruction authorizes and requests committing and pushing completed changes to `main`; preserve remote history and never force-push.
+This is the independent web editor. Do not modify the sibling iOS project or the older private marketing website. Work on `codex/desktop-migration`; `main` represents released source. Preserve remote history and never force-push.
 
-Web and desktop are one shared product: a request mentioning either platform applies to both unless explicitly limited. Publish requested interface updates to the live web app and a matching verified desktop release, including the installed Mac app; source pushes alone are insufficient.
+The owner's November 27 development-only instruction supersedes the earlier automatic main-push/publication instruction. Ordinary changes stay local on `codex/desktop-migration`. Commit local checkpoints; push that development branch only when asked to back up/share work. Do not push/merge to `main`, create release tags, deploy a Site, publish a desktop release, or replace the installed Mac app unless the owner explicitly requests a release. Do not interpret an ordinary fix or interface request as release authorization. Read `docs/DEVELOPING.md` for setup and the release checklist. Do not bypass the development push guard during ordinary work.
+
+Web and desktop are one shared product: a request mentioning either platform applies to both unless explicitly limited. Test shared changes in both. For an explicitly requested production release, publish the verified web update and matching signed/notarized desktop release, including installed-app verification, subject to any explicit owner deferral. Source pushes alone are insufficient. The standing Mac notarization deferral remains in force until the owner resolves it.
 
 Read `plan.md` and `docs/VERIFICATION.md` before claiming completion. Tests using fixture authentication do not prove real Publik connectivity. Do not add production authentication bypasses or fake AI responses. Native editing contracts and editorial safety checks live under `lib/ios`; keep stable source word IDs and validate AI edits atomically.
 

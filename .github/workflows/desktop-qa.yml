@@ -1,6 +1,8 @@
 name: Desktop QA
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [codex/desktop-migration]
     paths:
@@ -10,6 +12,8 @@ on:
         "app/**",
         "components/**",
         "scripts/build-desktop.mjs",
+        "scripts/*development*.mjs",
+        ".githooks/**",
         "package*.json",
         ".github/workflows/desktop-qa.yml",
       ]

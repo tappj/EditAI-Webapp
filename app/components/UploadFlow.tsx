@@ -91,7 +91,9 @@ export function UploadFlow({
 
   async function toggle() {
     const player = video.current;
-    if (!player || !ready) return;
+    // A tap must be able to start loading playback on browsers that defer
+    // buffering until a user gesture. Waiting for canplay first deadlocks it.
+    if (!player || preparing) return;
     if (!player.paused) player.pause();
     else
       try {
@@ -300,8 +302,13 @@ export function UploadFlow({
               }
             }}
             onClick={() => void toggle()}
+            onLoadedMetadata={() => setReady(true)}
             onCanPlay={() => setReady(true)}
             onPlay={() => setPlaying(true)}
+            onPlaying={() => {
+              setReady(true);
+              setPlaybackError("");
+            }}
             onPause={() => setPlaying(false)}
             onEnded={() => setPlaying(false)}
             onError={() => {
@@ -322,7 +329,7 @@ export function UploadFlow({
             <button
               className="upload-review-play"
               aria-label={uiText("Play upload preview")}
-              disabled={!ready}
+              disabled={preparing}
               onClick={() => void toggle()}
             >
               <Play size={28} fill="currentColor" />

@@ -3972,3 +3972,36 @@ and installed-to-next-version upgrade were not exercised or published. This is
 local source work only; the verified installed/public Mac 0.2.63, live web 206 and
 remote branches remain unchanged. The owner's existing development server was
 left running; only the separate QA server was stopped.
+
+
+## November 27 — Upload-preview playback readiness (local only)
+
+The owner clarified that footage would not play in upload review before Send,
+and that desktop-browser uploads missing on mobile were also still before Send.
+Those uploads are local drafts: importFiles saves them in scoped IndexedDB, while
+Send's save flow writes the remote project and attempts source backups. Localhost
+and production storage are deliberately separate. Clarified the existing behavior
+and current automatic backup limits in WEB-PARITY.md; no synchronization, account
+identity, cloud quota, or production behavior was changed for this report.
+
+A targeted regression reproduced a definite preview-control lock before the fix:
+with the review's canplay notification withheld, real imported video metadata was
+available but Play remained disabled. UploadFlow now permits a user-initiated play
+request before automatic buffering finishes; metadata enables Send, and actual
+playing also confirms readiness and clears a recovered playback error. Preparing
+and decode-error protections remain. This addresses the reproduced lock, not a
+claim that the owner's outdoor connection or physical phone was the exact cause.
+Safari user-gesture behavior reference:
+https://developer.apple.com/documentation/webkit/delivering-video-content-for-safari
+
+Typecheck, 123 unit tests, 37 desktop contracts, production web and shared desktop
+builds pass. On the final freshly started built Worker, the new withheld-readiness
+regression and existing multi-clip review/Send acceptance pass in Chromium and
+WebKit (two per engine), using real video decoding, advancing playback and keyboard
+pause/resume with fixture account/AI boundaries. No genuine AI request was made;
+these tests do not prove real-provider connectivity or physical iPhone acceptance.
+The read-only live error-log check returned no recent Worker errors; that does not
+exclude a client-side media/network failure. No customer data or live settings were
+modified. Public boundary checks pass. Saved locally only, without push, deployment,
+installer publication or replacement of the installed Mac app. The user's dev
+server remains running; the separate QA server is stopped after verification.

@@ -76,6 +76,38 @@ async function sendUpload(page: import("@playwright/test").Page) {
   await expect(page.locator(".upload-review")).toHaveCount(0);
 }
 
+test("upload preview can start from a tap when automatic buffering readiness is withheld", async ({ page }) => {
+  await authenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    // Mobile preload policies may expose metadata before buffering a playable
+    // frame. Withhold only the review's readiness notification; decoding/playback
+    // still use the real video and browser, and the import probe is unaffected.
+    document.addEventListener("canplay", (event) => {
+      if (event.target instanceof HTMLVideoElement && event.target.closest(".upload-review"))
+        event.stopImmediatePropagation();
+    }, true);
+  });
+  await openStudio(page);
+  await page.locator("input[type=file]").first().setInputFiles("outputs/fixture.mp4");
+  const review = page.getByRole("region", { name: "Preview your upload" });
+  const preview = review.locator("video");
+  await expect(review).toBeVisible();
+  await expect.poll(() => preview.evaluate(video => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
+  await expect(review.getByRole("button", { name: "Play upload preview" })).toBeEnabled();
+  await expect(review.getByRole("button", { name: "Send", exact: true })).toBeEnabled();
+  await review.getByRole("button", { name: "Play upload preview" }).click();
+  await expect(preview).toHaveJSProperty("paused", false);
+  await expect.poll(() => preview.evaluate(video => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0.1);
+  await preview.click();
+  await expect(preview).toHaveJSProperty("paused", true);
+  await preview.focus();
+  await preview.press("Space");
+  await expect(preview).toHaveJSProperty("paused", false);
+  await expect(page.locator(".upload-processing")).toHaveCount(0);
+  await page.getByRole("button", { name: "Exit upload", exact: true }).click();
+});
+
 test("native upload review waits for Send, previews multiple clips, and circles the image during one first cut", async ({
   page,
 }) => {

@@ -14,7 +14,7 @@ The source of truth is the sibling EditAI Swift app. Pure editorial prompts, ind
 | Customize chat | Native structured edit contract, atomic validation, text/caption/style operations; image or sampled video reference frames |
 | Recording / teleprompter | Browser MediaRecorder, segmented takes, explicit confirmation, 30s/60s/3min/10min cap, camera switch, scrolling script; UI never burned into source |
 | Batch | Two–ten separate projects; optional sequential AI edits; originals retained on partial failure |
-| Library | Identity-scoped IndexedDB originals and drafts, server timeline sync, rename/delete/reopen; optional private cloud source backup |
+| Library | Identity-scoped IndexedDB originals and drafts, server timeline sync, rename/delete/reopen; automatic private cloud backup of new sources during Send, within storage limits |
 | Profile / settings | Profile name/avatar, light/dark/system appearance, language, Publik plan use as a percentage, consent, telemetry opt-out, data export/deletion |
 | Export | Actual shared-compositor rendering and MP4 H.264/AAC encoding; original dimensions or 480/720/1080 widescreen long-edge targets; 24/30/60 fps |
 
@@ -27,7 +27,7 @@ The source of truth is the sibling EditAI Swift app. Pure editorial prompts, ind
 - Photos saving becomes a browser download. Hardware camera torch/front-screen flash and native device capture quality are not promised by browser capture.
 - The native transcript/analysis views are temporary. The web retains the imported project/words for recovery; it does not require a paid second transcription when reopening.
 - Publik may return a linked account with no public ID/handle. Such accounts use the verified install key ID as a browser-scoped owner identity, with a persistent HTTP-only session. Different browsers will not automatically share those projects. Accounts with a returned public identity use account scope. Settings discloses the actual scope; export metadata and retain originals before changing browsers.
-- Source backups are opt-in and capped at 100 MB/file and 500 MB/account. A timeline synced without source backup needs the original browser's local media. This is disclosed in Settings and errors.
+- Uploads waiting on the preview screen before Send are local drafts; signing in on another device does not transfer those drafts. Send runs the editing/save flow and attempts to back up new web sources automatically, capped at 100 MB/file and 500 MB/account. A timeline synced without a successful source backup needs the original browser's local media. Older sources can be backed up explicitly from Settings. Localhost and the live site have separate databases and media storage, even for the same Publik account.
 - The shared editor advertises its supported native AI media operations explicitly. Requests for invalid targets or unsupported target/operation combinations fail atomically; imported media can also be edited manually.
 
 Real Publik AI verification and its testing boundaries are recorded in VERIFICATION.md. The public authenticated AI/cloud-restore/export workflow and WebKit engine checks have passed. Publik catalog review, physical camera/microphone permissions, and an actual Safari/iPhone device check remain outstanding.

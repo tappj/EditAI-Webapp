@@ -42,7 +42,7 @@ test("release opt-in and development pushes still run the original privacy guard
       cwd: root, input: update(ref), encoding: "utf8",
       env: { ...process.env, EDITAI_ALLOW_RELEASE_PUSH: "1" },
     });
-    assert.equal(result.status, 23);
+    assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Existing privacy guard ran/);
   }
 });

@@ -289,7 +289,7 @@ try {
     notes,
     "EditAI Desktop 0.2.64 for macOS " +
       arch +
-      ". The matching website calculator introduces itself from 4 to 15 videos on first view, then supports direct graph dragging and keyboard input. EditAI’s gradient logo, a happy resting-hand Eva guide and a compact typewriter footnote clarify the comparison. Existing sign-in, onboarding, editing, language and support improvements are retained. Signed, notarized and verified in the installed Mac app with native MP4 export. Web: https://editai.it.com. Windows is not included.\n",
+      ". Processing shows smoothly advancing estimated percentages instead of elapsed time and a task counter. Project deletion has larger, equally sized actions. Upload previews can start from a tap before automatic buffering finishes. After installation, EditAI opens without prompting to eject or delete the installer; downloaded installers are left untouched. Existing editor, language, support and privacy features are retained. Signed, notarized and verified in the installed Mac app with native MP4 export. Web: https://editai.it.com. Windows is not included.\n",
   );
   // The draft contains the exact signed ZIP used by macOS CI to assemble the DMG.
   // Keep it private until every release artifact and the installed app pass.
